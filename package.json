@@ -1,0 +1,23 @@
+{
+  "name": "veerwell-platform",
+  "version": "2.0.0",
+  "description": "वीरWell — HR Employee Wellness and Workforce Analytics Platform",
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "seed": "cd server && npm run seed",
+    "build": "cd client && npm run build",
+    "start": "cd server && npx tsx src/server.ts"
+  },
+  "keywords": [
+    "veerwell",
+    "hr-wellness",
+    "workforce-analytics",
+    "stress-intelligence",
+    "anonymized-data",
+    "react-three-fiber",
+    "framer-motion"
+  ],
+  "author": "VeerWell Engineering Team",
+  "license": "MIT"
+}
