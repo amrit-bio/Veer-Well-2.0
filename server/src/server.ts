@@ -6,11 +6,17 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import pdfParse from 'pdf-parse';
 import Papa from 'papaparse';
+import dotenv from 'dotenv';
 import { SeededData, generateSeedData } from './utils/seedData.js';
+import { predictXGBoost, warmXGBoost } from './utils/xgboostEngine.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'veerwell_super_secret_jwt_key_2026';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '20mb' }));
@@ -843,7 +849,275 @@ app.get('/api/wearables', (req: Request, res: Response) => {
   });
 });
 
+// ==========================================
+// 10. RAKSHAK AI & GEMINI INTEGRATION
+// ==========================================
+function getGeminiModelUrl(modelName = 'gemini-3.5-flash-lite') {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+}
+
+function extractTextFromGeminiResponse(payload: any): string {
+  if (!payload || !payload.candidates || !Array.isArray(payload.candidates)) {
+    return '';
+  }
+  const candidate = payload.candidates[0];
+  if (!candidate || !candidate.content || !Array.isArray(candidate.content.parts)) {
+    return '';
+  }
+  return candidate.content.parts
+    .map((part: any) => (typeof part.text === 'string' ? part.text : ''))
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function parseJsonLikeText(rawText: string): any {
+  if (!rawText) return null;
+  const cleaned = rawText
+    .replace(/```json\s*/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch (secondError) {
+      return null;
+    }
+  }
+}
+
+const RAKSHAK_SYSTEM_INSTRUCTION = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).
+
+CRITICAL INSTRUCTIONS:
+1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not deflect, give unrelated boilerplate, or repeat generic breathing exercises unless the user specifically asks for stress relief, breathing techniques, or acute panic assistance.
+2. If the user asks about the VeerWell 2.0 platform or its features:
+   - Explain the 5 Core Views:
+     1. Personnel Wellness Monitoring Dashboard (Battalion readiness, 3D stress orb, 5D radar, fatigue metrics)
+     2. Mobile-Responsive Self-Assessment (Voluntary PHQ-9, Burnout screeners, simulated PPG/SpO2/HRV smartwatch sync)
+     3. Predictive Analytics Module (14-day burnout forecast curves, What-If operational roster & altitude simulator)
+     4. Intervention & Alert System (Clinical welfare directives, 48h hypoxia rest rotations, supportive counseling scripts)
+     5. Privacy Management Framework (RBAC matrix, cryptographic token anonymization CAPF-NODE-XXXX, zero-trust protocol)
+   - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
+3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
+4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
+5. Maintain conversational context across follow-up questions.`;
+
+async function callGeminiChat(
+  contents: Array<{ role: string; parts: Array<{ text: string }> }>,
+  systemText: string = RAKSHAK_SYSTEM_INSTRUCTION
+): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is missing in server environment.');
+  }
+
+  const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetch(getGeminiModelUrl(model), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemText }],
+          },
+          contents,
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 4096,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        lastError = new Error(`Gemini (${model}) error ${response.status}: ${errorText}`);
+        continue;
+      }
+
+      const payload = await response.json();
+      const text = extractTextFromGeminiResponse(payload);
+      if (text) {
+        return text;
+      }
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  throw lastError || new Error('All Gemini models returned empty responses.');
+}
+
+app.post('/api/chat', async (req: Request, res: Response) => {
+  try {
+    const { message, messages = [], context = {} } = req.body || {};
+    if (!message && (!Array.isArray(messages) || messages.length === 0)) {
+      return res.status(400).json({ success: false, error: 'A message is required.' });
+    }
+
+    // Build multi-turn payload
+    const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+
+    if (Array.isArray(messages) && messages.length > 0) {
+      for (const m of messages) {
+        if (m.text && m.text.trim()) {
+          contents.push({
+            role: m.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }],
+          });
+        }
+      }
+    } else if (message) {
+      contents.push({
+        role: 'user',
+        parts: [{ text: message }],
+      });
+    }
+
+    // Append context metadata if available
+    let dynamicSystem = RAKSHAK_SYSTEM_INSTRUCTION;
+    if (context && Object.keys(context).length > 0) {
+      dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
+    }
+
+    const reply = await callGeminiChat(contents, dynamicSystem);
+
+    return res.json({
+      success: true,
+      reply,
+      model: 'gemini-3.5-flash-lite',
+      name: 'Rakshak AI',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Rakshak AI Chat error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Error generating AI wellness response.',
+    });
+  }
+});
+
+app.post('/api/xgboost/predict', (req: Request, res: Response) => {
+  const prediction = predictXGBoost(req.body || {});
+  return res.json({ success: true, prediction });
+});
+
+app.post('/api/xgboost/simulate', (req: Request, res: Response) => {
+  const {
+    shiftHours = 48,
+    sleepDeficit = 2,
+    consecutiveDays = 6,
+    altitude = false,
+    heartRate = 72,
+    spo2 = 97,
+    hrv = 58,
+  } = req.body || {};
+  const prediction = predictXGBoost({
+    meanAnswer: Number(sleepDeficit) / 3,
+    sleepLoad: Math.min(3, Number(sleepDeficit) / 2),
+    burnoutLoad: Math.min(3, Number(shiftHours) / 24),
+    cognitiveLoad: Math.min(3, Number(consecutiveDays) / 5),
+    safetyLoad: 1,
+    heartRate: Number(heartRate),
+    spo2: Number(spo2),
+    hrv: Number(hrv),
+    shiftHours: Number(shiftHours),
+    sleepDeficit: Number(sleepDeficit),
+    consecutiveDays: Number(consecutiveDays),
+    altitude: altitude ? 1 : 0,
+  });
+  return res.json({ success: true, prediction });
+});
+
+app.post('/api/stress-check', async (req: Request, res: Response) => {
+  try {
+    const intake = req.body || {};
+    const xgb = predictXGBoost({
+      meanAnswer: Number(intake.calculatedScore ? intake.calculatedScore / 33 : intake.xgboost?.stressScore ? intake.xgboost.stressScore / 33 : 1.4),
+      sleepLoad: 1.5,
+      burnoutLoad: 1.6,
+      cognitiveLoad: 1.4,
+      safetyLoad: 1.2,
+      heartRate: intake.wearableMetrics?.heartRate ?? 72,
+      spo2: intake.wearableMetrics?.spo2 ?? 97,
+      hrv: intake.wearableMetrics?.hrv ?? 58,
+      shiftHours: 48,
+      sleepDeficit: 2,
+      consecutiveDays: 6,
+      altitude: 1,
+    });
+
+    const prompt = `
+You are Rakshak AI, a clinical behavioral analytics engine for CAPF and Uniformed Forces.
+XGBoost GBDT already scored this profile:
+${JSON.stringify(xgb, null, 2)}
+
+Additional intake:
+${JSON.stringify(intake, null, 2)}
+
+Return ONLY valid JSON with this exact schema:
+{
+  "overallRisk": "Low" | "Moderate" | "High" | "Critical",
+  "stressScore": number (1 to 100),
+  "keyTriggers": ["string", "string"],
+  "copingPlan": ["string", "string", "string"],
+  "recommendedAction": "string",
+  "welfareDirective": "string",
+  "model": "XGBoost + Gemini"
+}
+Use the XGBoost stressScore and riskBand as the primary numeric truth; write clinical language around it.
+`;
+
+    let parsed: any = null;
+    try {
+      const rawResponse = await callGeminiChat([{ role: 'user', parts: [{ text: prompt }] }]);
+      parsed = parseJsonLikeText(rawResponse);
+    } catch {
+      parsed = null;
+    }
+
+    const assessment = parsed || {
+      overallRisk: xgb.riskBand,
+      stressScore: xgb.stressScore,
+      keyTriggers: xgb.featureContributions.slice(0, 3).map((c) => c.name),
+      copingPlan: [
+        'Initiate 4-4-4-4 Tactical Box Breathing pacer',
+        'Prioritize 7+ hours uninterrupted sleep window',
+        'Request 48-hour base camp thermal recovery rotation',
+      ],
+      recommendedAction: 'Schedule 30-minute psychological debriefing with Unit Welfare Officer.',
+      welfareDirective: 'Expedite 2-day Wellness Recharge leave under CAPF Welfare Doctrine.',
+      model: xgb.model,
+    };
+
+    assessment.stressScore = xgb.stressScore;
+    assessment.overallRisk = assessment.overallRisk || xgb.riskBand;
+    assessment.xgboost = xgb;
+
+    return res.json({ success: true, assessment });
+  } catch (error: any) {
+    console.error('Rakshak AI Stress-check error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Stress assessment failed.',
+    });
+  }
+});
+
+warmXGBoost();
+
 // Start Express Server
 app.listen(PORT, () => {
-  console.log(`[VeerWell Server] 🚀 Server running at http://localhost:${PORT}`);
+  console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
+  console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
 });
+

@@ -1,162 +1,126 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { BrandLogo } from '../common/BrandLogo';
 import {
+  Home,
   LayoutDashboard,
   ClipboardCheck,
-  BrainCircuit,
-  Compass,
-  CalendarHeart,
-  MessageSquareHeart,
-  Kanban,
+  LineChart,
   HeartPulse,
-  Sparkles,
-  ShieldAlert,
-  Home,
-  TrendingUp,
-  Target,
-  Lock,
+  ShieldCheck,
   Database,
-  BarChart3,
-  Users,
+  Award,
+  Info,
   Bell,
-  Plug,
-  MessageCircle,
+  Cpu,
+  MessageSquare,
+  ChevronRight,
+  Shield,
+  Activity,
 } from 'lucide-react';
 
 export interface TabItem {
   id: string;
   label: string;
+  category: 'Core Modules' | 'Analytics & Welfare' | 'Platform & Demo';
   icon: React.ElementType;
   badge?: string;
-  roles: string[]; // which roles can access
   description: string;
+  roles?: ('commander' | 'welfare_officer' | 'personnel' | 'analyst')[];
 }
 
 export const TABS: TabItem[] = [
+  // 1. Core Modules
   {
     id: 'home',
     label: 'Home / Overview',
+    category: 'Core Modules',
     icon: Home,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst', 'commander'],
-    description: 'Project intro, AI features & quick start',
+    description: 'Mission introduction & highlights',
   },
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Personnel Dashboard',
+    category: 'Core Modules',
     icon: LayoutDashboard,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Personnel wellness monitoring & alerts',
+    badge: 'Live',
+    description: 'Unit stress, burnout & alerts',
   },
   {
-    id: 'assessments',
+    id: 'assessment',
     label: 'Self-Assessment',
+    category: 'Core Modules',
     icon: ClipboardCheck,
-    badge: 'Interactive',
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Stress surveys & wearable connection',
+    badge: 'Confidential',
+    description: 'Voluntary check-in & wearables',
   },
+
+  // 2. Analytics & Welfare
   {
-    id: 'predictive',
+    id: 'analytics',
     label: 'Predictive Analytics',
-    icon: TrendingUp,
-    badge: 'AI-Powered',
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'data_analyst'],
-    description: 'Risk models & trend analysis demo',
+    category: 'Analytics & Welfare',
+    icon: LineChart,
+    badge: '14-Day AI',
+    description: 'Behavioral models & privacy demo',
   },
   {
-    id: 'stress',
-    label: 'Intervention Recommendations',
-    icon: Target,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead'],
-    description: 'Counseling & workload suggestions',
-  },
-  {
-    id: 'deployment',
-    label: 'Deployment Records',
-    icon: Compass,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Deployment history & timeline',
-  },
-  {
-    id: 'leave',
-    label: 'Leave History',
-    icon: CalendarHeart,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Calendar view & entitlements',
-  },
-  {
-    id: 'surveys',
-    label: 'Wellness Surveys',
-    icon: MessageSquareHeart,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'data_analyst'],
-    description: 'Survey responses & sentiment analysis',
-  },
-  {
-    id: 'workload',
-    label: 'Workload Data',
-    icon: Kanban,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Duty schedules & workload analysis',
-  },
-  {
-    id: 'wearables',
-    label: 'Wearables Data',
+    id: 'interventions',
+    label: 'Welfare Interventions',
+    category: 'Analytics & Welfare',
     icon: HeartPulse,
-    badge: 'Bio-Metrics',
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Heart rate, SpO₂ & biometric data',
+    badge: 'Rest Roster',
+    description: 'Counseling & rest rotations',
   },
   {
     id: 'privacy',
     label: 'Privacy & Security',
-    icon: Lock,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Data anonymization & access controls',
+    category: 'Analytics & Welfare',
+    icon: ShieldCheck,
+    badge: 'Zero-Trust',
+    description: 'Anonymization & welfare doctrine',
   },
+
+  // 3. Platform & Demo
   {
     id: 'datasets',
     label: 'Datasets & Simulation',
+    category: 'Platform & Demo',
     icon: Database,
-    roles: ['hr_admin', 'wellness_mgr', 'data_analyst'],
-    description: 'Sample datasets & visualization tools',
+    badge: 'CSV / PDF',
+    description: 'Simulated records & data ingestion',
   },
   {
     id: 'impact',
     label: 'Impact & Benefits',
-    icon: BarChart3,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Strategic benefits & expected outcomes',
+    category: 'Platform & Demo',
+    icon: Award,
+    description: 'Readiness & strategic metrics',
   },
   {
     id: 'about',
-    label: 'About / Hackathon',
-    icon: Users,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Team, roadmap & project info',
+    label: 'Hackathon / About',
+    category: 'Platform & Demo',
+    icon: Info,
+    description: 'Team, Vercel & roadmap',
   },
   {
-    id: 'notifications',
-    label: 'Notifications',
-    icon: Bell,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead'],
-    description: 'Welfare alerts & important updates',
-  },
-  {
-    id: 'integration',
-    label: 'Integration',
-    icon: Plug,
-    roles: ['hr_admin', 'wellness_mgr'],
-    description: 'HRMS & wearable device connections',
+    id: 'integrations',
+    label: 'Device Integrations',
+    category: 'Platform & Demo',
+    icon: Cpu,
+    description: 'HRMS & tactical smartwatch sync',
   },
   {
     id: 'feedback',
-    label: 'Feedback',
-    icon: MessageCircle,
-    roles: ['hr_admin', 'wellness_mgr', 'team_lead', 'employee', 'data_analyst'],
-    description: 'Collect user feedback & suggestions',
+    label: 'Hackathon Feedback',
+    category: 'Platform & Demo',
+    icon: MessageSquare,
+    badge: 'Evaluate',
+    description: 'Jury & evaluator review form',
   },
 ];
+
 
 interface SidebarProps {
   activeTab: string;
@@ -164,83 +128,92 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
 
-  // Filter tabs based on current role permissions
-  const visibleTabs = TABS.filter((t) => t.roles.includes(role));
+  const categories = ['Core Modules', 'Analytics & Welfare', 'Platform & Demo'] as const;
 
   return (
-    <aside className="w-64 shrink-0 hidden md:flex flex-col border-r border-olive-200 bg-white/50 backdrop-blur-xl p-4 min-h-[calc(100vh-4rem)]">
-      {/* Section Header */}
-      <div className="px-3 mb-3">
-        <span className="text-[10px] font-mono font-bold tracking-widest text-slate-500 uppercase">
-          Analytics & Intel Modules
-        </span>
+    <aside className="w-64 shrink-0 hidden lg:flex flex-col border-r border-olive-400/20 bg-olive-950/90 backdrop-blur-xl p-4 min-h-[calc(100vh-4rem)]">
+      {/* Unit Badge Header */}
+      <div className="p-3 mb-3 rounded-xl bg-gradient-to-br from-olive-900 to-olive-950 border border-olive-400/30">
+        <div className="flex items-center gap-2 mb-2">
+          <BrandLogo size="sm" />
+          <span className="text-[10px] font-black text-white tracking-wide">
+            <span className="font-devanagari text-accent-gold">वीर</span>Well
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-2 h-2 rounded-full bg-accent-gold animate-pulse" />
+          <span className="text-[10px] font-mono font-bold uppercase text-accent-gold tracking-wider">
+            {user.force} • {user.rank.split(' ')[0]}
+          </span>
+        </div>
+        <div className="text-xs font-bold text-slate-100 truncate">{user.name}</div>
+        <div className="text-[10px] text-olive-300 truncate font-mono">{user.unit}</div>
       </div>
 
       {/* Tabs Navigation List */}
-      <nav className="flex-1 space-y-1.5">
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-
+      <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
+        {categories.map((cat) => {
+          const catTabs = TABS.filter((t) => t.category === cat);
           return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`w-full group relative flex items-center justify-between px-3.5 py-3 rounded-xl text-left transition-all ${
-                isActive
-                  ? 'bg-gradient-to-r from-olive-500/15 via-olive-400/10 to-transparent text-olive-700 font-semibold border-l-4 border-olive-700 shadow-sm shadow-olive-500/10'
-                  : 'text-slate-600 hover:text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`p-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-olive-100 text-olive-700'
-                      : 'bg-slate-100 text-slate-600 group-hover:text-slate-700 group-hover:bg-slate-200'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="truncate">
-                  <div className="text-xs font-medium truncate">{tab.label}</div>
-                  <div className="text-[10px] text-slate-600 truncate font-normal">
-                    {tab.description}
-                  </div>
-                </div>
+            <div key={cat} className="space-y-1">
+              <div className="px-3 text-[9px] font-mono font-bold tracking-widest text-olive-400/80 uppercase">
+                {cat}
               </div>
+              {catTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-              {tab.badge && (
-                <span
-                  className={`ml-2 text-[9px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                    isActive
-                      ? 'bg-olive-100 border-olive-400 text-olive-700'
-                      : 'bg-slate-200 border-slate-300 text-slate-700'
-                  }`}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className={`w-full group relative flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-olive-700/80 via-olive-800/60 to-transparent text-white font-bold border-l-4 border-accent-gold shadow-md shadow-olive-950/40'
+                        : 'text-olive-200/80 hover:text-white hover:bg-olive-900/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-accent-gold/20 text-accent-gold'
+                            : 'bg-olive-900 text-olive-300 group-hover:text-white group-hover:bg-olive-800'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="truncate">
+                        <div className="text-xs truncate">{tab.label}</div>
+                      </div>
+                    </div>
+
+                    {tab.badge && (
+                      <span
+                        className={`ml-1 text-[8px] font-mono px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                          isActive
+                            ? 'bg-accent-gold/20 border-accent-gold/40 text-accent-gold font-bold'
+                            : 'bg-olive-900/90 border-olive-700 text-olive-300'
+                        }`}
+                      >
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
 
-      {/* Footer System Status Card */}
-      <div className="mt-auto pt-4 border-t border-slate-200">
-        <div className="bg-olive-50 rounded-2xl p-3.5 border border-olive-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-olive-700">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Bio-Signal Node</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-olive-700 animate-ping" />
-          </div>
-          <p className="text-[11px] text-slate-600">
-            Real-time biometric data sync active across 21 deployed nodes.
-          </p>
+      {/* Footer Security Badge */}
+      <div className="mt-auto pt-3 border-t border-olive-800/80">
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-olive-900/50 border border-olive-700/40 text-[10px] text-olive-300 font-mono">
+          <Shield className="w-3.5 h-3.5 text-accent-gold shrink-0" />
+          <span className="truncate">100% Welfare Doctrine Active</span>
         </div>
       </div>
     </aside>

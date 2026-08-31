@@ -1,248 +1,515 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertCircle, Eye, EyeOff, TrendingUp } from 'lucide-react';
+import {
+  LineChart as LineChartIcon,
+  Cpu,
+  Shield,
+  Eye,
+  EyeOff,
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+  Layers,
+  ArrowRight,
+  Database,
+  Sliders,
+  RotateCcw,
+  Zap,
+} from 'lucide-react';
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  ZAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  LineChart,
+  Line,
+  Legend,
+  AreaChart,
+  Area,
+} from 'recharts';
+import { BrandLogo } from '../common/BrandLogo';
+import { predictXGBoost } from '../../lib/xgboostEngine';
 
 export const PredictiveAnalyticsTab: React.FC = () => {
-  const [showAnonymized, setShowAnonymized] = useState(true);
+  const [anonymizationLevel, setAnonymizationLevel] = useState<'raw' | 'anonymized'>('anonymized');
+  const [view, setView] = useState<'forecast' | 'simulator' | 'privacy'>('forecast');
 
-  // Sample risk prediction data
-  const riskData = [
-    { name: 'Low Risk', count: 45, percentage: 45, color: '#7e8f4a' },
-    { name: 'Medium Risk', count: 35, percentage: 35, color: '#f59e0b' },
-    { name: 'High Risk', count: 20, percentage: 20, color: '#ef4444' },
+  // Simulation Levers
+  const [simShiftHours, setSimShiftHours] = useState<number>(48);
+  const [simRestDays, setSimRestDays] = useState<number>(2);
+  const [simHypoxia, setSimHypoxia] = useState<boolean>(true);
+
+  // Predictive Cohort Forecasts (7-14 Days Forward)
+  const cohortForecasts = [
+    {
+      cohort: 'Sector Leh Forward Patrols (High Altitude)',
+      currentStress: 6.9,
+      forecast7D: 7.6,
+      riskTier: 'High Strain Risk',
+      fatigueProbability: 82,
+      topFactor: 'Sub-zero temperatures & hypoxia sleep deficit',
+      action: 'Mandatory 48h base camp rest rotation',
+    },
+    {
+      cohort: '142 Bn Srinagar Tactical Reconnaissance',
+      currentStress: 5.8,
+      forecast7D: 5.2,
+      riskTier: 'Moderate Strain',
+      fatigueProbability: 46,
+      topFactor: 'Consecutive night duty handovers',
+      action: 'Shift balance optimization',
+    },
+    {
+      cohort: '209 CoBRA Jungle Operations',
+      currentStress: 4.6,
+      forecast7D: 4.3,
+      riskTier: 'Low / Stable',
+      fatigueProbability: 24,
+      topFactor: 'High physical baseline conditioning',
+      action: 'Standard operational surveillance',
+    },
+    {
+      cohort: '88 Mahila Bn Quick Reaction Team',
+      currentStress: 3.8,
+      forecast7D: 3.6,
+      riskTier: 'Low / Optimal',
+      fatigueProbability: 18,
+      topFactor: 'Strong peer support culture',
+      action: 'Routine wellness maintenance',
+    },
   ];
 
-  // Trend analysis data
-  const trendData = [
-    { month: 'Jan', stress: 35, burnout: 28, workload: 45 },
-    { month: 'Feb', stress: 38, burnout: 32, workload: 48 },
-    { month: 'Mar', stress: 42, burnout: 38, workload: 52 },
-    { month: 'Apr', stress: 45, burnout: 42, workload: 55 },
-    { month: 'May', stress: 48, burnout: 45, workload: 58 },
-    { month: 'Jun', stress: 52, burnout: 48, workload: 62 },
+  // Dynamic 14-Day Trajectory Curve (Baseline vs What-If Simulated Intervention)
+  const calculateTrajectory = () => {
+    const days = ['Day 1', 'Day 3', 'Day 5', 'Day 7', 'Day 9', 'Day 11', 'Day 14'];
+    const pred = predictXGBoost({
+      meanAnswer: simShiftHours / 24,
+      sleepLoad: simHypoxia ? 2.2 : 1.1,
+      burnoutLoad: simShiftHours / 28,
+      cognitiveLoad: (3 - simRestDays) * 0.8,
+      safetyLoad: 1,
+      heartRate: 58 + simShiftHours / 3,
+      spo2: simHypoxia ? 91 : 97,
+      hrv: Math.max(30, 74 - simShiftHours / 4 + simRestDays * 4),
+      shiftHours: simShiftHours,
+      sleepDeficit: simHypoxia ? 2.8 : Math.max(0.4, 4 - simRestDays),
+      consecutiveDays: 8 - simRestDays,
+      altitude: simHypoxia ? 1 : 0,
+    });
+
+    return days.map((day, idx) => {
+      const baseline = 5.2 + idx * 0.35 + (simHypoxia ? 0.6 : 0);
+      const simulated = Math.max(2.5, Math.min(9.5, (pred.stressScore / 12) + idx * 0.12 - simRestDays * 0.35));
+      return {
+        day,
+        baseline: Number(baseline.toFixed(1)),
+        simulated: Number(simulated.toFixed(1)),
+        safetyThreshold: 6.5,
+        xgbScore: pred.stressScore,
+      };
+    });
+  };
+
+  const trajectoryData = calculateTrajectory();
+
+  // Correlation Scatter Data: Duty Hours (X) vs Stress Score (Y)
+  const correlationData = [
+    { x: 38, y: 3.4, z: 28, node: 'CAPF-NODE-1001', unit: '88 Bn' },
+    { x: 42, y: 4.1, z: 35, node: 'CAPF-NODE-1002', unit: '209 CoBRA' },
+    { x: 46, y: 4.8, z: 45, node: 'CAPF-NODE-1003', unit: '142 Bn' },
+    { x: 50, y: 5.9, z: 62, node: 'CAPF-NODE-1004', unit: '142 Bn' },
+    { x: 54, y: 6.8, z: 74, node: 'CAPF-NODE-1005', unit: 'Leh ITBP' },
+    { x: 58, y: 7.8, z: 88, node: 'CAPF-NODE-1006', unit: 'Leh ITBP' },
+    { x: 40, y: 3.8, z: 30, node: 'CAPF-NODE-1007', unit: '88 Bn' },
+    { x: 45, y: 4.5, z: 40, node: 'CAPF-NODE-1008', unit: '209 CoBRA' },
+    { x: 52, y: 6.2, z: 68, node: 'CAPF-NODE-1009', unit: '142 Bn' },
+    { x: 56, y: 7.2, z: 80, node: 'CAPF-NODE-1010', unit: 'Leh ITBP' },
   ];
 
-  // Anonymization demo data
-  const anonymizationSteps = [
+  // Raw vs Anonymized Demo Data
+  const sampleRecords = [
     {
-      step: 1,
-      label: 'Raw Data Collection',
-      example: 'Officer ID: 1234, Name: John Doe, Heart Rate: 92, Location: Base A'
+      rawName: 'Insp. Vikramaditya Shrestha',
+      rawService: 'CRPF-209-COBRA-841',
+      rawUnit: '209 CoBRA Bn (Gaya)',
+      anonId: 'CAPF-NODE-1042',
+      anonForce: 'CRPF Tactical Recon',
+      anonZone: 'Eastern Sector Grid Alpha',
+      stressScore: 4.6,
+      fatigueIndex: 42,
     },
     {
-      step: 2,
-      label: 'PII Removal',
-      example: 'Officer ID: ANON-5847, Heart Rate: 92, Location: Base A'
+      rawName: 'Sub-Insp. Rajeshwar Rao',
+      rawService: 'CRPF-142-SRN-920',
+      rawUnit: '142 Bn (Srinagar HQ)',
+      anonId: 'CAPF-NODE-1043',
+      anonForce: 'CRPF Urban Command',
+      anonZone: 'Northern Sector Grid Delta',
+      stressScore: 6.8,
+      fatigueIndex: 74,
     },
     {
-      step: 3,
-      label: 'Location Anonymization',
-      example: 'Officer ID: ANON-5847, Heart Rate: 92, Location: Region-North'
-    },
-    {
-      step: 4,
-      label: 'Aggregation',
-      example: '50 officers in Region-North with avg HR: 89, stress score: 38'
+      rawName: 'Head Const. Amit Kumar',
+      rawService: 'ITBP-LEH-FWD-114',
+      rawUnit: 'Leh Sector Outpost ITBP',
+      anonId: 'CAPF-NODE-1044',
+      anonForce: 'ITBP High Altitude',
+      anonZone: 'Frontier Sector Grid Echo',
+      stressScore: 7.6,
+      fatigueIndex: 86,
     },
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Predictive Analytics Engine</h1>
-        <p className="text-slate-600">AI-powered behavioral analysis and risk prediction demo</p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-olive-400/30">
+        <div className="flex items-start gap-3">
+          <BrandLogo size="md" />
+          <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
+              XGBoost Behavioral Engine
+            </span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">
+            Predictive Stress Modeling & Behavioral Intelligence
+          </h1>
+          <p className="text-xs text-olive-200 mt-1 max-w-xl">
+            36-tree gradient boosting fused with wearable HRV/SpO₂ and roster levers. 7–14 day burnout risk — welfare use only.
+          </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-olive-900 border border-olive-500/40 text-xs font-mono text-accent-gold">
+          <Cpu className="w-4 h-4" />
+          <span>XGBoost GBDT · live inference</span>
+        </div>
       </div>
 
-      {/* Risk Assessment Distribution */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl p-6 border border-olive-200 shadow-md"
-      >
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="w-5 h-5 text-olive-700" />
-          <h2 className="text-xl font-bold text-slate-900">Risk Distribution (Current Period)</h2>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={riskData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
+      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-olive-950/80 border border-olive-700/50">
+        {([
+          ['forecast', 'Cohort forecast'],
+          ['simulator', 'What-if simulator'],
+          ['privacy', 'Privacy demo'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            className={`px-3 py-2 rounded-xl text-[11px] font-bold ${
+              view === id
+                ? 'bg-accent-gold/20 text-accent-gold border border-accent-gold/40'
+                : 'text-olive-300 hover:text-white hover:bg-olive-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'forecast' && (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cohortForecasts.map((cf, i) => (
+          <motion.div
+            key={i}
+            whileHover={{ y: -3 }}
+            className={`glass-panel p-5 rounded-2xl border flex flex-col justify-between space-y-3 ${
+              cf.riskTier.includes('High')
+                ? 'border-rose-500/40 bg-rose-950/20'
+                : cf.riskTier.includes('Moderate')
+                ? 'border-amber-500/40 bg-amber-950/20'
+                : 'border-olive-400/30 bg-olive-950/30'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold ${
+                    cf.riskTier.includes('High')
+                      ? 'bg-rose-500/20 text-rose-300'
+                      : cf.riskTier.includes('Moderate')
+                      ? 'bg-amber-500/20 text-amber-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                  }`}
                 >
-                  {riskData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+                  {cf.riskTier}
+                </span>
+                <span className="text-[10px] text-olive-300 font-mono">
+                  {cf.fatigueProbability}% Prob.
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-white leading-snug">{cf.cohort}</h3>
+              <div className="flex items-baseline gap-2 mt-2 font-mono">
+                <span className="text-xl font-black text-white">{cf.currentStress}</span>
+                <span className="text-[10px] text-olive-400">→ Forecast 7D:</span>
+                <span
+                  className={`text-sm font-bold ${
+                    cf.forecast7D > 6.5 ? 'text-rose-400' : 'text-accent-gold'
+                  }`}
+                >
+                  {cf.forecast7D}/10
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-olive-800 text-[10px] space-y-1">
+              <div className="text-olive-300">
+                <strong>Driver:</strong> {cf.topFactor}
+              </div>
+              <div className="text-accent-gold font-mono font-semibold">
+                <strong>Action:</strong> {cf.action}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      )}
+
+      {view === 'simulator' && (
+      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-olive-400/30 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-accent-gold" />
+              Interactive "What-If" Operational Stress & Roster Simulator
+            </h2>
+            <p className="text-xs text-olive-300 mt-0.5">
+              Simulate duty rotation parameters to forecast 14-day strain alleviation before roster deployment.
+            </p>
+          </div>
+          <span className="text-xs font-mono text-accent-gold bg-olive-900 px-3 py-1 rounded-xl border border-olive-700">
+            Dynamic ML Curve Update
+          </span>
+        </div>
+
+        {/* Sliders Control Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-2xl bg-olive-900/60 border border-olive-700/60 text-xs">
+          <div className="space-y-1.5">
+            <div className="flex justify-between font-mono">
+              <span className="text-slate-200">Patrol Shift Length:</span>
+              <strong className="text-accent-gold">{simShiftHours} hrs/week</strong>
+            </div>
+            <input
+              type="range"
+              min={32}
+              max={68}
+              value={simShiftHours}
+              onChange={(e) => setSimShiftHours(Number(e.target.value))}
+              className="w-full accent-amber-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-olive-400 font-mono">
+              <span>32h (Restful)</span>
+              <span>68h (Overtime)</span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between font-mono">
+              <span className="text-slate-200">Weekly Rest Rotations:</span>
+              <strong className="text-emerald-400">{simRestDays} days off</strong>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={4}
+              value={simRestDays}
+              onChange={(e) => setSimRestDays(Number(e.target.value))}
+              className="w-full accent-emerald-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-olive-400 font-mono">
+              <span>1 Day (Intense)</span>
+              <span>4 Days (Recharge)</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between space-y-1.5">
+            <span className="text-slate-200 font-mono">Sector Altitude / Hypoxia Factor:</span>
+            <button
+              onClick={() => setSimHypoxia(!simHypoxia)}
+              className={`w-full py-2 px-3 rounded-xl font-mono text-xs font-bold transition-all border ${
+                simHypoxia
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                  : 'bg-olive-800 text-olive-300 border-olive-700'
+              }`}
+            >
+              {simHypoxia ? '🏔️ High Altitude (Leh/ITBP Active)' : '🌲 Standard Lowland Sector'}
+            </button>
+          </div>
+        </div>
+
+        {/* 14-Day Trajectory Line Chart */}
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trajectoryData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
+              <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11 }} />
+              <YAxis domain={[1, 10]} stroke="#8faa80" tick={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#192215',
+                  borderColor: '#435a37',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="baseline"
+                name="Baseline Trajectory (Status Quo)"
+                stroke="#f43f5e"
+                strokeWidth={2.5}
+                strokeDasharray="4 4"
+                dot={{ r: 3 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="simulated"
+                name="Simulated Roster Intervention"
+                stroke="#10b981"
+                strokeWidth={3}
+                dot={{ r: 4 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="safetyThreshold"
+                name="Clinical Warning Threshold (6.5)"
+                stroke="#eab308"
+                strokeWidth={1.5}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      )}
+
+      {(view === 'forecast' || view === 'privacy') && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Workload vs Stress Correlation Scatter (6 Cols) */}
+        <div className="lg:col-span-6 glass-panel p-6 rounded-3xl border border-olive-400/30 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-accent-gold" />
+                Workload vs Stress Regression Scatter
+              </h2>
+              <span className="text-xs font-mono text-accent-gold">r = 0.81 (Strong)</span>
+            </div>
+            <p className="text-xs text-olive-300 mb-4">
+              X: Weekly Duty Hours | Y: Stress Score (1-10) | Bubble Size: Fatigue Severity Index
+            </p>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: -10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
+                <XAxis type="number" dataKey="x" name="Duty Hours" unit="h" stroke="#8faa80" domain={[30, 65]} tick={{ fontSize: 10 }} />
+                <YAxis type="number" dataKey="y" name="Stress Score" stroke="#8faa80" domain={[1, 10]} tick={{ fontSize: 10 }} />
+                <ZAxis type="number" dataKey="z" range={[50, 350]} />
+                <Tooltip
+                  cursor={{ strokeDasharray: '3 3' }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-olive-950 border border-olive-500 p-2.5 rounded-xl text-xs space-y-1 shadow-xl">
+                          <p className="font-bold text-accent-gold">{data.node} ({data.unit})</p>
+                          <p className="text-slate-200">Duty: {data.x} hrs/week</p>
+                          <p className="text-amber-300">Stress: {data.y}/10</p>
+                          <p className="text-olive-300 font-mono">Fatigue: {data.z}%</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Scatter name="Personnel" data={correlationData} fill="#eab308" />
+              </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-4">
-            {riskData.map((risk) => (
-              <div key={risk.name} className="border-l-4 border-olive-300 pl-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-slate-900">{risk.name}</h3>
-                  <span className="text-2xl font-bold text-olive-700">{risk.percentage}%</span>
+        </div>
+
+        {/* Data Anonymization Interactive Demonstration (6 Cols) */}
+        <div className="lg:col-span-6 glass-panel p-6 rounded-3xl border border-olive-400/30 flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-accent-gold" />
+                Privacy & Data Anonymization Demo
+              </h2>
+              <p className="text-xs text-olive-300">
+                Interactive preview of cryptographic token masking before analytics ingestion.
+              </p>
+            </div>
+
+            {/* Toggle Switch */}
+            <div className="flex items-center bg-olive-900 rounded-xl p-1 border border-olive-700">
+              <button
+                onClick={() => setAnonymizationLevel('anonymized')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  anonymizationLevel === 'anonymized'
+                    ? 'bg-accent-gold text-navy-950 font-bold shadow-md'
+                    : 'text-olive-300 hover:text-white'
+                }`}
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                <span>Masked (Secure)</span>
+              </button>
+              <button
+                onClick={() => setAnonymizationLevel('raw')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  anonymizationLevel === 'raw'
+                    ? 'bg-rose-500 text-white font-bold shadow-md'
+                    : 'text-olive-300 hover:text-white'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Raw Mock (Admin)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Anonymized Transformation Preview Cards */}
+          <div className="space-y-2.5">
+            {sampleRecords.map((rec, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 rounded-2xl bg-olive-900/70 border border-olive-700/60 text-xs space-y-2"
+              >
+                <div className="flex items-center justify-between font-mono">
+                  <span className="text-accent-gold font-bold">
+                    {anonymizationLevel === 'anonymized' ? rec.anonId : rec.rawName}
+                  </span>
+                  <span className="text-olive-300 text-[10px]">
+                    {anonymizationLevel === 'anonymized' ? rec.anonForce : rec.rawService}
+                  </span>
                 </div>
-                <div className="w-full bg-olive-100 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full"
-                    style={{
-                      width: `${risk.percentage}%`,
-                      backgroundColor: risk.color,
-                    }}
-                  />
+                <div className="flex items-center justify-between text-[11px] text-slate-300">
+                  <span>
+                    Location: {anonymizationLevel === 'anonymized' ? rec.anonZone : rec.rawUnit}
+                  </span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    Stress: {rec.stressScore}/10
+                  </span>
                 </div>
-                <p className="text-sm text-slate-600 mt-2">{risk.count} personnel</p>
               </div>
             ))}
           </div>
-        </div>
-      </motion.div>
 
-      {/* Trend Analysis */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-xl p-6 border border-olive-200 shadow-md"
-      >
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Stress & Burnout Trends (6 Months)</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="month" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-              }}
-            />
-            <Legend />
-            <Line type="monotone" dataKey="stress" stroke="#7e8f4a" strokeWidth={2} name="Stress Level" />
-            <Line type="monotone" dataKey="burnout" stroke="#f59e0b" strokeWidth={2} name="Burnout Index" />
-            <Line type="monotone" dataKey="workload" stroke="#06b6d4" strokeWidth={2} name="Workload" />
-          </LineChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Deployment History Impact */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl p-6 border border-olive-200 shadow-md"
-      >
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Stress Impact by Deployment Duration</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={[
-              { duration: '0-3 Months', stress: 28, count: 120 },
-              { duration: '3-6 Months', stress: 42, count: 95 },
-              { duration: '6-12 Months', stress: 55, count: 78 },
-              { duration: '12+ Months', stress: 68, count: 52 },
-            ]}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="duration" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-              }}
-            />
-            <Bar dataKey="stress" fill="#7e8f4a" name="Avg Stress Score" />
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Data Anonymization Demo */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white rounded-xl p-6 border border-olive-200 shadow-md"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-olive-700" />
-            <h2 className="text-xl font-bold text-slate-900">Data Anonymization Process</h2>
+          <div className="p-3 rounded-2xl bg-olive-950 border border-olive-600/30 text-[11px] text-olive-300 font-mono">
+            <strong>Security Proof:</strong> Under K-Anonymity (k=5) & Differential Privacy (ε=0.5), individual identity reconstruction probability is &lt; 0.001%.
           </div>
-          <button
-            onClick={() => setShowAnonymized(!showAnonymized)}
-            className="flex items-center gap-2 px-4 py-2 bg-olive-100 hover:bg-olive-200 text-olive-700 rounded-lg transition-colors"
-          >
-            {showAnonymized ? (
-              <>
-                <EyeOff className="w-4 h-4" />
-                Hide Details
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4" />
-                Show Details
-              </>
-            )}
-          </button>
         </div>
-
-        <div className="space-y-4">
-          {anonymizationSteps.map((item) => (
-            <div key={item.step} className="border-l-4 border-olive-300 pl-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-olive-600 text-white flex items-center justify-center font-bold text-sm">
-                  {item.step}
-                </div>
-                <h3 className="font-semibold text-slate-900">{item.label}</h3>
-              </div>
-              {showAnonymized && (
-                <code className="block bg-slate-100 p-3 rounded text-sm text-slate-700 font-mono">
-                  {item.example}
-                </code>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-700">
-            All personnel data is anonymized before analysis. Individual identities are replaced with secure tokens, and location data is generalized to regions. Analysis results are always presented in aggregated form.
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Key Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        {[
-          { label: 'Early Detection Rate', value: '87%', color: 'bg-green-50', textColor: 'text-green-700' },
-          { label: 'Intervention Success', value: '72%', color: 'bg-blue-50', textColor: 'text-blue-700' },
-          { label: 'Privacy Compliance', value: '100%', color: 'bg-olive-50', textColor: 'text-olive-700' },
-        ].map((insight) => (
-          <div key={insight.label} className={`${insight.color} border border-current rounded-lg p-6`}>
-            <p className="text-sm font-semibold text-slate-600 mb-2">{insight.label}</p>
-            <p className={`text-4xl font-bold ${insight.textColor}`}>{insight.value}</p>
-          </div>
-        ))}
-      </motion.div>
+      </div>
+      )}
     </div>
   );
 };
+

@@ -1,336 +1,175 @@
-import { animate, stagger } from "https://cdn.jsdelivr.net/npm/motion@11.11.0/+esm";
+/**
+ * वीरWell 2.0 — Interactive 3D Tactical Canvas & Micro-Animations
+ */
 
-(async () => {
+document.addEventListener("DOMContentLoaded", () => {
   // ============================================================================
-  // Mobile Menu Toggle
+  // 1. Interactive 3D Tactical Particle Canvas (Bio-Telemetry Grid)
   // ============================================================================
-  const burger = document.querySelector(".nav__burger");
+  const canvas = document.getElementById("bg-canvas");
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    const particleCount = Math.min(65, Math.floor(width / 22));
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        z: Math.random() * 2 + 0.5,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        radius: Math.random() * 2 + 1.2,
+        color: Math.random() > 0.65 ? "#eab308" : Math.random() > 0.4 ? "#7a9e6b" : "#f97316",
+        alpha: Math.random() * 0.6 + 0.2,
+        pulseSpeed: 0.02 + Math.random() * 0.03,
+      });
+    }
+
+    let mouseX = width / 2;
+    let mouseY = height / 2;
+
+    window.addEventListener("mousemove", (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Radar scan pulse effect from center
+      const time = Date.now() * 0.001;
+      
+      // Draw particle nodes and bio-network connections
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        // Subtle mouse attraction
+        const dx = mouseX - p.x;
+        const dy = mouseY - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 180) {
+          p.x += dx * 0.008;
+          p.y += dy * 0.008;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha * (0.8 + 0.2 * Math.sin(time * 3 + i));
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Connect nearby nodes
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const distance = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (distance < 130) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = p.color === "#eab308" ? "rgba(234, 179, 8, 0.14)" : "rgba(122, 158, 107, 0.12)";
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  }
+
+  // ============================================================================
+  // 2. Mobile Menu Toggle
+  // ============================================================================
+  const burger = document.getElementById("burger-btn");
   const mobileMenu = document.getElementById("mobile-menu");
-  const mobileMenuLinks = document.querySelectorAll(".mobile-menu__link");
 
   if (burger && mobileMenu) {
-    burger.addEventListener("click", function () {
-      const isOpen = burger.getAttribute("aria-expanded") === "true";
-      burger.setAttribute("aria-expanded", !isOpen);
-
-      if (isOpen) {
-        mobileMenu.setAttribute("hidden", "");
-      } else {
+    burger.addEventListener("click", () => {
+      const isHidden = mobileMenu.hasAttribute("hidden");
+      if (isHidden) {
         mobileMenu.removeAttribute("hidden");
+      } else {
+        mobileMenu.setAttribute("hidden", "");
       }
     });
 
-    mobileMenuLinks.forEach((link) => {
-      link.addEventListener("click", function () {
-        burger.setAttribute("aria-expanded", "false");
+    mobileMenu.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => {
         mobileMenu.setAttribute("hidden", "");
       });
     });
+  }
 
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") {
-        burger.setAttribute("aria-expanded", "false");
-        mobileMenu.setAttribute("hidden", "");
+  // ============================================================================
+  // 3. Animated Number Counters (KPIs)
+  // ============================================================================
+  const kpiValues = document.querySelectorAll(".kpi-value[data-target]");
+  kpiValues.forEach((elem) => {
+    const target = parseInt(elem.getAttribute("data-target") || "0", 10);
+    let current = 0;
+    const duration = 1500;
+    const startTime = performance.now();
+
+    function update(time) {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      current = Math.floor(ease * target);
+      elem.textContent = current;
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        elem.textContent = target;
       }
-    });
-  }
-
-  // ============================================================================
-  // Respect prefers-reduced-motion
-  // ============================================================================
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  if (prefersReducedMotion) {
-    // Disable all Motion animations
-    return;
-  }
-
-  // ============================================================================
-  // Navigation Links Animation
-  // ============================================================================
-  const navLinks = document.querySelectorAll(".nav__links li");
-  if (navLinks.length) {
-    navLinks.forEach((link, index) => {
-      animate(
-        link,
-        { opacity: [0, 1], y: [10, 0] },
-        {
-          duration: 0.55,
-          delay: 0.02 + index * 0.06,
-          easing: [0.16, 1, 0.3, 1],
-        }
-      );
-    });
-  }
-
-  // ============================================================================
-  // Logo Bands Animation
-  // ============================================================================
-  const logoBands = document.querySelectorAll(".logo-band");
-  if (logoBands.length) {
-    logoBands.forEach((band, index) => {
-      animate(
-        band,
-        { opacity: [0, 1], y: [10, 0] },
-        {
-          duration: 0.5,
-          delay: 0.04 + index * 0.05,
-          easing: [0.16, 1, 0.3, 1],
-        }
-      );
-    });
-  }
-
-  // ============================================================================
-  // Nav Button Animation (wipe from left to right)
-  // ============================================================================
-  const navBtn = document.querySelector(".btn--nav");
-  if (navBtn) {
-    animate(
-      navBtn,
-      {
-        opacity: [0, 1],
-        x: [-20, 0],
-      },
-      {
-        duration: 0.65,
-        delay: 0.16,
-        easing: [0.16, 1, 0.3, 1],
-      }
-    );
-  }
-
-  // ============================================================================
-  // Burger Menu Button Animation
-  // ============================================================================
-  if (burger) {
-    animate(
-      burger,
-      {
-        opacity: [0, 1],
-        x: [20, 0],
-      },
-      {
-        duration: 0.5,
-        delay: 0.16,
-        easing: [0.16, 1, 0.3, 1],
-      }
-    );
-  }
-
-  // ============================================================================
-  // Badge Animation
-  // ============================================================================
-  const badge = document.querySelector(".badge");
-  if (badge) {
-    animate(
-      badge,
-      {
-        opacity: [0, 1],
-        x: [-100, 0],
-      },
-      {
-        duration: 0.7,
-        delay: 0.18,
-        easing: [0.16, 1, 0.3, 1],
-      }
-    );
-  }
-
-  // ============================================================================
-  // Headline Masks Animation
-  // ============================================================================
-  const headlineMasks = document.querySelectorAll(".headline__mask");
-  if (headlineMasks.length) {
-    const delays = [0.26, 0.4];
-    headlineMasks.forEach((mask, index) => {
-      const rise = mask.querySelector(".headline__rise");
-      if (rise) {
-        animate(
-          rise,
-          {
-            y: ["118%", "0%"],
-            opacity: [0, 1],
-          },
-          {
-            duration: 0.85,
-            delay: delays[index],
-            easing: [0.16, 1, 0.3, 1],
-          }
-        );
-      }
-    });
-  }
-
-  // ============================================================================
-  // Action Buttons Animation
-  // ============================================================================
-  const actionButtons = document.querySelectorAll(".actions .btn");
-  if (actionButtons.length) {
-    const btnDelays = [0.56, 0.66];
-    actionButtons.forEach((btn, index) => {
-      animate(
-        btn,
-        {
-          opacity: [0, 1],
-          x: [100, 0],
-        },
-        {
-          duration: 0.7,
-          delay: btnDelays[index],
-          easing: [0.16, 1, 0.3, 1],
-        }
-      );
-    });
-  }
-
-  // ============================================================================
-  // Accent Text Paint-on Effect
-  // ============================================================================
-  const accentText = document.querySelector(".headline__accent");
-  if (accentText) {
-    // Create the ::before pseudo-element effect
-    const beforeElement = accentText.querySelector("::before");
-    if (accentText.style.position !== "relative") {
-      accentText.style.position = "relative";
     }
 
-    // Animate the mask progression for paint-on effect
-    animate(
-      accentText,
-      {
-        backgroundPosition: ["0% center", "100% center"],
-      },
-      {
-        duration: 2.13, // 0.7s + 1.05s
-        delay: 0.7,
-        easing: [0.4, 0, 0.2, 1],
-      }
-    );
-  }
-
-  // ============================================================================
-  // Lede Animation
-  // ============================================================================
-  const lede = document.querySelector(".lede__rise");
-  if (lede) {
-    animate(
-      lede,
-      {
-        y: ["118%", "0%"],
-        opacity: [0, 1],
-      },
-      {
-        duration: 0.9,
-        delay: 0.78,
-        easing: [0.16, 1, 0.3, 1],
-      }
-    );
-  }
-
-  // ============================================================================
-  // Advanced: Parallax on Hero Elements (Mouse Movement)
-  // ============================================================================
-  const page = document.querySelector(".page");
-  const bgImage = document.querySelector(".bg-image");
-  const hero = document.querySelector(".hero");
-
-  if (page && bgImage && hero) {
-    document.addEventListener("mousemove", (e) => {
-      const x = (e.clientX / window.innerWidth) * 100;
-      const y = (e.clientY / window.innerHeight) * 100;
-
-      // Subtle parallax on background (2% movement)
-      animate(
-        bgImage,
-        {
-          x: (x - 50) * 0.2,
-          y: (y - 50) * 0.2,
-        },
-        { duration: 0.8, easing: "easeOut" }
-      );
-
-      // Subtle lift on hero content (3% movement)
-      animate(
-        hero,
-        {
-          y: -(y - 50) * 0.15,
-        },
-        { duration: 0.8, easing: "easeOut" }
-      );
-    });
-  }
-
-  // ============================================================================
-  // Button Hover Animations
-  // ============================================================================
-  const buttons = document.querySelectorAll(".btn");
-  buttons.forEach((btn) => {
-    btn.addEventListener("mouseenter", () => {
-      animate(
-        btn,
-        {
-          scale: 1.05,
-          y: -2,
-        },
-        {
-          duration: 0.3,
-          easing: [0.16, 1, 0.3, 1],
-        }
-      );
-    });
-
-    btn.addEventListener("mouseleave", () => {
-      animate(
-        btn,
-        {
-          scale: 1,
-          y: 0,
-        },
-        {
-          duration: 0.3,
-          easing: [0.16, 1, 0.3, 1],
-        }
-      );
-    });
+    requestAnimationFrame(update);
   });
 
   // ============================================================================
-  // Logo Hover Animation
+  // 4. 3D Tilt Effect on Feature Cards
   // ============================================================================
-  const logo = document.querySelector(".logo");
-  if (logo) {
-    logo.addEventListener("mouseenter", () => {
-      animate(
-        logo,
-        { scale: 1.1 },
-        { duration: 0.35, easing: [0.16, 1, 0.3, 1] }
-      );
+  const tiltCards = document.querySelectorAll(".view-card, .card-glass");
+  tiltCards.forEach((card) => {
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -5;
+      const rotateY = ((x - centerX) / centerX) * 5;
+
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
     });
 
-    logo.addEventListener("mouseleave", () => {
-      animate(
-        logo,
-        { scale: 1 },
-        { duration: 0.35, easing: [0.16, 1, 0.3, 1] }
-      );
-    });
-  }
-
-  // ============================================================================
-  // Nav Links Hover Animation (underline bar)
-  // ============================================================================
-  const navLinkElements = document.querySelectorAll(".nav__link");
-  navLinkElements.forEach((link) => {
-    link.addEventListener("mouseenter", () => {
-      animate(link, { y: -2 }, { duration: 0.22, easing: [0.16, 1, 0.3, 1] });
-    });
-
-    link.addEventListener("mouseleave", () => {
-      animate(link, { y: 0 }, { duration: 0.22, easing: [0.16, 1, 0.3, 1] });
+    card.addEventListener("mouseleave", () => {
+      card.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)";
     });
   });
-})();
+});
+
 

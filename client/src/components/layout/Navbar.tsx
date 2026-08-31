@@ -6,72 +6,74 @@ import {
   Bell,
   Eye,
   EyeOff,
-  LogOut,
   ChevronDown,
-  Sparkles,
-  ShieldCheck,
-  Zap,
+  Shield,
+  CheckCircle2,
+  AlertTriangle,
+  Radio,
+  LogIn,
+  UserPlus,
+  Key,
+  User as UserIcon,
 } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
-  onOpenMobileMenu?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
-  const { user, role, logout, switchRole, isAnonymized, toggleAnonymization } = useAuth();
+  const { user, role, switchRole, isAnonymized, toggleAnonymization, openAuthModal, logout } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const rolesList: { role: UserRole; title: string; desc: string }[] = [
-    { role: 'hr_admin', title: 'HR Administrator', desc: 'Org analytics & Ingestion' },
-    { role: 'wellness_mgr', title: 'Wellness Program Manager', desc: 'Surveys & Interventions' },
-    { role: 'team_lead', title: 'Team Lead / Manager', desc: 'Workload & Team Leave' },
-    { role: 'employee', title: 'Employee', desc: 'My Biometrics & Assessments' },
-    { role: 'data_analyst', title: 'Data Analyst', desc: 'Correlations & Heatmaps' },
+  const rolesList: { role: UserRole; title: string; rank: string; force: string; id: string }[] = [
+    { role: 'commander', title: 'Commander (CO)', rank: 'Commandant', force: 'CRPF Srinagar Sector', id: 'CRPF-CMD-7801' },
+    { role: 'welfare_officer', title: 'Welfare Officer / Doctor', rank: 'Chief Medical Officer', force: 'CAPF Medical', id: 'CRPF-MED-8492' },
+    { role: 'personnel', title: 'Personnel / Jawan', rank: 'Inspector Field Lead', force: '209 CoBRA Bn', id: 'CRPF-COBRA-1042' },
+    { role: 'analyst', title: 'Data Analyst', rank: 'Lead Scientist', force: 'MHA CAPF HQ', id: 'MHA-ANA-9104' },
   ];
 
-  const notifications = [
+  const alerts = [
     {
-      id: 1,
-      title: 'High Fatigue Alert',
-      desc: 'Operations unit in Leh sector recorded average HRV dip of 24%.',
-      time: '10m ago',
+      id: 'al-1',
+      title: 'High Altitude Fatigue Surge',
+      unit: 'Leh Forward Outpost Bravo (ITBP)',
+      msg: 'Average HRV drop of 28% detected across night patrol rotation.',
+      time: '8m ago',
       urgent: true,
     },
     {
-      id: 2,
-      title: 'Assessment Milestone',
-      desc: 'Q3 Psychological Safety survey reached 90% participation.',
-      time: '1h ago',
-      urgent: false,
+      id: 'al-2',
+      title: 'Consecutive Shift Threshold Reached',
+      unit: '209 CoBRA Bn (Special Ops)',
+      msg: '3 personnel exceeded 48h active tactical tempo without rest.',
+      time: '45m ago',
+      urgent: true,
     },
     {
-      id: 3,
-      title: 'Wellness Leave Approved',
-      desc: 'Recovery rest day confirmed for frontline staff.',
-      time: '3h ago',
+      id: 'al-3',
+      title: 'Voluntary Self-Assessment Completed',
+      unit: '142 Bn Srinagar Sector',
+      msg: 'New anonymous mood survey submitted with optimal resilience index.',
+      time: '2h ago',
       urgent: false,
     },
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-olive-200 bg-white/90 backdrop-blur-xl shadow-sm">
+    <header className="sticky top-0 z-40 w-full border-b border-olive-400/20 bg-olive-950/90 backdrop-blur-xl">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Left: Brand Logo & Wordmark */}
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-olive-600 to-olive-700 flex items-center justify-center text-white font-bold text-lg shadow-md">
-            R
-          </div>
+        {/* Left: Brand Wordmark */}
+        <div className="flex items-center gap-3">
           <Wordmark size="md" />
         </div>
 
         {/* Center: Live Status & Privacy Shield Indicator */}
-        <div className="hidden lg:flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-olive-100 border border-olive-300 text-olive-700 text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-olive-700 animate-pulse" />
-            <span>Telemetry: Live Active</span>
+        <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-olive-900/80 border border-olive-500/30 text-accent-gold text-xs font-mono">
+            <Radio className="w-3.5 h-3.5 text-accent-gold animate-pulse" />
+            <span>Secure CAPF Grid: Active</span>
           </div>
 
           {/* Anonymization Privacy Toggle */}
@@ -79,47 +81,83 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             onClick={toggleAnonymization}
             className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
               isAnonymized
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                ? 'bg-accent-gold/15 border-accent-gold/40 text-amber-200 hover:bg-accent-gold/25'
+                : 'bg-olive-900 border-olive-700 text-slate-300 hover:bg-olive-800'
             }`}
-            title="Toggle Privacy Mask (Anonymized EMP IDs vs Real Names)"
+            title="Toggle Privacy Mask (Anonymized Node ID vs Real Officer Name)"
           >
             {isAnonymized ? (
               <>
-                <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                <span>Privacy Mask: <strong>ON (EMP-XXXX)</strong></span>
+                <EyeOff className="w-3.5 h-3.5 text-accent-gold" />
+                <span>Privacy Mode: <strong>ANONYMIZED</strong></span>
               </>
             ) : (
               <>
-                <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Privacy Mask: <strong>OFF</strong></span>
+                <Eye className="w-3.5 h-3.5 text-white" />
+                <span>Privacy Mode: <strong>DECODED</strong></span>
               </>
             )}
           </button>
         </div>
 
-        {/* Right: Quick Role Switcher Pill & Profile */}
-        <div className="flex items-center gap-3">
-          {/* Quick Role Switcher Dropdown for Testing */}
+        {/* Right: Quick Role Switcher, Military ID & Notifications */}
+        <div className="flex items-center gap-2.5">
+          {/* Dedicated Login / Role Switcher Button */}
+          <button
+            onClick={openAuthModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-accent-gold/20 to-amber-500/20 border border-accent-gold/50 text-accent-gold hover:bg-accent-gold/30 text-xs font-bold font-mono transition-all shadow-sm"
+            title="Open Role-Based Login & New Member Registration Portal"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Login / Switch ID</span>
+          </button>
+
+          {/* Active User Role & ID Pill */}
           <div className="relative">
             <button
               onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-olive-50 border border-olive-300 hover:border-olive-400 text-xs text-slate-900 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-olive-900 border border-olive-500/40 hover:border-accent-gold text-xs text-slate-200 transition-colors shadow-sm"
             >
-              <div className="w-2 h-2 rounded-full bg-olive-700" />
-              <span className="hidden sm:inline text-slate-600 font-normal">Role:</span>
-              <span className="font-semibold text-olive-700 capitalize">
-                {role.replace('_', ' ')}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+              <Shield className="w-3.5 h-3.5 text-accent-gold" />
+              <div className="text-left hidden sm:block leading-tight">
+                <div className="font-bold text-white text-[11px] capitalize">
+                  {role.replace('_', ' ')}
+                </div>
+                <div className="text-[9px] font-mono text-accent-gold">
+                  {isAnonymized ? user.anonymizedId : user.serviceNumber}
+                </div>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-olive-400" />
             </button>
 
             {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl glass-panel p-2 shadow-2xl z-50 border border-slate-700 animate-in fade-in slide-in-from-top-2">
-                <div className="px-3 py-1.5 text-[11px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                  Switch Test Persona (RBAC)
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl glass-panel p-2.5 shadow-2xl z-50 border border-olive-500/40 bg-olive-950 animate-in fade-in">
+                <div className="px-3 py-1.5 flex items-center justify-between border-b border-olive-800">
+                  <span className="text-[10px] font-mono text-accent-gold uppercase tracking-wider font-bold">
+                    Active Military Identity (RBAC)
+                  </span>
+                  <span className="text-[9px] font-mono text-emerald-400">Online</span>
                 </div>
-                <div className="mt-1 space-y-1">
+
+                {/* Current Profile Card */}
+                <div className="p-2.5 my-1.5 rounded-xl bg-olive-900/60 border border-olive-700/60 text-xs space-y-0.5">
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <UserIcon className="w-3.5 h-3.5 text-accent-gold" />
+                    <span>{isAnonymized ? user.anonymizedId : user.name}</span>
+                  </div>
+                  <div className="text-[11px] text-olive-300 font-mono">
+                    {user.rank} • {user.force}
+                  </div>
+                  <div className="text-[10px] text-olive-400">
+                    {user.unit}
+                  </div>
+                </div>
+
+                <div className="text-[10px] font-mono text-olive-400 px-2 py-1 uppercase">
+                  Quick Switch Persona (Testing):
+                </div>
+
+                <div className="space-y-1">
                   {rolesList.map((r) => (
                     <button
                       key={r.role}
@@ -129,52 +167,80 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                       }}
                       className={`w-full flex flex-col items-start px-3 py-2 rounded-xl text-left transition-colors ${
                         role === r.role
-                          ? 'bg-emerald-500/20 text-emerald-300 font-semibold'
-                          : 'hover:bg-slate-800/60 text-slate-300'
+                          ? 'bg-olive-800 text-white font-bold border border-accent-gold/40'
+                          : 'hover:bg-olive-900 text-olive-200'
                       }`}
                     >
-                      <span className="text-xs">{r.title}</span>
-                      <span className="text-[10px] text-slate-400">{r.desc}</span>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-bold">{r.title}</span>
+                        <span className="text-[10px] font-mono text-accent-gold">{r.id}</span>
+                      </div>
+                      <span className="text-[10px] text-olive-300 font-mono">{r.rank} • {r.force}</span>
                     </button>
                   ))}
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-olive-800 flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => {
+                      setShowRoleMenu(false);
+                      openAuthModal();
+                    }}
+                    className="flex-1 py-1.5 rounded-xl bg-olive-900 hover:bg-olive-800 border border-olive-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-accent-gold" />
+                    <span>Login Modal</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowRoleMenu(false);
+                      logout();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-300 text-xs font-bold transition-colors"
+                  >
+                    Sign Out
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
+
           {/* Notifications Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 transition-colors"
+              className="relative p-2 rounded-xl bg-olive-900 border border-olive-700/50 hover:border-olive-500 text-slate-300 transition-colors"
             >
-              <Bell className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[9px] font-bold flex items-center justify-center text-white">
-                3
+              <Bell className="w-4 h-4 text-accent-gold" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-crimson text-[9px] font-bold flex items-center justify-center text-white">
+                2
               </span>
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl glass-panel p-3 shadow-2xl z-50 border border-slate-700">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="text-xs font-bold text-slate-200">Alerts & Intel</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">3 Unresolved</span>
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl glass-panel p-3 shadow-2xl z-50 border border-olive-500/40 bg-olive-950">
+                <div className="flex items-center justify-between pb-2 border-b border-olive-800">
+                  <span className="text-xs font-bold text-white">Welfare & Tactical Alerts</span>
+                  <span className="text-[10px] text-accent-gold font-mono">2 Urgent Flags</span>
                 </div>
                 <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
-                  {notifications.map((n) => (
+                  {alerts.map((al) => (
                     <div
-                      key={n.id}
+                      key={al.id}
                       className={`p-2.5 rounded-xl border text-xs ${
-                        n.urgent
-                          ? 'bg-rose-500/10 border-rose-500/30 text-slate-200'
-                          : 'bg-slate-900/60 border-slate-800 text-slate-300'
+                        al.urgent
+                          ? 'bg-rose-950/40 border-rose-500/40 text-slate-100'
+                          : 'bg-olive-900/60 border-olive-800 text-slate-200'
                       }`}
                     >
-                      <div className="flex items-center justify-between font-semibold">
-                        <span>{n.title}</span>
-                        <span className="text-[10px] text-slate-500 font-normal">{n.time}</span>
+                      <div className="flex items-center justify-between font-bold text-accent-gold">
+                        <span>{al.title}</span>
+                        <span className="text-[9px] text-slate-400 font-normal">{al.time}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1">{n.desc}</p>
+                      <div className="text-[10px] font-mono text-olive-300 mt-0.5">{al.unit}</div>
+                      <p className="text-[11px] text-slate-300 mt-1">{al.msg}</p>
                     </div>
                   ))}
                 </div>
@@ -182,28 +248,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             )}
           </div>
 
-          {/* User Avatar & Logout */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-xs font-bold text-slate-200">
-                {isAnonymized && role !== 'employee' ? user?.anonymizedId : user?.name}
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">
-                {user?.department}
-              </span>
-            </div>
+          {/* User Profile Avatar */}
+          <div className="flex items-center gap-2 pl-2 border-l border-olive-800">
             <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+              src={user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
               alt="Avatar"
-              className="w-8 h-8 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
+              className="w-8 h-8 rounded-xl object-cover border border-accent-gold/40 shadow-sm"
             />
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>

@@ -7,8 +7,10 @@ node_modules/
 /coverage
 
 # Production
-/build
-/dist
+build/
+dist/
+**/dist/
+uploads/
 
 # Misc
 .DS_Store
@@ -44,6 +46,8 @@ Thumbs.db
 
 # Motion-main (reference copy)
 motion-main/
+Veer-Well/
 
 # Vercel
 .vercel
+

@@ -1,454 +1,390 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth, ROLE_PRESETS } from '../../context/AuthContext';
 import { UserRole } from '../../types';
-import { useAuth } from '../../context/AuthContext';
-import { Wordmark } from '../common/Wordmark';
-import { LoginHero3D } from '../3d/LoginHero3D';
+import { BrandLogo } from '../common/BrandLogo';
+import { BrandedLoader } from '../common/BrandedLoader';
 import {
   Shield,
-  Activity,
-  Users,
-  UserCheck,
-  LineChart,
-  ArrowRight,
-  Sparkles,
   Lock,
-  Mail,
   User,
-  Building,
-  Briefcase,
+  Key,
   CheckCircle2,
+  X,
+  Award,
+  Sparkles,
+  HeartPulse,
+  Cpu,
+  Radio,
+  ArrowRight,
+  UserPlus,
+  LogIn,
+  AlertCircle,
+  Building2,
+  BadgeAlert,
 } from 'lucide-react';
 
-interface AuthModalProps {
-  onSuccess?: () => void;
-}
+export const AuthModal: React.FC = () => {
+  const { isAuthModalOpen, closeAuthModal, login, signup, role: activeContextRole, user: currentUser } = useAuth();
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(activeContextRole || 'commander');
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
-  const { login, signup, isLoading } = useAuth();
-  const [isLogin, setIsLogin] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Login form state
+  const [loginId, setLoginId] = useState<string>(ROLE_PRESETS.commander.defaultLoginId);
+  const [loginPassword, setLoginPassword] = useState<string>(ROLE_PRESETS.commander.defaultPassword);
+  const [loginError, setLoginError] = useState<string>('');
+  const [authBusy, setAuthBusy] = useState(false);
 
-  // Form State
-  const [email, setEmail] = useState<string>('hr.admin@veerwell.org');
-  const [password, setPassword] = useState<string>('veerwell@2026');
-  const [name, setName] = useState<string>('');
-  const [role, setRole] = useState<UserRole>('hr_admin');
-  const [department, setDepartment] = useState<string>('Operations');
-  const [designation, setDesignation] = useState<string>('Operational Specialist');
+  // Signup form state
+  const [signupName, setSignupName] = useState<string>('');
+  const [signupRank, setSignupRank] = useState<string>('Inspector');
+  const [signupServiceNo, setSignupServiceNo] = useState<string>('');
+  const [signupForce, setSignupForce] = useState<string>('CRPF');
+  const [signupUnit, setSignupUnit] = useState<string>('142 Bn (Srinagar Sector HQ)');
+  const [signupPassword, setSignupPassword] = useState<string>('');
+  const [signupSuccess, setSignupSuccess] = useState<boolean>(false);
 
-  const demoAccounts: {
-    role: UserRole;
-    label: string;
-    email: string;
-    badge: string;
-    icon: React.ElementType;
-    desc: string;
-  }[] = [
-    {
-      role: 'hr_admin',
-      label: 'HR Administrator',
-      email: 'hr.admin@veerwell.org',
-      badge: 'Full Org & Anonymized Ingestion',
-      icon: Shield,
-      desc: 'Full org analytics, PDF/CSV stress data ingestion, employee trends',
-    },
-    {
-      role: 'wellness_mgr',
-      label: 'Wellness Program Manager',
-      email: 'wellness.lead@veerwell.org',
-      badge: 'Interventions & Surveys',
-      icon: Activity,
-      desc: 'Campaign surveys, assessment analytics, burnout risk prevention',
-    },
-    {
-      role: 'team_lead',
-      label: 'Team Lead / Manager',
-      email: 'team.lead@veerwell.org',
-      badge: 'Workload & Unit Health',
-      icon: Users,
-      desc: 'Team workload Kanban, leave approvals, operational fatigue metrics',
-    },
-    {
-      role: 'employee',
-      label: 'Employee (Personal)',
-      email: 'employee@veerwell.org',
-      badge: 'My Telemetry & Self-Care',
-      icon: UserCheck,
-      desc: '30-90D personal wearables, mood check-ins, wellness leave requests',
-    },
-    {
-      role: 'data_analyst',
-      label: 'Data Analyst',
-      email: 'analyst@veerwell.org',
-      badge: 'Read-Only Correlational Stats',
-      icon: LineChart,
-      desc: 'Workload vs stress regression, distribution histograms, raw datasets',
-    },
-  ];
-
-  const handleQuickLogin = async (acc: typeof demoAccounts[0]) => {
-    setError(null);
-    try {
-      await login(acc.email, acc.role);
-      if (onSuccess) onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    }
+  // Sync default login ID when selecting different role
+  const handleRoleSelect = (r: UserRole) => {
+    setSelectedRole(r);
+    setLoginId(ROLE_PRESETS[r].defaultLoginId);
+    setLoginPassword(ROLE_PRESETS[r].defaultPassword);
+    setLoginError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    try {
-      if (isLogin) {
-        await login(email, role);
-      } else {
-        await signup({
-          name: name || 'Wellness Officer',
-          email: email || `user.${Date.now()}@veerwell.org`,
-          role,
-          department,
-          designation,
-        });
-      }
-      if (onSuccess) onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Authentication error');
+    if (!loginId.trim()) {
+      setLoginError('Please provide your Military Login ID / Service Number.');
+      return;
+    }
+    setAuthBusy(true);
+    window.setTimeout(() => {
+      login(loginId, selectedRole, loginPassword);
+      setAuthBusy(false);
+    }, 650);
+  };
+
+  const handleSignupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupName.trim() || !signupServiceNo.trim()) {
+      setLoginError('Full name and military service number are required.');
+      return;
+    }
+
+    const ok = signup({
+      name: signupName,
+      rank: signupRank,
+      serviceNumber: signupServiceNo,
+      force: signupForce,
+      unit: signupUnit,
+      role: selectedRole,
+      password: signupPassword,
+    });
+
+    if (ok) {
+      setSignupSuccess(true);
+      setTimeout(() => {
+        setSignupSuccess(false);
+      }, 1500);
     }
   };
+
+  if (!isAuthModalOpen) return null;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative bg-gradient-to-br from-navy-950 via-[#070b14] to-navy-900 overflow-hidden">
-      {/* Dynamic Background Ambient Blobs */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Decorative Grid Lines Overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-        {/* Left Side: 3D Visual Centerpiece & Brand Showcase */}
-        <div className="lg:col-span-6 flex flex-col justify-center items-start space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Wordmark size="xl" showSubtitle />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="w-full h-80 rounded-2xl glass-panel p-2 overflow-hidden relative border border-emerald-500/20 glow-emerald shadow-2xl"
-          >
-            <LoginHero3D />
-            <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none">
-              <span className="text-[11px] font-mono text-emerald-400/90 bg-navy-950/80 px-2.5 py-1 rounded-md border border-emerald-500/30 backdrop-blur-md">
-                🛡️ AI-Assisted Workforce Stress Telemetry
-              </span>
-              <span className="text-[11px] font-mono text-slate-400 bg-navy-950/80 px-2 py-1 rounded-md border border-slate-800 backdrop-blur-md">
-                Anonymized Aggregation
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Value Propositions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-3 gap-3 w-full"
-          >
-            <div className="glass-card rounded-xl p-3 border border-slate-800/80">
-              <div className="text-emerald-400 font-bold text-lg">90-Day</div>
-              <div className="text-xs text-slate-400">Wearable HRV & Fatigue Telemetry</div>
-            </div>
-            <div className="glass-card rounded-xl p-3 border border-slate-800/80">
-              <div className="text-amber-400 font-bold text-lg">100%</div>
-              <div className="text-xs text-slate-400">Anonymized HR Data Privacy</div>
-            </div>
-            <div className="glass-card rounded-xl p-3 border border-slate-800/80">
-              <div className="text-cyan-400 font-bold text-lg">5 Roles</div>
-              <div className="text-xs text-slate-400">Fine-grained RBAC Permissions</div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Side: Auth Form & 1-Click Role Switcher */}
-        <div className="lg:col-span-6">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="glass-panel rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl relative"
-          >
-            {/* Tab Toggle: Login / Register */}
-            <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-xl animate-in fade-in duration-300">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.25 }}
+          className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl glass-panel border border-accent-gold/40 shadow-2xl bg-olive-950/95 overflow-hidden text-slate-100"
+        >
+          {/* Header Banner */}
+          <div className="p-5 md:p-6 border-b border-olive-800/80 bg-gradient-to-r from-olive-900 via-olive-950 to-olive-900 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BrandLogo size="md" />
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
-                  {isLogin ? 'Access Platform' : 'Create Staff Account'}
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {isLogin
-                    ? 'Select a 1-click test role below or sign in with credentials'
-                    : 'Register with role assignment to test permission boundaries'}
-                </p>
-              </div>
-              <div className="flex items-center bg-slate-900/90 rounded-xl p-1 border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(true)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    isLogin
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(false)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    !isLogin
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Register
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                <span className="font-bold">⚠️</span> {error}
-              </div>
-            )}
-
-            {/* 1-Click Role Switcher Demo Pills (Crucial for reviewer speed!) */}
-            {isLogin && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    1-Click Demo Accounts (Select Role to Test)
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base md:text-lg font-black text-white tracking-tight">
+                    Military Role Authentication Grid
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Zero-Trust RBAC
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {demoAccounts.map((acc) => {
-                    const Icon = acc.icon;
-                    const isSelected = email === acc.email;
-                    return (
-                      <button
-                        key={acc.role}
-                        type="button"
-                        onClick={() => handleQuickLogin(acc)}
-                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? 'bg-emerald-950/40 border-emerald-500/50 shadow-sm shadow-emerald-500/20'
-                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
-                        }`}
-                      >
-                        <div
-                          className={`p-2 rounded-lg mt-0.5 ${
-                            isSelected
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-200 truncate">
-                              {acc.label}
-                            </span>
-                            {isSelected && (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            )}
-                          </div>
-                          <span className="text-[10px] text-emerald-400/90 font-medium block">
-                            {acc.badge}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="text-xs text-olive-300 font-mono">
+                  VeerWell 2.0 • Distinct Logins & Granular Command Authorities
+                </p>
               </div>
-            )}
+            </div>
 
-            {/* Main Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <AnimatePresence mode="wait">
-                {isLogin ? (
-                  <motion.div
-                    key="login-fields"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-3"
-                  >
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                          placeholder="name@veerwell.org"
-                        />
-                      </div>
-                    </div>
+            <button
+              onClick={closeAuthModal}
+              className="p-2 rounded-xl text-olive-400 hover:text-white hover:bg-olive-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Security Password
-                      </label>
-                      <div className="relative">
-                        <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        <input
-                          type="password"
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                          placeholder="••••••••••••"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="signup-fields"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-3"
-                  >
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                          placeholder="Officer Name"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Work Email
-                      </label>
-                      <div className="relative">
-                        <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                          placeholder="officer@veerwell.org"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">
-                          Role / Post (RBAC)
-                        </label>
-                        <select
-                          value={role}
-                          onChange={(e) => setRole(e.target.value as UserRole)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="hr_admin">HR Administrator</option>
-                          <option value="wellness_mgr">Wellness Program Manager</option>
-                          <option value="team_lead">Team Lead / Manager</option>
-                          <option value="employee">Employee</option>
-                          <option value="data_analyst">Data Analyst</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">
-                          Department
-                        </label>
-                        <select
-                          value={department}
-                          onChange={(e) => setDepartment(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="Operations">Operations</option>
-                          <option value="Healthcare & Field">Healthcare & Field</option>
-                          <option value="Engineering & IT">Engineering & IT</option>
-                          <option value="Administration">Administration</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Designation
-                      </label>
-                      <div className="relative">
-                        <Briefcase className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        <input
-                          type="text"
-                          value={designation}
-                          onChange={(e) => setDesignation(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                          placeholder="e.g. Senior Ops Officer"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
+            {authBusy ? (
+              <BrandedLoader label="Authenticating on the CAPF identity grid…" />
+            ) : (
+            <>
+            {/* Mode Switcher Pills: Login vs Sign Up */}
+            <div className="flex items-center p-1 rounded-2xl bg-olive-900/80 border border-olive-700/60 max-w-sm mx-auto text-xs">
+              <button
+                onClick={() => {
+                  setAuthMode('login');
+                  setLoginError('');
+                }}
+                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                  authMode === 'login'
+                    ? 'bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 shadow-md font-black'
+                    : 'text-olive-300 hover:text-white'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Military Login</span>
+              </button>
 
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-navy-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all transform active:scale-[0.98] mt-4"
+                onClick={() => {
+                  setAuthMode('signup');
+                  setLoginError('');
+                }}
+                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                  authMode === 'signup'
+                    ? 'bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 shadow-md font-black'
+                    : 'text-olive-300 hover:text-white'
+                }`}
               >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-navy-950/30 border-t-navy-950 rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>{isLogin ? 'Enter Platform' : 'Complete Registration'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>New Registration</span>
               </button>
-            </form>
-          </motion.div>
-        </div>
+            </div>
+
+            {/* Role Selection Cards (Distinct Military Roles) */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-accent-gold font-bold">
+                1. Select Military Authority & Designated Role:
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(['commander', 'welfare_officer', 'personnel', 'analyst'] as UserRole[]).map((r) => {
+                  const preset = ROLE_PRESETS[r];
+                  const isSelected = selectedRole === r;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handleRoleSelect(r)}
+                      className={`text-left p-3 rounded-2xl border transition-all relative overflow-hidden ${
+                        isSelected
+                          ? 'bg-olive-900/90 border-accent-gold shadow-lg shadow-amber-500/10 ring-1 ring-accent-gold/60'
+                          : 'bg-olive-950/60 border-olive-800/80 hover:bg-olive-900/50 hover:border-olive-600'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {r === 'commander' && <Award className="w-4 h-4 text-accent-gold" />}
+                          {r === 'welfare_officer' && <HeartPulse className="w-4 h-4 text-rose-400" />}
+                          {r === 'personnel' && <Shield className="w-4 h-4 text-emerald-400" />}
+                          {r === 'analyst' && <Cpu className="w-4 h-4 text-cyan-400" />}
+                          <span className="text-xs font-black text-white">{preset.roleLabel}</span>
+                        </div>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-accent-gold shrink-0" />}
+                      </div>
+
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono">
+                        <span className="text-olive-300">Login ID:</span>
+                        <span className="font-bold text-accent-gold bg-olive-950 px-2 py-0.5 rounded border border-olive-800">
+                          {preset.defaultLoginId}
+                        </span>
+                      </div>
+
+                      <p className="text-[10px] text-olive-300/80 mt-1 line-clamp-1">
+                        {preset.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* View 1: Login Form */}
+            {authMode === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-4 pt-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="text-olive-300 font-mono">
+                      Military Service No. / Login ID:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginId(ROLE_PRESETS[selectedRole].defaultLoginId);
+                        setLoginPassword(ROLE_PRESETS[selectedRole].defaultPassword);
+                      }}
+                      className="text-[10px] font-mono text-accent-gold hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Use Demo Preset ID</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={loginId}
+                      onChange={(e) => setLoginId(e.target.value)}
+                      placeholder="e.g. CRPF-CMD-7801 or CRPF-COBRA-1042"
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-accent-gold"
+                    />
+                    <Key className="w-4 h-4 text-olive-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-olive-300 font-mono text-xs">
+                    Access Passcode / Security PIN:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-accent-gold"
+                    />
+                    <Lock className="w-4 h-4 text-olive-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                {loginError && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-xs text-rose-300">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-accent-gold via-amber-400 to-accent-saffron text-navy-950 font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 hover:opacity-95 active:scale-98 transition-all"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Authenticate as {ROLE_PRESETS[selectedRole].roleLabel}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+
+            {/* View 2: Sign-Up Form */}
+            {authMode === 'signup' && (
+              <form onSubmit={handleSignupSubmit} className="space-y-3.5 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="text-olive-300 font-mono">Full Name & Rank:</label>
+                    <input
+                      type="text"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      placeholder="e.g. Sub-Insp. Rahul Sharma"
+                      required
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-accent-gold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-olive-300 font-mono">Service Number (Unique ID):</label>
+                    <input
+                      type="text"
+                      value={signupServiceNo}
+                      onChange={(e) => setSignupServiceNo(e.target.value)}
+                      placeholder="e.g. CRPF-902148"
+                      required
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-accent-gold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="text-olive-300 font-mono">Force Branch:</label>
+                    <select
+                      value={signupForce}
+                      onChange={(e) => setSignupForce(e.target.value)}
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-accent-gold font-mono"
+                    >
+                      <option value="CRPF">Central Reserve Police Force (CRPF)</option>
+                      <option value="BSF">Border Security Force (BSF)</option>
+                      <option value="ITBP">Indo-Tibetan Border Police (ITBP)</option>
+                      <option value="CISF">Central Industrial Security Force (CISF)</option>
+                      <option value="SSB">Sashastra Seema Bal (SSB)</option>
+                      <option value="Assam Rifles">Assam Rifles</option>
+                      <option value="NSG">National Security Guard (NSG)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-olive-300 font-mono">Unit / Battalion:</label>
+                    <input
+                      type="text"
+                      value={signupUnit}
+                      onChange={(e) => setSignupUnit(e.target.value)}
+                      placeholder="e.g. 209 CoBRA or 142 Bn Srinagar"
+                      required
+                      className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-accent-gold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <label className="text-olive-300 font-mono">Create Secure Passcode:</label>
+                  <input
+                    type="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full bg-olive-950 border border-olive-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-accent-gold"
+                  />
+                </div>
+
+                {/* Cryptographic Welfare Token Preview */}
+                <div className="p-3 rounded-2xl bg-olive-900/60 border border-accent-gold/30 text-xs space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-accent-gold font-bold">
+                    <span>🛡️ Non-Reversible Welfare Token:</span>
+                    <span>k=5 Anonymity</span>
+                  </div>
+                  <p className="text-[10px] text-olive-300 leading-relaxed">
+                    Under the Armed Forces Welfare Doctrine, registration deterministically assigns token <code>CAPF-NODE-XXXX</code>. Psychological records cannot be accessed for disciplinary actions.
+                  </p>
+                </div>
+
+                {loginError && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-xs text-rose-300">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-navy-950 font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:opacity-95 active:scale-98 transition-all"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Enrol Personnel & Issue Protected Credential</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+            </>
+            )}
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };

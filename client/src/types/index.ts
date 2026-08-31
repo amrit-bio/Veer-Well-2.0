@@ -1,203 +1,98 @@
 export type UserRole = 
-  | 'hr_admin' 
-  | 'wellness_mgr' 
-  | 'team_lead' 
-  | 'employee' 
-  | 'data_analyst';
+  | 'commander'          // Commanding Officer / CO (Unit overview, strategic readiness)
+  | 'welfare_officer'    // Welfare Officer / Medical Specialist (Interventions, counseling alerts)
+  | 'personnel'          // Frontline Personnel / Jawan (Personal biometrics, self-assessments, leave)
+  | 'analyst';           // Data & Behavioral Analyst (Predictive modeling, anonymized research)
 
 export interface User {
   id: string;
   name: string;
-  email: string;
+  rank: string;          // e.g. "Commandant", "Assistant Commandant", "Inspector", "Head Constable"
+  serviceNumber: string; // e.g. "CRPF-840219"
+  force: 'CRPF' | 'BSF' | 'ITBP' | 'CISF' | 'SSB' | 'Assam Rifles' | 'NSG' | 'CAPF Command' | string;
+  unit: string;          // e.g. "142 Bn (Srinagar Sector)", "88 Mahila Bn", "209 CoBRA Bn"
   role: UserRole;
   roleTitle: string;
-  department: string;
-  designation: string;
-  anonymizedId: string;
+  anonymizedId: string;  // e.g. "CAPF-NODE-1042"
   avatar?: string;
-  teamId?: string;
-}
-
-export interface WearableDayMetric {
-  date: string;
-  steps: number;
-  restingHeartRate: number;
-  sleepHours: number;
-  sleepQuality: number; // 0 - 100
-  hrv: number; // ms
-  calories: number;
-  stressScore: number; // 1 - 100
-}
-
-export interface WearablesSummary {
-  avgSteps: number;
-  avgRHR: number;
-  avgSleepHours: number;
-  avgSleepQuality: number;
-  avgHRV: number;
-  avgStressScore: number;
-  readinessScore: number;
-  timeSeries: WearableDayMetric[];
-}
-
-export interface AssessmentQuestion {
-  id: string;
-  text: string;
-  options: { label: string; value: number }[];
-}
-
-export interface AssessmentDefinition {
-  id: string;
-  title: string;
-  code: 'PHQ9' | 'BURNOUT_MBI' | 'SLEEP_HYGIENE' | 'PULSE_WEEKLY';
-  category: 'Mental Health' | 'Workplace' | 'Sleep & Recovery' | 'Weekly Pulse';
-  description: string;
-  estMinutes: number;
-  questions: AssessmentQuestion[];
-}
-
-export interface UserAssessmentResult {
-  id: string;
-  assessmentId: string;
-  assessmentCode: string;
-  assessmentTitle: string;
-  employeeId: string;
-  anonymizedId: string;
-  date: string;
-  score: number;
-  maxScore: number;
-  riskLevel: 'Low' | 'Moderate' | 'High' | 'Severe';
-  status: 'Completed' | 'Pending' | 'Overdue';
-  summary: string;
-  recommendations: string[];
-}
-
-export interface StressMetric {
-  id: string;
-  employeeId: string;
-  anonymizedId: string;
-  department: 'Operations' | 'Healthcare & Field' | 'Engineering & IT' | 'Administration';
-  roleTitle: string;
-  stressScore: number; // 1 - 10
-  workloadHours: number;
-  burnoutRisk: 'Low' | 'Moderate' | 'High' | 'Critical';
-  sleepDeficitHours: number;
-  fatigueIndex: number; // 1 - 100
-  date: string;
-  source: 'PDF Report' | 'Wearable Telemetry' | 'Survey Aggregation' | 'Manual Log';
-}
-
-export interface DeploymentRecord {
-  id: string;
-  employeeId: string;
-  anonymizedId: string;
-  employeeName?: string;
-  department: string;
-  projectName: string;
-  role: string;
-  startDate: string;
-  endDate: string | null;
   location: string;
-  deploymentType: 'High-Intensity Field' | 'On-Site Office' | 'Remote Command' | 'Hybrid Ops';
-  stressImpact: 'Elevated' | 'Moderate' | 'Normal';
-  status: 'Active' | 'Completed' | 'Upcoming';
-  keyMilestones: string[];
 }
 
-export interface LeaveRecord {
-  id: string;
-  employeeId: string;
-  anonymizedId: string;
-  employeeName?: string;
-  department: string;
-  leaveType: 'Wellness Recharge' | 'Sick Leave' | 'Casual Leave' | 'Earned Leave';
-  startDate: string;
-  endDate: string;
-  days: number;
-  status: 'Approved' | 'Pending' | 'Rejected';
-  reason: string;
-  appliedDate: string;
+
+export interface WearableTelemetry {
+  date: string;
+  heartRate: number;      // BPM (55 - 98)
+  hrv: number;            // ms (28 - 95)
+  spo2: number;           // % (92 - 99)
+  steps: number;          // Daily count
+  sleepHours: number;     // Hours (4.0 - 9.2)
+  sleepQuality: number;   // 0 - 100
+  stressIndex: number;    // 1 - 100
+  recoveryScore: number;  // 1 - 100
 }
 
-export interface LeaveBalance {
-  wellnessRecharge: { used: number; total: number };
-  sickLeave: { used: number; total: number };
-  casualLeave: { used: number; total: number };
-  earnedLeave: { used: number; total: number };
+export interface UnitStressSummary {
+  forceName: string;
+  totalPersonnel: number;
+  avgStressIndex: number;     // 1 - 10
+  burnoutRiskCount: number;
+  readinessScore: number;     // 0 - 100
+  highAltitudeNodes: number;
+  fatigueIndex: number;
+  activeDeployments: number;
 }
 
-export interface WellnessSurvey {
+export interface PredictiveModelResult {
+  cohort: string;
+  riskCategory: 'Low Stress' | 'Moderate Stress' | 'High Burnout Risk' | 'Critical Strain';
+  predictedStress7Days: number;
+  fatigueProbability: number; // %
+  topRiskFactors: string[];
+  recommendedIntervention: string;
+}
+
+export interface InterventionAction {
   id: string;
   title: string;
+  targetUnit: string;
+  targetRole: string;
+  urgency: 'Immediate' | 'Scheduled' | 'Preventative';
+  category: 'Rest Rotation' | 'Counseling Session' | 'Workload Redistribution' | 'Medical Check';
   description: string;
-  category: string;
-  targetDepartment: string;
-  responsesCount: number;
-  totalTarget: number;
-  participationRate: number;
-  overallScore: number; // 0 - 100
-  status: 'Active' | 'Completed';
-  createdAt: string;
-  dimensions: {
-    workLifeBalance: number;
-    psychologicalSafety: number;
-    physicalEnvironment: number;
-    peerSupport: number;
-    leadershipEmpathy: number;
-  };
-  sentiment: {
-    positive: number;
-    neutral: number;
-    concerning: number;
-  };
-  wordCloud: { text: string; value: number; sentiment: 'pos' | 'neu' | 'neg' }[];
-  recentFeedback: {
-    id: string;
-    anonymizedId: string;
-    comment: string;
-    sentiment: 'Positive' | 'Neutral' | 'At Risk';
-    date: string;
-  }[];
+  counselingPrompt: string;
+  status: 'Pending Commander Approval' | 'Active' | 'Resolved';
+  timestamp: string;
 }
 
-export interface WorkloadRecord {
+export interface WelfareAlert {
   id: string;
-  employeeId: string;
-  anonymizedId: string;
-  employeeName?: string;
-  department: string;
-  roleTitle: string;
-  assignedTasks: number;
-  completedTasks: number;
-  weeklyHoursLogged: number;
-  capacityHours: number;
-  utilizationRate: number; // %
-  overtimeFlag: boolean;
-  intensityLevel: 'Optimal' | 'Heavy' | 'Overloaded' | 'Light';
-  sprintStatus: 'To Do' | 'In Progress' | 'Review' | 'Blocked';
+  type: 'critical' | 'warning' | 'info';
+  title: string;
+  force: string;
+  unit: string;
+  message: string;
+  timeAgo: string;
+  actionRequired: string;
+  resolved: boolean;
 }
 
-export interface DashboardStats {
-  orgWellnessIndex: number;
-  prevOrgWellnessIndex: number;
-  avgStressIndex: number;
-  burnoutRiskCount: number;
-  pendingAssessmentsCount: number;
-  totalEmployees: number;
-  activeSurveysCount: number;
-  leaveUtilizationPct: number;
-  departmentAverages: {
-    department: string;
-    wellnessScore: number;
-    stressScore: number;
-    overtimeRate: number;
-  }[];
-  recentAlerts: {
-    id: string;
-    type: 'critical' | 'warning' | 'info';
-    title: string;
-    message: string;
-    timeAgo: string;
-    department?: string;
-  }[];
+export interface DatasetItem {
+  id: string;
+  title: string;
+  category: 'HR Records' | 'Deployment History' | 'Leave Logs' | 'Wellness Surveys' | 'Workload Logs' | 'Wearable Streams';
+  recordCount: number;
+  format: 'CSV' | 'JSON' | 'PDF';
+  privacyLevel: '100% Anonymized (Differential Privacy)' | 'K-Anonymity (k=5)';
+  description: string;
+  downloadUrl?: string;
+}
+
+export interface HackathonFeedback {
+  id: string;
+  evaluatorName: string;
+  evaluatorRole: string;
+  rating: number; // 1 - 5
+  category: 'Design & Usability' | 'AI & Analytics' | 'Security & Privacy' | 'Strategic Impact';
+  comments: string;
+  date: string;
 }

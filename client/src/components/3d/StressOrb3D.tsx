@@ -4,7 +4,8 @@ import { Float, MeshDistortMaterial, Sphere, Sparkles, OrbitControls } from '@re
 import * as THREE from 'three';
 
 interface StressOrbProps {
-  stressScore: number; // 1 - 10 scale (or converted from 100)
+  stressScore?: number; // 1 - 10 scale (or converted from 100)
+  stressLevel?: number; // alias
   wellnessScore?: number; // 0 - 100 scale
   className?: string;
 }
@@ -99,9 +100,12 @@ const DynamicOrbMesh: React.FC<{ stressScore: number }> = ({ stressScore }) => {
 
 export const StressOrb3D: React.FC<StressOrbProps> = ({
   stressScore,
+  stressLevel,
   wellnessScore = 82,
   className = 'h-64 md:h-72',
 }) => {
+  const actualScore = stressScore ?? stressLevel ?? 4.5;
+
   return (
     <div className={`w-full relative flex items-center justify-center rounded-2xl overflow-hidden glass-panel ${className}`}>
       {/* Dynamic Background Glow based on Stress */}
@@ -109,9 +113,9 @@ export const StressOrb3D: React.FC<StressOrbProps> = ({
         className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-1000"
         style={{
           background:
-            stressScore <= 3.5
+            actualScore <= 3.5
               ? 'radial-gradient(circle at center, rgba(16, 185, 129, 0.4) 0%, transparent 70%)'
-              : stressScore <= 6.5
+              : actualScore <= 6.5
               ? 'radial-gradient(circle at center, rgba(245, 158, 11, 0.4) 0%, transparent 70%)'
               : 'radial-gradient(circle at center, rgba(244, 63, 94, 0.4) 0%, transparent 70%)',
         }}
@@ -124,7 +128,7 @@ export const StressOrb3D: React.FC<StressOrbProps> = ({
             className="w-2 h-2 rounded-full animate-ping"
             style={{
               backgroundColor:
-                stressScore <= 3.5 ? '#10b981' : stressScore <= 6.5 ? '#f59e0b' : '#f43f5e',
+                actualScore <= 3.5 ? '#10b981' : actualScore <= 6.5 ? '#f59e0b' : '#f43f5e',
             }}
           />
           Live 3D Stress Telemetry
@@ -133,31 +137,33 @@ export const StressOrb3D: React.FC<StressOrbProps> = ({
 
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
         <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-900/70 border border-slate-800">
-          Turbulence: {(stressScore * 10).toFixed(0)}%
+          Turbulence: {(actualScore * 10).toFixed(0)}%
         </span>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="flex flex-col items-center justify-center gap-2 text-emerald-400">
-            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
-            <span className="text-xs text-slate-400">Generating Orb Physics...</span>
-          </div>
-        }
-      >
-        <Canvas
-          camera={{ position: [0, 0, 4.2], fov: 48 }}
-          gl={{ antialias: true, alpha: true }}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+      <div className="w-full h-full">
+        <Suspense
+          fallback={
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-emerald-400">
+              <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+              <span className="text-xs text-slate-400">Generating Orb Physics...</span>
+            </div>
+          }
         >
-          <ambientLight intensity={0.9} />
-          <directionalLight position={[4, 5, 4]} intensity={2.0} color="#ffffff" />
-          <pointLight position={[-3, -2, -2]} intensity={1.5} color="#10b981" />
-          <pointLight position={[3, 3, 2]} intensity={1.5} color="#f59e0b" />
-          <DynamicOrbMesh stressScore={stressScore} />
-          <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.6} maxPolarAngle={Math.PI / 1.5} minPolarAngle={Math.PI / 3} />
-        </Canvas>
-      </Suspense>
+          <Canvas
+            camera={{ position: [0, 0, 4.2], fov: 45 }}
+            gl={{ antialias: true, alpha: true }}
+            className="w-full h-full cursor-grab active:cursor-grabbing"
+          >
+            <ambientLight intensity={0.9} />
+            <directionalLight position={[4, 5, 4]} intensity={2.0} color="#ffffff" />
+            <pointLight position={[-3, -2, -2]} intensity={1.5} color="#10b981" />
+            <pointLight position={[3, 3, 2]} intensity={1.5} color="#f59e0b" />
+            <DynamicOrbMesh stressScore={actualScore} />
+            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.6} maxPolarAngle={Math.PI / 1.5} minPolarAngle={Math.PI / 3} />
+          </Canvas>
+        </Suspense>
+      </div>
     </div>
   );
 };

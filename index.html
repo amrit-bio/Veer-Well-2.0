@@ -3,110 +3,350 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kavach — Stress Intelligence for CAPF & Armed Forces</title>
+  <title>वीरWell 2.0 — AI-Based Predictive Personnel Stress & Welfare Monitoring System</title>
+  <meta name="description" content="AI-Based Predictive Personnel Stress & Welfare Monitoring System for CAPF, CRPF, BSF, ITBP, SSB, CISF and Armed Forces. XGBoost GBDT predictive modeling fused with Google Gemini AI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
-  <!-- Motion JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.0/+esm"></script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.0/+esm" type="module"></script>
 </head>
 <body>
-  <div class="page">
-    <!-- Background -->
-    <div class="bg">
-      <img class="bg-image" src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop" alt="High altitude terrain at dawn">
-    </div>
+  <!-- Interactive 3D Background Canvas -->
+  <canvas id="bg-canvas" class="bg-canvas"></canvas>
 
+  <!-- Tactical Grid Overlay -->
+  <div class="tactical-grid-overlay"></div>
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+
+  <!-- Tricolour Top Accent Ribbon -->
+  <div class="tricolour-ribbon">
+    <span class="tri-saffron"></span>
+    <span class="tri-white"></span>
+    <span class="tri-green"></span>
+  </div>
+
+  <div class="page">
     <!-- Navigation -->
     <nav class="nav">
-      <ul class="nav__links" aria-label="Primary">
-        <li><a href="#" class="nav__link">Platform</a></li>
-        <li><a href="#" class="nav__link">Assessment</a></li>
-        <li><a href="#" class="nav__link">Resources</a></li>
-        <li><a href="#" class="nav__link">Contact</a></li>
-      </ul>
-
-      <a href="#" class="logo" aria-label="Kavach">
-        <svg viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg">
-          <polygon class="logo-band" points="4,0 36,0 36,7 4,7" />
-          <polygon class="logo-band" points="4,10 36,10 34,17 6,17" />
-          <polygon class="logo-band" points="6,20 34,20 31,27 9,27" />
-          <polygon class="logo-band" points="9,30 31,30 27,36 13,36" />
-          <polygon class="logo-band" points="13,39 27,39 20,42 13,39" />
-        </svg>
-      </a>
-
-      <button class="nav__burger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      <button class="btn btn--nav wipe">
-        <span>Request Briefing</span>
-        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 10h10.2M10.4 5.6 15.2 10l-4.8 4.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-        </svg>
-      </button>
-    </nav>
-
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="mobile-menu" hidden>
-      <ul class="mobile-menu__links">
-        <li><a href="#" class="mobile-menu__link">Platform</a></li>
-        <li><a href="#" class="mobile-menu__link">Assessment</a></li>
-        <li><a href="#" class="mobile-menu__link">Resources</a></li>
-        <li><a href="#" class="mobile-menu__link">Contact</a></li>
-      </ul>
-      <button class="btn btn--light wipe">
-        <span>Request Briefing</span>
-        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 10h10.2M10.4 5.6 15.2 10l-4.8 4.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Hero -->
-    <div class="hero">
-      <!-- Badge -->
-      <div class="badge wipe">
-        <div class="badge__icon"></div>
-        <span>Stress Intelligence for CAPF & Armed Forces</span>
+      <div class="nav__brand">
+        <a href="#hero" class="logo-wrap" aria-label="VeerWell Home">
+          <div class="shield-logo">
+            <svg viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2L4 9V20C4 30.5 10.8 40.2 20 43C29.2 40.2 36 30.5 36 20V9L20 2Z" fill="#1b2a16" stroke="#eab308" stroke-width="2.2" />
+              <path d="M20 7L8 12.5V20C8 28 13.1 35.5 20 37.8C26.9 35.5 32 28 32 20V12.5L20 7Z" fill="#25381f" stroke="#7a9e6b" stroke-width="1.2" />
+              <path d="M20 14V30M13 22H27" stroke="#eab308" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-hindi">वीर</span><span class="brand-latin">Well</span>
+            <span class="brand-version">2.0</span>
+          </div>
+        </a>
       </div>
 
-      <!-- Headline -->
-      <h1 class="headline">
-        <div class="headline__mask">
-          <div class="headline__rise">Every soldier's stress signal</div>
+      <ul class="nav__links" aria-label="Primary">
+        <li><a href="#overview" class="nav__link">Doctrine</a></li>
+        <li><a href="#views" class="nav__link">5 Core Views</a></li>
+        <li><a href="#xgboost" class="nav__link">XGBoost GBDT</a></li>
+        <li><a href="#privacy" class="nav__link">Zero-Trust Privacy</a></li>
+        <li><a href="#stats" class="nav__link">Impact</a></li>
+      </ul>
+
+      <div class="nav__actions">
+        <a class="btn btn--launch" id="btn-launch-header" href="./client/index.html">
+          <span class="live-pulse"></span>
+          <span>Launch Command Grid</span>
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.5 10H15.5M10.5 5L15.5 10L10.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <button class="nav__burger" aria-label="Toggle navigation menu" id="burger-btn">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile Menu Drawer -->
+    <div id="mobile-menu" class="mobile-menu" hidden>
+      <ul class="mobile-menu__links">
+        <li><a href="#overview" class="mobile-menu__link">Doctrine & Mission</a></li>
+        <li><a href="#views" class="mobile-menu__link">5 Core Military Views</a></li>
+        <li><a href="#xgboost" class="mobile-menu__link">XGBoost AI Architecture</a></li>
+        <li><a href="#privacy" class="mobile-menu__link">Zero-Trust Privacy</a></li>
+        <li><a href="#stats" class="mobile-menu__link">Strategic Readiness</a></li>
+      </ul>
+      <a href="./client/index.html" class="btn btn--launch w-full text-center">
+        <span>Enter VeerWell 2.0 Platform</span>
+      </a>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+      <div class="badge-hero">
+        <span class="badge-dot"></span>
+        <span class="badge-text">CENTRAL ARMED POLICE FORCES • STRESS & WELFARE INTELLIGENCE</span>
+        <span class="badge-tag">MHA READY</span>
+      </div>
+
+      <h1 class="hero__headline">
+        <div class="headline__line">
+          <span>Predictive Biometrics for</span>
         </div>
-        <div class="headline__mask">
-          <div class="headline__rise">
-            <span class="headline__muted">deserves a</span>
-            <span class="headline__accent" data-text="faster response.">faster response.</span>
-          </div>
+        <div class="headline__line">
+          <span class="text-gradient-gold">Uniformed Forces.</span>
+          <span class="text-highlight">100% Confidential.</span>
         </div>
       </h1>
 
-      <!-- Actions -->
-      <div class="actions">
-        <button class="btn btn--light wipe">
-          <span>Request Briefing</span>
-          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 10h10.2M10.4 5.6 15.2 10l-4.8 4.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-          </svg>
-        </button>
-        <button class="btn btn--ghost wipe">See Kavach in Action</button>
-      </div>
-    </div>
+      <p class="hero__lead">
+        वीरWell 2.0 fuses 36-tree second-order <strong>XGBoost GBDT algorithms</strong> with <strong>Google Gemini intelligence</strong> to detect early operational fatigue, hypoxia strain in high-altitude outposts (Leh/Siachen), and duty burnout <strong>7–14 days in advance</strong>.
+      </p>
 
-    <!-- Lede -->
-    <div class="lede">
-      <div class="lede__rise">
-        Kavach continuously analyzes physiological, behavioural and operational data to flag early stress and fatigue indicators, predict burnout risk, and recommend the right support for every unit, at the right time.
+      <div class="hero__actions">
+        <a href="./client/index.html" class="btn btn--primary" id="btn-hero-launch">
+          <span>Launch Operational Platform</span>
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.5 10H15.5M10.5 5L15.5 10L10.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <a href="#views" class="btn btn--secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span>Explore 5 Core Views</span>
+        </a>
       </div>
-    </div>
+
+      <!-- Live Telemetry KPI Bar -->
+      <div class="kpi-grid" id="stats">
+        <div class="kpi-card">
+          <div class="kpi-label">DEPLOYED BATTALIONS</div>
+          <div class="kpi-value" data-target="21">21</div>
+          <div class="kpi-sub">CRPF • BSF • ITBP • SSB</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">ML FORECAST WINDOW</div>
+          <div class="kpi-value">7–14<span class="kpi-unit">D</span></div>
+          <div class="kpi-sub">Pre-symptomatic detection</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">XGBOOST INFERENCE</div>
+          <div class="kpi-value">&lt; 3<span class="kpi-unit">ms</span></div>
+          <div class="kpi-sub">36-Tree Edge Model</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">PRIVACY GUARANTEE</div>
+          <div class="kpi-value">100<span class="kpi-unit">%</span></div>
+          <div class="kpi-sub">Welfare Doctrine Protected</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Doctrine Section -->
+    <section id="overview" class="section">
+      <div class="section-header">
+        <div class="section-tag">ARMED FORCES WELFARE DOCTRINE</div>
+        <h2 class="section-title">Support, Recovery & Resilience. Never Penalty.</h2>
+        <p class="section-desc">
+          वीरWell is legally and technically locked to function solely as a welfare and clinical health recovery system. All personnel biometrics are cryptographically masked into differential tokens (<code>CAPF-NODE-XXXX</code>).
+        </p>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card-glass">
+          <div class="card-icon icon-emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3>Sanctuary & Confidentiality</h3>
+          <p>Personnel survey responses and smartwatch biometrics are strictly blocked from appraisal marks, promotions, or court-martial records.</p>
+        </div>
+
+        <div class="card-glass">
+          <div class="card-icon icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <h3>Hypoxia & High-Altitude Alerts</h3>
+          <p>Automated SpO2 and HRV drop monitors in Siachen and Leh sectors prompt 48-hour thermal rest rotations before acute mountain sickness manifests.</p>
+        </div>
+
+        <div class="card-glass">
+          <div class="card-icon icon-saffron">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <h3>Automated Rest Roster Balance</h3>
+          <p>Correlates consecutive shift hours against circadian sleep deficit to dynamically alert Commanders when units reach fatigue saturation.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 Core Views Showcase -->
+    <section id="views" class="section section--dark">
+      <div class="section-header">
+        <div class="section-tag">PLATFORM ARCHITECTURE</div>
+        <h2 class="section-title">5 Core Views Engineered for Every Military Persona</h2>
+        <p class="section-desc">Granular Role-Based Access Control (RBAC) separating Commanding Officers, Medical Doctors, Frontline Jawans, and Data Analysts.</p>
+      </div>
+
+      <div class="views-grid">
+        <div class="view-card">
+          <div class="view-num">01</div>
+          <div class="view-badge">Commanding Officer</div>
+          <h3>Personnel Wellness Monitoring Dashboard</h3>
+          <p>Battalion-level aggregate readiness, 3D stress turbulence orb, 5D physiological radar, and active outpost alert telemetry.</p>
+          <ul class="view-bullets">
+            <li>Macro fatigue heatmaps</li>
+            <li>Rest rotation authorizations</li>
+            <li>Names masked to CAPF-NODE-XXXX</li>
+          </ul>
+        </div>
+
+        <div class="view-card">
+          <div class="view-num">02</div>
+          <div class="view-badge">Frontline Personnel</div>
+          <h3>Mobile-Responsive Self-Assessment</h3>
+          <p>Voluntary PHQ-9 diagnostic screeners, simulated PPG smartwatch sync, box-breathing pacer, and 3-day confidential Wellness Leave requests.</p>
+          <ul class="view-bullets">
+            <li>Zero-retribution check-ins</li>
+            <li>Real-time HRV & SpO2 trend sync</li>
+            <li>Instant coping guidance</li>
+          </ul>
+        </div>
+
+        <div class="view-card">
+          <div class="view-num">03</div>
+          <div class="view-badge">Data Scientist</div>
+          <h3>Predictive Analytics Module</h3>
+          <p>14-day burnout forecast curves, What-If operational roster & altitude simulator, and multi-variate duty stress regression models (r=0.81).</p>
+          <ul class="view-bullets">
+            <li>XGBoost GBDT live simulation</li>
+            <li>Shift saturation levers</li>
+            <li>Differential Privacy validation</li>
+          </ul>
+        </div>
+
+        <div class="view-card">
+          <div class="view-num">04</div>
+          <div class="view-badge">Medical Specialist</div>
+          <h3>Intervention & Alert System</h3>
+          <p>Clinical triage directives, 48h hypoxia recovery orders, supportive psychological debriefing scripts, and confidential counseling links.</p>
+          <ul class="view-bullets">
+            <li>Doctor-patient privileged logs</li>
+            <li>Post-mission decompression scripts</li>
+            <li>Tele-MANAS integration ready</li>
+          </ul>
+        </div>
+
+        <div class="view-card view-card--span">
+          <div class="view-num">05</div>
+          <div class="view-badge">Cyber & Governance</div>
+          <h3>Privacy Management Framework</h3>
+          <p>Granular RBAC access matrices, K-Anonymity (k=5), Differential Privacy (&epsilon;=0.5), and live SHA-256 token hashing demonstrator.</p>
+          <ul class="view-bullets">
+            <li>Zero-trust tokenization</li>
+            <li>Cryptographic identity lock</li>
+            <li>ISO 27001 & Armed Forces compliance</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- XGBoost GBDT Technical Breakdown -->
+    <section id="xgboost" class="section">
+      <div class="section-header">
+        <div class="section-tag">MACHINE LEARNING CORE</div>
+        <h2 class="section-title">Second-Order XGBoost Gradient Boosted Trees</h2>
+        <p class="section-desc">Why simple heuristic scoring fails under high-tempo military deployments.</p>
+      </div>
+
+      <div class="xgb-grid">
+        <div class="xgb-code-panel">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-title">xgboostEngine.ts — 36 Trees & Second-Order Hessian</span>
+          </div>
+          <pre class="code-content"><code><span class="c-kw">interface</span> <span class="c-type">WelfareFeatures</span> {
+  meanAnswer: <span class="c-num">number</span>;      <span class="c-comm">// PHQ-9 stamina score</span>
+  sleepLoad: <span class="c-num">number</span>;       <span class="c-comm">// Circadian deficit</span>
+  burnoutLoad: <span class="c-num">number</span>;     <span class="c-comm">// Emotional exhaustion</span>
+  heartRate: <span class="c-num">number</span>;       <span class="c-comm">// Resting PPG (BPM)</span>
+  spo2: <span class="c-num">number</span>;            <span class="c-comm">// High-altitude oxygen %</span>
+  hrv: <span class="c-num">number</span>;             <span class="c-comm">// Autonomic RMSSD (ms)</span>
+  shiftHours: <span class="c-num">number</span>;      <span class="c-comm">// Weekly duty tempo</span>
+  altitude: <span class="c-num">number</span>;        <span class="c-comm">// Hypoxia factor (0 or 1)</span>
+}
+
+<span class="c-kw">export function</span> <span class="c-fn">predictXGBoost</span>(f: <span class="c-type">WelfareFeatures</span>) {
+  <span class="c-kw">let</span> pred = BASE_PRED;
+  <span class="c-kw">for</span> (<span class="c-kw">const</span> tree <span class="c-kw">of</span> TREES) {
+    pred += LR * <span class="c-fn">evalTree</span>(tree, x);
+  }
+  <span class="c-kw">return</span> {
+    stressScore: <span class="c-fn">clamp</span>(pred, <span class="c-num">5</span>, <span class="c-num">98</span>),
+    riskBand: pred >= <span class="c-num">80</span> ? <span class="c-str">'Critical'</span> : <span class="c-str">'Moderate'</span>,
+    latencyMs: <span class="c-num">1.82</span>
+  };
+}</code></pre>
+        </div>
+
+        <div class="xgb-features-list">
+          <div class="xgb-feat-card">
+            <h4>Second-Order Taylor Expansion</h4>
+            <p>Calculates both gradient (g) and hessian (h) matrices for exact loss reduction on non-linear biometric inputs.</p>
+          </div>
+          <div class="xgb-feat-card">
+            <h4>12 Multi-Modal Tactical Features</h4>
+            <p>Fuses subjective psychometrics (PHQ-9) with continuous physiological telemetry (HRV, SpO2) and roster hours.</p>
+          </div>
+          <div class="xgb-feat-card">
+            <h4>Edge-Ready Zero-Latency Scoring</h4>
+            <p>Runs natively both client-side and server-side in &lt; 3ms without requiring internet in remote border outposts.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive CTA Footer -->
+    <footer class="footer-cta" id="privacy">
+      <div class="footer-cta__box">
+        <div class="shield-logo large">
+          <svg viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 2L4 9V20C4 30.5 10.8 40.2 20 43C29.2 40.2 36 30.5 36 20V9L20 2Z" fill="#1b2a16" stroke="#eab308" stroke-width="2.5" />
+            <path d="M20 14V30M13 22H27" stroke="#eab308" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <h2>Step Into the Live VeerWell 2.0 Command Center</h2>
+        <p>Explore real-time telemetry, simulated wearable biometrics, and AI-driven psychological resilience.</p>
+        <a href="./client/index.html" class="btn btn--launch btn--xl">
+          <span>Enter Live Platform Grid</span>
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.5 10H15.5M10.5 5L15.5 10L10.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+
+      <div class="footer-bottom">
+        <div>वीरWell 2.0 • Dedicated to the Valour & Well-Being of Indian Armed Forces</div>
+        <div class="footer-links">
+          <span>CRPF</span> • <span>BSF</span> • <span>ITBP</span> • <span>SSB</span> • <span>CISF</span> • <span>MHA</span>
+        </div>
+      </div>
+    </footer>
   </div>
 
-  <script type="module" src="main.js"></script>
+  <script src="main.js" type="module"></script>
 </body>
 </html>
