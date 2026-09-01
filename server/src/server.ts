@@ -152,7 +152,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
     const cleanName = name?.trim() || cleanEmail.split('@')[0];
     const cleanRoleTitle = designation || `${rank} (${role})`;
 
-    let userId = `usr-${Date.now()}`;
+    let userId = `usr-${Date.now()}`; // Fallback ID if Supabase fails
 
     // ── 1. Create / Confirm User in Supabase Auth & public.profiles ──
     if (supabaseAdmin) {
@@ -179,6 +179,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
           const existing = userList?.users?.find((u) => u.email?.toLowerCase() === cleanEmail);
           if (existing) {
             userId = existing.id;
+            console.log(`[VeerWell Server] ✅ Found existing user ID: ${userId}, updating credentials...`);
             await supabaseAdmin.auth.admin.updateUserById(existing.id, {
               password: cleanPassword,
               email_confirm: true,
@@ -197,6 +198,9 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
         }
       } else if (authData?.user) {
         userId = authData.user.id;
+        console.log(`[VeerWell Server] ✅ Created new Supabase Auth user with ID: ${userId}`);
+      } else {
+        console.warn('[VeerWell Server] No user data returned from Supabase auth creation');
       }
 
       // Upsert profile into public.profiles table
@@ -222,7 +226,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
       if (profileErr) {
         console.warn('[VeerWell Server] public.profiles upsert notice:', profileErr.message);
       } else {
-        console.log(`[VeerWell Server] ✅ Profile saved into public.profiles table`);
+        console.log(`[VeerWell Server] ✅ Profile saved into public.profiles table for user: ${cleanEmail}`);
       }
 
       // Upsert baseline wearable telemetry record
@@ -294,6 +298,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
       success: true,
       token,
       user: newUser,
+      userId: userId,
       message: 'Account registered and confirmed! Live Supabase credentials ready for login.',
     });
   } catch (err: any) {

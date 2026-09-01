@@ -421,7 +421,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
               </div>
               <div>
                 <div className="text-2xl font-black text-white font-mono">12 / 12</div>
-                <div className="text-xs font-bold text-white">Supabase Tables Synced</div>
+                <div className="text-xs font-bold text-white">Database Tables Synced</div>
                 <p className="text-[10px] text-olive-300 mt-1">Row-Level Security verified</p>
               </div>
             </div>

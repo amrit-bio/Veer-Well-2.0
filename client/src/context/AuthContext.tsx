@@ -146,6 +146,9 @@ interface AuthContextType {
     password?: string;
   }) => boolean;
   supabaseSignIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  supabaseResetPassword: (email: string) => Promise<{ error: Error | null }>;
+  supabaseSignInWithOtp: (email: string) => Promise<{ error: Error | null }>;
+  supabaseVerifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   supabaseSignUp: (
     email: string,
     password: string,
@@ -195,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         syncUserProfile(session.user);
         setIsAuthenticated(true);
       } else {
-        // When signed out from Supabase
+        // When signed out from auth system
         setIsAuthenticated(false);
       }
       setAuthLoading(false);
@@ -288,6 +291,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 1. Register with backend server (creates confirmed user in Supabase Auth & public.profiles)
       let serverSuccess = false;
+      let userId = '';
+
       try {
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
@@ -307,28 +312,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (res.ok) {
+          const result = await res.json();
           serverSuccess = true;
+          userId = result.userId || result.user?.id || cleanServiceNumber;
+          console.log('[VeerWell Client] ✅ User successfully registered in Supabase backend:', userId);
         } else {
           const errJson = await res.json().catch(() => ({}));
-          console.warn('Server signup notice:', errJson);
+          console.warn('[VeerWell Client] Server signup error:', errJson);
+          return { error: new Error(errJson.error || 'Registration failed') };
         }
       } catch (srvErr) {
-        console.warn('Could not reach backend signup endpoint, falling back to direct client registration:', srvErr);
-        // Fallback to client signUp
-        await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: {
-              name: cleanName,
-              rank: cleanRank,
-              serviceNumber: cleanServiceNumber,
-              force: cleanForce,
-              unit: cleanUnit,
-              role: cleanRole,
-            },
-          },
-        });
+        console.warn('[VeerWell Client] Could not reach backend signup endpoint:', srvErr);
+        return { error: new Error('Server connection failed. Please try again.') };
       }
 
       // 2. Immediately sign in with the new confirmed credentials to establish a live Supabase session
@@ -355,11 +350,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (loginError) {
-        console.warn('Immediate sign-in notice:', loginError.message);
+        console.warn('[VeerWell Client] Immediate sign-in error:', loginError.message);
         if (serverSuccess) {
           // If server created user & profile in Supabase, establish session for seamless UX
           const fallbackUser: User = {
-            id: cleanServiceNumber,
+            id: userId,
             name: cleanName,
             role: cleanRole,
             roleTitle: `${cleanRank} (${cleanRole})`,
@@ -368,7 +363,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unit: cleanUnit,
             location: `${cleanUnit}, ${cleanForce}`,
             serviceNumber: cleanServiceNumber,
-            anonymizedId: `CAPF-NODE-${cleanServiceNumber.slice(-4)}`,
+            anonymizedId: `CAPF-NODE-${userId.slice(-4)}`,
             avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
           };
           setUser(fallbackUser);
@@ -390,6 +385,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null, data: loginData };
     } catch (err: any) {
+      console.error('[VeerWell Client] Signup error:', err);
       return { error: err };
     }
   };
@@ -467,6 +463,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const supabaseResetPassword = async (email: string): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  const supabaseSignInWithOtp = async (email: string): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/verify`,
+        },
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  const supabaseVerifyOtp = async (email: string, token: string): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
   const logout = () => {
     supabaseSignOut();
   };
@@ -498,6 +532,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabaseSignIn,
         supabaseSignUp,
         supabaseSignOut,
+        supabaseResetPassword,
+        supabaseSignInWithOtp,
+        supabaseVerifyOtp,
         logout,
       }}
     >

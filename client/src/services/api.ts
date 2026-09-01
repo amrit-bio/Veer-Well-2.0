@@ -12,7 +12,7 @@ const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, an intelligent, calm, and hig
 CRITICAL INSTRUCTIONS:
 1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not give generic boilerplate or force breathing instructions unless the user specifically asks for stress relief or breathing techniques.
 2. If the user asks about the VeerWell 2.0 platform or its features:
-   - Explain the 5 Core Views and that burnout risk is inferred by an on-device XGBoost GBDT (36 trees) fused with Gemini for clinical language.
+   - Explain the 5 Core Views and that burnout risk is inferred by an on-device XGBoost GBDT (36 trees) fused with advanced AI for clinical language.
    - Predictive Analytics Module (14-day burnout forecast curves, XGBoost what-if simulator, altitude & roster levers)
    - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
 3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
@@ -23,7 +23,7 @@ async function callDirectGemini(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const models = ['ai-model-lite', 'ai-model-standard', 'ai-model-advanced'];
   let lastErr: any = null;
 
   for (const model of models) {
@@ -42,7 +42,7 @@ async function callDirectGemini(
       });
 
       if (!res.ok) {
-        lastErr = new Error(`Gemini ${model} Error: ${res.status}`);
+        lastErr = new Error(`AI Model ${model} Error: ${res.status}`);
         continue;
       }
 
@@ -57,7 +57,7 @@ async function callDirectGemini(
     }
   }
 
-  throw lastErr || new Error('Empty Gemini response');
+  throw lastErr || new Error('Empty AI response');
 }
 
 export const api = {
@@ -158,9 +158,9 @@ export const api = {
       }
 
       const reply = await callDirectGemini(contents, dynamicSystem);
-      return { success: true, reply, model: 'gemini-3.5-flash-lite' };
+      return { success: true, reply, model: 'AI Model' };
     } catch (err: any) {
-      console.error('Direct Gemini error:', err);
+      console.error('Direct AI error:', err);
       return {
         success: false,
         reply: 'Jai Hind. Telemetry connectivity is limited. Recommended immediate protocol: Prioritize hydration, check duty roster, and consult your Unit Welfare Officer under the confidential Welfare Doctrine.',
@@ -203,7 +203,7 @@ export const api = {
       // Fallback
     }
 
-    // 2. Direct Gemini 3.6 Flash fallback
+    // 2. Direct AI fallback
     try {
       const prompt = `You are Rakshak AI, clinical behavioral analytics engine for CAPF and Uniformed Forces.
 Assess the personnel stress profile based on this data:

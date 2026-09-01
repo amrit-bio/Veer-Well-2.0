@@ -155,7 +155,7 @@ export const SupabaseDataTab: React.FC = () => {
     // Only attempt to fetch data after confirming the user is logged in
     if (!isAuthenticated && !supabaseUser) {
       setData([]);
-      setError('Authentication required. Please sign in with Supabase to query this table under Row Level Security.');
+      setError('Authentication required. Please sign in to query this table under Row Level Security.');
       return;
     }
 
@@ -188,7 +188,7 @@ export const SupabaseDataTab: React.FC = () => {
         setData(records || []);
       }
     } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred while querying Supabase.');
+      setError(err?.message || 'An unexpected error occurred while querying the database.');
       setData([]);
     } finally {
       setLoading(false);
@@ -387,7 +387,7 @@ export const SupabaseDataTab: React.FC = () => {
           evaluator_role: localUser.roleTitle || 'Commanding Officer',
           rating: 5,
           category: 'Security & Privacy',
-          comments: 'Exceptional zero-trust RLS implementation with live Supabase telemetry synchronization!',
+          comments: 'Exceptional zero-trust RLS implementation with live database telemetry synchronization!',
         };
         break;
 
@@ -443,7 +443,7 @@ export const SupabaseDataTab: React.FC = () => {
                 <Database className="w-5 h-5" />
               </div>
               <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                Live Supabase Backend Explorer
+                Live Database Explorer
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />
@@ -587,7 +587,7 @@ export const SupabaseDataTab: React.FC = () => {
           <div className="p-16 text-center space-y-4">
             <div className="w-10 h-10 border-2 border-accent-gold border-t-transparent rounded-full animate-spin mx-auto" />
             <div className="space-y-1">
-              <p className="text-sm font-bold text-white">Executing Postgres Query on Supabase…</p>
+              <p className="text-sm font-bold text-white">Executing Postgres Query on Database…</p>
               <p className="text-xs text-olive-400 font-mono">
                 SELECT * FROM public.{selectedTable.id} (Row Level Security evaluated)
               </p>
@@ -732,7 +732,7 @@ export const SupabaseDataTab: React.FC = () => {
 
             {/* Table Footer Summary */}
             <div className="p-3 border-t border-olive-800/80 bg-olive-900/30 flex items-center justify-between text-[11px] font-mono text-olive-400">
-              <span>Showing {filteredData.length} of {data.length} row(s) returned from Supabase</span>
+              <span>Showing {filteredData.length} of {data.length} row(s) returned from database</span>
               <span className="text-accent-gold">Ordered by created_at DESC • Limit 50</span>
             </div>
           </div>

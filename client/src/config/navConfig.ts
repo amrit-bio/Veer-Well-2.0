@@ -137,7 +137,7 @@ export const NAV_CONFIG: TabItem[] = [
   },
   {
     id: 'supabase-data',
-    label: 'Supabase Live Data',
+    label: 'Live Database Explorer',
     category: 'Platform & Demo',
     icon: Database,
     badge: 'Postgres RLS',

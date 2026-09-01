@@ -42,9 +42,9 @@ export const AiWelfareCopilot: React.FC = () => {
     {
       id: 'm-1',
       sender: 'ai',
-      text: `Jai Hind, ${user.rank} ${user.name}. I am Rakshak AI, powered by Google Gemini. All communications are confidential under the Armed Forces Welfare Doctrine. How may I support your unit today?`,
+      text: `Jai Hind, ${user.rank} ${user.name}. I am Rakshak AI, powered by advanced AI. All communications are confidential under the Armed Forces Welfare Doctrine. How may I support your unit today?`,
       time: 'Just now',
-      badge: 'Gemini Active',
+      badge: 'AI Active',
       recommendations: [
         'Run 7-day burnout risk inference for High Altitude patrols',
         'Recommend post-mission decompression protocols for CoBRA scouts',
@@ -223,7 +223,7 @@ export const AiWelfareCopilot: React.FC = () => {
         sender: 'ai',
         text: result.reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        badge: result.model || 'Rakshak AI (Gemini)',
+        badge: result.model || 'Rakshak AI',
         recommendations: [
           'What are the 5 core views of VeerWell?',
           'What are the key symptoms of hypoxia fatigue in Leh?',

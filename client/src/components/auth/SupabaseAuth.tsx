@@ -36,16 +36,21 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     supabaseSignIn,
     supabaseSignUp,
     supabaseSignOut,
+    supabaseResetPassword,
+    supabaseSignInWithOtp,
+    supabaseVerifyOtp,
     user: profileUser,
   } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
 
   // Optional military sign-up metadata
   const [name, setName] = useState('');
@@ -73,7 +78,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     if (error) {
       setErrorMsg(error.message || 'Failed to authenticate. Please check your credentials.');
     } else {
-      setSuccessMsg('Authentication successful! Initializing command telemetry…');
+      setSuccessMsg('Authentication successful! Loading your profile from the database…');
       if (onSuccess) onSuccess();
     }
   };
@@ -94,7 +99,39 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       return;
     }
 
+    // Step 1: Send OTP for email verification
+    if (!otpSent) {
+      setLoading(true);
+      const { error } = await supabaseSignInWithOtp(email.trim());
+      setLoading(false);
+
+      if (error) {
+        setErrorMsg(error.message || 'Failed to send verification code. Please try again.');
+      } else {
+        setOtpSent(true);
+        setSuccessMsg('✅ Verification code sent to your email. Please enter the code below to complete registration.');
+      }
+      return;
+    }
+
+    // Step 2: Verify OTP and complete registration
+    if (!otp.trim()) {
+      setErrorMsg('Please enter the verification code sent to your email.');
+      return;
+    }
+
     setLoading(true);
+
+    // First verify OTP
+    const { error: otpError } = await supabaseVerifyOtp(email.trim(), otp.trim());
+
+    if (otpError) {
+      setLoading(false);
+      setErrorMsg(otpError.message || 'Invalid verification code. Please try again.');
+      return;
+    }
+
+    // OTP verified, now complete registration
     const { error, data } = await supabaseSignUp(email.trim(), password, {
       name: name.trim() || email.split('@')[0],
       rank,
@@ -107,11 +144,14 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
     if (error) {
       setErrorMsg(error.message || 'Failed to register account. Please try again.');
+      // Reset OTP flow on error
+      setOtpSent(false);
+      setOtp('');
     } else {
-      setSuccessMsg('✅ Account created and verified in Supabase! Storing profile with RLS and entering command grid…');
+      setSuccessMsg('✅ Account created and verified! Your data has been stored securely in the database. Entering command grid…');
       setTimeout(() => {
         if (onSuccess) onSuccess();
-      }, 700);
+      }, 1500);
     }
   };
 
@@ -121,6 +161,32 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     await supabaseSignOut();
     setLoading(false);
     setSuccessMsg(null);
+  };
+
+  // Handle Forgot Password
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabaseResetPassword(email.trim());
+    setLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Failed to send reset email. Please try again.');
+    } else {
+      setSuccessMsg('Password reset link sent to your email. Please check your inbox.');
+      setTimeout(() => {
+        setMode('login');
+        setSuccessMsg(null);
+      }, 3000);
+    }
   };
 
   // If user is actively logged in and we just want to display user state & logout button
@@ -168,7 +234,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
             className="flex-1 py-2.5 px-4 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600/50 text-rose-200 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-rose-950/50"
           >
             <LogOut className="w-4 h-4" />
-            <span>{loading ? 'Disconnecting…' : 'Sign Out of Supabase'}</span>
+            <span>{loading ? 'Disconnecting…' : 'Sign Out'}</span>
           </button>
         </div>
       </div>
@@ -190,7 +256,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           VeerWell 2.0 Identity Gateway
         </h2>
         <p className="text-xs text-olive-300 font-mono mt-1">
-          Supabase Secure Authentication • Row Level Security Guard
+          Secure Authentication • Row Level Security Guard
         </p>
 
         {/* Mode Switcher Tabs */}
@@ -201,6 +267,8 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               setMode('login');
               setErrorMsg(null);
               setSuccessMsg(null);
+              setOtpSent(false);
+              setOtp('');
             }}
             className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
               mode === 'login'
@@ -218,6 +286,8 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               setMode('signup');
               setErrorMsg(null);
               setSuccessMsg(null);
+              setOtpSent(false);
+              setOtp('');
             }}
             className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
               mode === 'signup'
@@ -258,73 +328,14 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         )}
       </AnimatePresence>
 
-      {/* 1-Click Demo Preset Credentials */}
-      {mode === 'login' && (
-        <div className="mt-4 p-3 rounded-2xl bg-olive-900/60 border border-olive-800 text-xs">
-          <div className="flex items-center justify-between text-[11px] font-mono text-accent-gold font-bold mb-2">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              1-Click Verified Logins (Supabase Auth):
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('co@veerwell.org');
-                setPassword('co-password-2026');
-                setErrorMsg(null);
-              }}
-              className="py-1.5 px-2.5 rounded-lg bg-olive-950/80 hover:bg-olive-800 border border-olive-700/60 text-left text-[11px] text-slate-200 transition-colors flex items-center justify-between"
-            >
-              <span className="font-bold text-accent-gold">Commander (CO)</span>
-              <span className="text-[10px] text-olive-400 font-mono">Fill ↵</span>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('doctor@veerwell.org');
-                setPassword('med-password-2026');
-                setErrorMsg(null);
-              }}
-              className="py-1.5 px-2.5 rounded-lg bg-olive-950/80 hover:bg-olive-800 border border-olive-700/60 text-left text-[11px] text-slate-200 transition-colors flex items-center justify-between"
-            >
-              <span className="font-bold text-rose-300">Doctor / MO</span>
-              <span className="text-[10px] text-olive-400 font-mono">Fill ↵</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('jawan@veerwell.org');
-                setPassword('jawan-password-2026');
-                setErrorMsg(null);
-              }}
-              className="py-1.5 px-2.5 rounded-lg bg-olive-950/80 hover:bg-olive-800 border border-olive-700/60 text-left text-[11px] text-slate-200 transition-colors flex items-center justify-between"
-            >
-              <span className="font-bold text-emerald-300">Jawan / Sentinel</span>
-              <span className="text-[10px] text-olive-400 font-mono">Fill ↵</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('analyst@veerwell.org');
-                setPassword('ana-password-2026');
-                setErrorMsg(null);
-              }}
-              className="py-1.5 px-2.5 rounded-lg bg-olive-950/80 hover:bg-olive-800 border border-olive-700/60 text-left text-[11px] text-slate-200 transition-colors flex items-center justify-between"
-            >
-              <span className="font-bold text-cyan-300">Data Analyst</span>
-              <span className="text-[10px] text-olive-400 font-mono">Fill ↵</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Form Content */}
-      <form onSubmit={mode === 'login' ? handleLogin : handleSignUp} className="mt-4 space-y-4 relative z-10">
+      <form onSubmit={
+        mode === 'login' ? handleLogin :
+        mode === 'signup' ? handleSignUp :
+        handleForgotPassword
+      } className="mt-4 space-y-4 relative z-10">
         {/* Email Address */}
         <div>
           <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center gap-1.5">
@@ -344,36 +355,65 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         </div>
 
         {/* Password */}
-        <div>
-          <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-accent-gold" />
-              Password
-            </span>
-            {mode === 'login' && (
-              <span className="text-[10px] text-olive-400 hover:text-accent-gold cursor-pointer transition-colors">
-                Forgot password?
+        {mode !== 'forgot' && (
+          <div>
+            <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-accent-gold" />
+                Password
               </span>
-            )}
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? 'Min. 6 characters' : 'Enter your password'}
-              className="w-full px-4 py-3 pr-11 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono transition-all outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-olive-400 hover:text-white transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {mode === 'login' && (
+                <span
+                  onClick={() => {
+                    setMode('forgot');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="text-[10px] text-olive-400 hover:text-accent-gold cursor-pointer transition-colors"
+                >
+                  Forgot password?
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required={mode === 'login' || mode === 'signup'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === 'signup' ? 'Min. 6 characters' : 'Enter your password'}
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono transition-all outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-olive-400 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* OTP Input Field for Signup */}
+        {mode === 'signup' && otpSent && (
+          <div>
+            <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-accent-gold" />
+              Verification Code
+            </label>
+            <input
+              type="text"
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="Enter 6-digit code from email"
+              maxLength={6}
+              className="w-full px-4 py-3 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono tracking-widest transition-all outline-none text-center"
+            />
+            <p className="text-[10px] text-olive-400 mt-1">Check your email for the verification code</p>
+          </div>
+        )}
 
         {/* Additional Fields for Sign Up */}
         {mode === 'signup' && (
@@ -478,17 +518,29 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           {loading ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-navy-950 border-t-transparent rounded-full animate-spin" />
-              <span>Communicating with Supabase Auth…</span>
+              <span>Processing…</span>
             </div>
           ) : mode === 'login' ? (
             <>
               <span>Sign In to Command Grid</span>
               <ArrowRight className="w-4 h-4" />
             </>
+          ) : mode === 'signup' ? (
+            <>
+              <span>
+                {!otpSent ? 'Send Verification Code' : 'Verify Code & Register'}
+              </span>
+              {!otpSent ? <Mail className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+            </>
+          ) : mode === 'forgot' ? (
+            <>
+              <span>Send Reset Link</span>
+              <Mail className="w-4 h-4" />
+            </>
           ) : (
             <>
-              <span>Complete Armed Forces Registration</span>
-              <Sparkles className="w-4 h-4" />
+              <span>Sign In</span>
+              <ArrowRight className="w-4 h-4" />
             </>
           )}
         </button>
@@ -501,7 +553,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           <span>RLS Enforced</span>
         </div>
         <div>
-          <span>JWT • Supabase Postgres 15</span>
+          <span>JWT • Secure Database</span>
         </div>
       </div>
     </div>
