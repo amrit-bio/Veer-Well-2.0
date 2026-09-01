@@ -3,8 +3,15 @@ import {
 } from '../types';
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
 
-const API_BASE = '/api';
+// Get API base from environment variable, fallback to relative path for development
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
 const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+
+// Log API configuration for debugging
+if (typeof window !== 'undefined') {
+  console.log('[API] Base URL:', API_BASE);
+  console.log('[API] Gemini Key configured:', !!GEMINI_API_KEY);
+}
 
 
 const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).

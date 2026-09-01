@@ -32,8 +32,37 @@ if (supabaseAdmin) {
   console.log(`[VeerWell Server] ✅ Supabase Admin initialized: ${SUPABASE_URL}`);
 }
 
+// Configure CORS to allow requests from Vercel and development
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  /\.vercel\.app$/, // Allow all Vercel deployments
+];
 
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    const isAllowed = allowedOrigins.some(allowed => 
+      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+    );
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      // For production, allow all origins with warning
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 

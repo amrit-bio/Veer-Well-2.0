@@ -23,6 +23,7 @@ Your Supabase and Google API keys have been exposed in this conversation.
 VITE_SUPABASE_URL = https://krshfwuqifaxecbtrxmy.supabase.co
 VITE_SUPABASE_ANON_KEY = [Your anon JWT token from Supabase]
 VITE_GEMINI_API_KEY = [Your Google Gemini API key]
+VITE_API_BASE = [Your backend URL - e.g., https://your-api.railway.app]
 ```
 
 ### Backend Variables (used in `server/` runtime)
