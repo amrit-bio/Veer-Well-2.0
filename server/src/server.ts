@@ -32,18 +32,26 @@ if (supabaseAdmin) {
   console.log(`[VeerWell Server] ✅ Supabase Admin initialized: ${SUPABASE_URL}`);
 }
 
-// Configure CORS to allow requests from Vercel and development
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
+// Configure CORS to allow requests from Vercel, Railway, and development
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const ALLOWED_ORIGINS_STR = process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001';
+const allowedOriginsList = ALLOWED_ORIGINS_STR.split(',').map(o => o.trim());
+
+const allowedOrigins: (string | RegExp)[] = [
+  ...allowedOriginsList,
   /\.vercel\.app$/, // Allow all Vercel deployments
+  /\.railway\.app$/, // Allow all Railway deployments  
+  /\.onrender\.com$/, // Allow all Render deployments
 ];
+
+// In production, be more permissive with CORS (Vercel deployments have dynamic URLs)
+if (NODE_ENV === 'production') {
+  console.log('[CORS] Production mode: allowing flexible origins');
+}
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl requests)
+    // Allow requests with no origin (mobile apps, curl requests, direct server-to-server)
     if (!origin) return callback(null, true);
     
     const isAllowed = allowedOrigins.some(allowed => 
@@ -53,9 +61,14 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`[CORS] Blocked request from origin: ${origin}`);
-      // For production, allow all origins with warning
-      callback(null, true);
+      console.warn(`[CORS] Request from origin: ${origin}`);
+      // In production, be permissive (can cause issues with Vercel preview deployments)
+      if (NODE_ENV === 'production') {
+        console.warn(`[CORS] Allowing production request from: ${origin}`);
+        callback(null, true);
+      } else {
+        callback(new Error('CORS not allowed'));
+      }
     }
   },
   credentials: true,
@@ -67,14 +80,25 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Multer storage for PDF and CSV uploads
-const uploadDir = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// In production (Railway/Render), use /tmp directory for ephemeral storage
+const uploadDir = process.env.NODE_ENV === 'production' 
+  ? path.resolve('/tmp', 'veerwell-uploads')
+  : path.resolve(process.cwd(), 'uploads');
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn(`[VeerWell Server] Could not create upload directory: ${uploadDir}`, err);
 }
 const upload = multer({ dest: uploadDir });
 
 // In-Memory / File-backed Database Store
-const dbPath = path.resolve(process.cwd(), 'src/db/seededData.json');
+// In production, use /tmp directory for database file
+const dbPath = process.env.NODE_ENV === 'production'
+  ? path.resolve('/tmp', 'veerwell-seededData.json')
+  : path.resolve(process.cwd(), 'src/db/seededData.json');
 let db: SeededData;
 
 function loadDb(): SeededData {
