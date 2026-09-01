@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
@@ -11,6 +11,7 @@ import { BrandedLoader } from './components/common/BrandedLoader';
 import { HomeOverviewTab } from './components/tabs/HomeOverviewTab';
 
 import { DashboardTab } from './components/tabs/DashboardTab';
+import { CommanderDashboardTab } from './components/tabs/CommanderDashboardTab';
 import { SelfAssessmentTab } from './components/tabs/SelfAssessmentTab';
 import { PredictiveAnalyticsTab } from './components/tabs/PredictiveAnalyticsTab';
 import { InterventionsTab } from './components/tabs/InterventionsTab';
@@ -23,13 +24,13 @@ import { FeedbackTab } from './components/tabs/FeedbackTab';
 import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
 import { SupabaseAuth } from './components/auth/SupabaseAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
-import { getVisibleTabsForRole } from './config/navConfig';
+import { getDefaultTabForRole, getVisibleTabsForRole, isTabAccessible } from './config/navConfig';
 import { useAuth } from './context/AuthContext';
 import { BrandLogo } from './components/common/BrandLogo';
 import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
 
 const MainPlatform: React.FC = () => {
-  const { isAuthenticated, session, authLoading, switchRole, role } = useAuth();
+  const { isAuthenticated, session, authLoading, switchRole, role, supabaseUser } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
@@ -37,6 +38,7 @@ const MainPlatform: React.FC = () => {
   const [supabaseMessage, setSupabaseMessage] = useState('');
   const [showStatus, setShowStatus] = useState(true);
   const [demoBypass, setDemoBypass] = useState(false);
+  const previousAccountId = useRef<string | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => setBootLoading(false), 1400);
@@ -94,11 +96,31 @@ const MainPlatform: React.FC = () => {
 
 
   const handleTabChange = (tabId: string) => {
+    // Never render a module outside the active account's assigned role.
+    if (!isTabAccessible(tabId, role)) {
+      setActiveTab(getDefaultTabForRole(role));
+      return;
+    }
     if (tabId === activeTab) return;
     setTabLoading(true);
     setActiveTab(tabId);
     window.setTimeout(() => setTabLoading(false), 420);
   };
+
+  // A sign-in, sign-out, or role change always starts at the permitted home view.
+  // This prevents the previous account's screen from briefly remaining visible.
+  useEffect(() => {
+    const accountId = supabaseUser?.id ?? null;
+    if (previousAccountId.current !== accountId) {
+      previousAccountId.current = accountId;
+      setActiveTab(getDefaultTabForRole(role));
+      return;
+    }
+
+    if (!isTabAccessible(activeTab, role)) {
+      setActiveTab(getDefaultTabForRole(role));
+    }
+  }, [activeTab, role, supabaseUser?.id]);
 
   if (bootLoading || authLoading) {
     return <BrandedLoader fullscreen label="Initializing VeerWell command grid & PostgreSQL session…" />;
@@ -162,7 +184,8 @@ const MainPlatform: React.FC = () => {
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
                   {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
-                  {activeTab === 'dashboard' && <DashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'dashboard' && role === 'commander' && <CommanderDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'dashboard' && role !== 'commander' && <DashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
                   {activeTab === 'interventions' && <InterventionsTab />}

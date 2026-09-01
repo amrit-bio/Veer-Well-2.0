@@ -179,23 +179,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── 1. Supabase Auth Listener (Session tracking) ───────────────────────────
   useEffect(() => {
-    // Check initial active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check the initial session before allowing protected content to render.
+    const initializeSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        syncUserProfile(session.user);
+        await syncUserProfile(session.user);
         setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
       setAuthLoading(false);
-    });
+    };
+    void initializeSession();
 
     // Listen for auth state changes across the entire app
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        syncUserProfile(session.user);
+        // Hide the previous account while the selected account's profile loads.
+        setIsAuthenticated(false);
+        await syncUserProfile(session.user);
         setIsAuthenticated(true);
       } else {
         // When signed out from auth system
@@ -318,8 +324,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('[VeerWell Client] ✅ User successfully registered in Supabase backend:', userId);
         } else {
           const errJson = await res.json().catch(() => ({}));
-          console.warn('[VeerWell Client] Server signup error:', errJson);
-          return { error: new Error(errJson.error || 'Registration failed') };
+          console.warn('[VeerWell Client] Server signup error - Status:', res.status, res.statusText);
+          console.warn('[VeerWell Client] Server signup error - Response:', errJson);
+          const errorMsg = errJson.error || errJson.message || `Server error (${res.status}: ${res.statusText})`;
+          return { error: new Error(errorMsg) };
         }
       } catch (srvErr) {
         console.warn('[VeerWell Client] Could not reach backend signup endpoint:', srvErr);
@@ -351,27 +359,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (loginError) {
         console.warn('[VeerWell Client] Immediate sign-in error:', loginError.message);
-        if (serverSuccess) {
-          // If server created user & profile in Supabase, establish session for seamless UX
-          const fallbackUser: User = {
-            id: userId,
-            name: cleanName,
-            role: cleanRole,
-            roleTitle: `${cleanRank} (${cleanRole})`,
-            rank: cleanRank,
-            force: cleanForce,
-            unit: cleanUnit,
-            location: `${cleanUnit}, ${cleanForce}`,
-            serviceNumber: cleanServiceNumber,
-            anonymizedId: `CAPF-NODE-${userId.slice(-4)}`,
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-          };
-          setUser(fallbackUser);
-          setRole(cleanRole);
-          setIsAuthenticated(true);
-          setIsAuthModalOpen(false);
-          return { error: null, data: { user: fallbackUser } };
-        }
         return { error: loginError };
       }
 

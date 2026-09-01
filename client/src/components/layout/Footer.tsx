@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Wordmark } from '../common/Wordmark';
+import { useAuth } from '../../context/AuthContext';
+import { getVisibleTabsForRole, NavCategory } from '../../config/navConfig';
 import {
   ShieldCheck,
   PhoneCall,
@@ -17,6 +19,10 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { role } = useAuth();
+  const visibleTabs = getVisibleTabsForRole(role);
+  const footerCategories: NavCategory[] = ['Core Modules', 'Analytics & Welfare', 'Platform & Demo'];
+
   return (
     <footer className="w-full border-t border-olive-400/25 bg-gradient-to-b from-olive-950/95 via-navy-950 to-navy-950 text-slate-200 relative z-20 overflow-hidden">
       {/* Subtle Tactical Grid in Footer Background */}
@@ -79,108 +85,32 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Col 2: Core Platform Views (3 Cols) */}
-          <div className="lg:col-span-3 space-y-3">
-            <div className="text-xs font-mono font-bold uppercase tracking-wider text-accent-gold">
-              Core Functional Modules
-            </div>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <button
-                  onClick={() => onNavigate('dashboard')}
-                  className="text-olive-200 hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
-                  Personnel Wellness Dashboard
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('assessment')}
-                  className="text-olive-200 hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
-                  Mobile Self-Assessment Interface
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('analytics')}
-                  className="text-olive-200 hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
-                  Predictive Stress Analytics Module
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('interventions')}
-                  className="text-olive-200 hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
-                  Intervention & Alert System
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('privacy')}
-                  className="text-olive-200 hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
-                  Privacy Management & RBAC Framework
-                </button>
-              </li>
-            </ul>
-          </div>
+          {/* Role-scoped navigation: no links for modules outside this account's post. */}
+          {footerCategories.map((category) => {
+            const tabs = visibleTabs.filter((tab) => tab.category === category);
+            if (tabs.length === 0) return null;
 
-          {/* Col 3: Research & Datasets (2 Cols) */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="text-xs font-mono font-bold uppercase tracking-wider text-accent-gold">
-              Verification & Data
-            </div>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <button
-                  onClick={() => onNavigate('datasets')}
-                  className="text-olive-200 hover:text-white transition-colors"
-                >
-                  Simulated Datasets (CSV/PDF)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('integrations')}
-                  className="text-olive-200 hover:text-white transition-colors"
-                >
-                  Wearable & HRMS Sync
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('impact')}
-                  className="text-olive-200 hover:text-white transition-colors"
-                >
-                  Readiness & Impact ROI
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('about')}
-                  className="text-olive-200 hover:text-white transition-colors"
-                >
-                  Architecture & Tech Stack
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('feedback')}
-                  className="text-olive-200 hover:text-white transition-colors"
-                >
-                  Jury & Hackathon Review
-                </button>
-              </li>
-            </ul>
-          </div>
+            return (
+              <div key={category} className="lg:col-span-2 space-y-3">
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-accent-gold">
+                  {category}
+                </div>
+                <ul className="space-y-2 text-xs">
+                  {tabs.map((tab) => (
+                    <li key={tab.id}>
+                      <button
+                        onClick={() => onNavigate(tab.id)}
+                        className="text-olive-200 hover:text-white transition-colors text-left flex items-center gap-1.5"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-olive-400" />
+                        {tab.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
 
           {/* Col 4: Security & Forces Grid (3 Cols) */}
           <div className="lg:col-span-3 space-y-3">

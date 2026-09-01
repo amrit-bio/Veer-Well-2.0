@@ -8,7 +8,6 @@ import {
   Shield,
   Lock,
   Mail,
-  Key,
   User as UserIcon,
   LogIn,
   UserPlus,
@@ -37,12 +36,11 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     supabaseSignUp,
     supabaseSignOut,
     supabaseResetPassword,
-    supabaseSignInWithOtp,
     supabaseVerifyOtp,
     user: profileUser,
   } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'verify-otp'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -50,7 +48,6 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [otpSent, setOtpSent] = useState(false);
 
   // Optional military sign-up metadata
   const [name, setName] = useState('');
@@ -99,40 +96,8 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       return;
     }
 
-    // Step 1: Send OTP for email verification
-    if (!otpSent) {
-      setLoading(true);
-      const { error } = await supabaseSignInWithOtp(email.trim());
-      setLoading(false);
-
-      if (error) {
-        setErrorMsg(error.message || 'Failed to send verification code. Please try again.');
-      } else {
-        setOtpSent(true);
-        setSuccessMsg('✅ Verification code sent to your email. Please enter the code below to complete registration.');
-      }
-      return;
-    }
-
-    // Step 2: Verify OTP and complete registration
-    if (!otp.trim()) {
-      setErrorMsg('Please enter the verification code sent to your email.');
-      return;
-    }
-
     setLoading(true);
-
-    // First verify OTP
-    const { error: otpError } = await supabaseVerifyOtp(email.trim(), otp.trim());
-
-    if (otpError) {
-      setLoading(false);
-      setErrorMsg(otpError.message || 'Invalid verification code. Please try again.');
-      return;
-    }
-
-    // OTP verified, now complete registration
-    const { error, data } = await supabaseSignUp(email.trim(), password, {
+    const { error } = await supabaseSignUp(email.trim(), password, {
       name: name.trim() || email.split('@')[0],
       rank,
       serviceNumber: serviceNumber.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -144,11 +109,38 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
     if (error) {
       setErrorMsg(error.message || 'Failed to register account. Please try again.');
-      // Reset OTP flow on error
-      setOtpSent(false);
-      setOtp('');
     } else {
-      setSuccessMsg('✅ Account created and verified! Your data has been stored securely in the database. Entering command grid…');
+      setSuccessMsg('✅ Account created and verified! Loading your profile…');
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+      }, 1000);
+    }
+  };
+
+  // Handle OTP Verification
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!otp.trim()) {
+      setErrorMsg('Please enter the OTP code from your email.');
+      return;
+    }
+
+    if (otp.length < 6) {
+      setErrorMsg('OTP must be 6 digits long.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabaseVerifyOtp(email.trim(), otp);
+    setLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'OTP verification failed. Please check the code and try again.');
+    } else {
+      setSuccessMsg('✅ Email verified successfully! Your account is now active. Loading your profile…');
       setTimeout(() => {
         if (onSuccess) onSuccess();
       }, 1500);
@@ -253,7 +245,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           <Shield className="w-8 h-8 text-accent-gold" />
         </div>
         <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">
-          VeerWell 2.0 Identity Gateway
+          VeerWell Identity Gateway
         </h2>
         <p className="text-xs text-olive-300 font-mono mt-1">
           Secure Authentication • Row Level Security Guard
@@ -267,8 +259,6 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               setMode('login');
               setErrorMsg(null);
               setSuccessMsg(null);
-              setOtpSent(false);
-              setOtp('');
             }}
             className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
               mode === 'login'
@@ -286,8 +276,6 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               setMode('signup');
               setErrorMsg(null);
               setSuccessMsg(null);
-              setOtpSent(false);
-              setOtp('');
             }}
             className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
               mode === 'signup'
@@ -334,6 +322,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       <form onSubmit={
         mode === 'login' ? handleLogin :
         mode === 'signup' ? handleSignUp :
+        mode === 'verify-otp' ? handleVerifyOtp :
         handleForgotPassword
       } className="mt-4 space-y-4 relative z-10">
         {/* Email Address */}
@@ -395,23 +384,25 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           </div>
         )}
 
-        {/* OTP Input Field for Signup */}
-        {mode === 'signup' && otpSent && (
+        {/* OTP Verification */}
+        {mode === 'verify-otp' && (
           <div>
             <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center gap-1.5">
-              <Key className="w-3.5 h-3.5 text-accent-gold" />
-              Verification Code
+              <Mail className="w-3.5 h-3.5 text-accent-gold" />
+              OTP Code (6 digits)
             </label>
             <input
               type="text"
-              required
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter 6-digit code from email"
               maxLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono tracking-widest transition-all outline-none text-center"
+              required={mode === 'verify-otp'}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Enter 6-digit code"
+              className="w-full px-4 py-3 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono text-center tracking-widest transition-all outline-none"
             />
-            <p className="text-[10px] text-olive-400 mt-1">Check your email for the verification code</p>
+            <p className="mt-2 text-xs text-olive-400 font-mono">
+              Check your email at <strong>{email}</strong> for the verification code
+            </p>
           </div>
         )}
 
@@ -528,9 +519,14 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           ) : mode === 'signup' ? (
             <>
               <span>
-                {!otpSent ? 'Send Verification Code' : 'Verify Code & Register'}
+                Create Secure Account
               </span>
-              {!otpSent ? <Mail className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+              <ShieldCheck className="w-4 h-4" />
+            </>
+          ) : mode === 'verify-otp' ? (
+            <>
+              <span>Verify Email OTP</span>
+              <CheckCircle2 className="w-4 h-4" />
             </>
           ) : mode === 'forgot' ? (
             <>

@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 
 export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
-  const { role: currentRole, user: currentUser, login, openAuthModal, isAnonymized } = useAuth();
+  const { role: currentRole, user: currentUser, login, openAuthModal, isAnonymized, session } = useAuth();
 
   const handleRoleQuickLogin = (roleKey: UserRole) => {
     const preset = ROLE_PRESETS[roleKey];
@@ -154,7 +154,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
                 className="px-4 py-3 rounded-xl bg-olive-950/80 hover:bg-olive-900 border border-olive-700 text-olive-300 font-mono text-xs flex items-center gap-1.5 transition-all"
               >
                 <Key className="w-3.5 h-3.5 text-accent-gold" />
-                <span>Switch Persona</span>
+                <span>{session ? 'My Account' : 'Switch Persona'}</span>
               </button>
             </div>
           </div>
@@ -445,6 +445,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
       </div>
 
       {/* ── 3. Role-Based Military Access Grid (Distinct Logins & Roles) ─────── */}
+      {!session && (
       <div className="glass-panel p-6 md:p-8 rounded-3xl border border-olive-400/30 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-olive-800">
           <div>
@@ -597,6 +598,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </div>
         </div>
       </div>
+      )}
 
       {/* ── 4. Strategic Problem Statement vs Solution Cards ────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

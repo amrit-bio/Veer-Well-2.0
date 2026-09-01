@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, closeAuthModal, login, signup, role: activeContextRole, user: currentUser } = useAuth();
+  const { isAuthModalOpen, closeAuthModal, login, signup, role: activeContextRole, session } = useAuth();
   const [authMode, setAuthMode] = useState<'supabase' | 'login' | 'signup'>('supabase');
   const [selectedRole, setSelectedRole] = useState<UserRole>(activeContextRole || 'commander');
 
@@ -93,6 +93,30 @@ export const AuthModal: React.FC = () => {
   };
 
   if (!isAuthModalOpen) return null;
+
+  // A live Supabase session is bound to one account. Do not expose demo role
+  // switching or another enrollment form while that identity is active.
+  if (session) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-xl">
+        <div className="relative w-full max-w-md rounded-3xl glass-panel border border-accent-gold/40 shadow-2xl bg-olive-950/95 p-5 md:p-6 text-slate-100">
+          <button
+            onClick={closeAuthModal}
+            className="absolute top-4 right-4 p-2 rounded-xl text-olive-400 hover:text-white hover:bg-olive-800 transition-colors"
+            aria-label="Close account panel"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="pr-10 mb-5">
+            <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-300">Signed-in account</div>
+            <h2 className="text-lg font-black text-white mt-1">Your assigned identity</h2>
+            <p className="text-xs text-olive-300 mt-1">This session is limited to the tabs and data assigned to your post.</p>
+          </div>
+          <SupabaseAuth onSuccess={closeAuthModal} showLogoutOnly />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>

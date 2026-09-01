@@ -19,7 +19,8 @@ CRITICAL INSTRUCTIONS:
 4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
 5. Maintain conversational context across follow-up questions.`;
 
-async function callDirectGemini(
+// VeerWell AI Engine - Rakshak AI backbone powered by generative AI
+async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
@@ -129,10 +130,10 @@ export const api = {
         if (json.reply) return json;
       }
     } catch (e) {
-      // Backend not running or proxy not active, fall through to direct Gemini API
+      // Backend not running or proxy not active, fall through to Rakshak AI direct inference
     }
 
-    // 2. Direct Gemini fallback
+    // 2. Rakshak AI direct inference fallback
     try {
       const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
@@ -157,8 +158,8 @@ export const api = {
         dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
       }
 
-      const reply = await callDirectGemini(contents, dynamicSystem);
-      return { success: true, reply, model: 'AI Model' };
+      const reply = await callRakshakAI(contents, dynamicSystem);
+      return { success: true, reply, model: 'Rakshak AI Engine' };
     } catch (err: any) {
       console.error('Direct AI error:', err);
       return {
@@ -218,7 +219,7 @@ Return ONLY valid JSON:
   "recommendedAction": "string",
   "welfareDirective": "string"
 }`;
-      const text = await callDirectGemini([
+      const text = await callRakshakAI([
         {
           role: 'user',
           parts: [{ text: prompt }],

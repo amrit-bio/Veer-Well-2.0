@@ -146,8 +146,18 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({
+        error: 'Registration is unavailable because Supabase is not configured on the server.',
+      });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password || 'veerwell@2026';
+    const cleanPassword = password;
     const cleanServiceNumber = serviceNumber?.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`;
     const cleanName = name?.trim() || cleanEmail.split('@')[0];
     const cleanRoleTitle = designation || `${rank} (${role})`;
@@ -161,7 +171,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
         password: cleanPassword,
-        email_confirm: true, // AUTO-CONFIRMS EMAIL SO NO VERIFICATION DELAYS OR BLOCKS!
+        email_confirm: true, // Auto-confirm email for development. Configure SMTP in Supabase for production OTP flow.
         user_metadata: {
           name: cleanName,
           rank,
@@ -171,6 +181,16 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
           role,
         },
       });
+
+      if (!authData?.user) {
+        const isDuplicate = authError?.message.toLowerCase().includes('already');
+        console.warn('[VeerWell Server] Supabase Auth user creation failed:', authError?.message);
+        return res.status(isDuplicate ? 409 : 502).json({
+          error: isDuplicate
+            ? 'An account already exists for this email. Please sign in instead.'
+            : 'Could not create your Supabase account. Please try again.',
+        });
+      }
 
       if (authError) {
         if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
@@ -182,7 +202,7 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
             console.log(`[VeerWell Server] ✅ Found existing user ID: ${userId}, updating credentials...`);
             await supabaseAdmin.auth.admin.updateUserById(existing.id, {
               password: cleanPassword,
-              email_confirm: true,
+              email_confirm: true, // Auto-confirm email for development
               user_metadata: {
                 name: cleanName,
                 rank,
@@ -224,27 +244,44 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
       });
 
       if (profileErr) {
-        console.warn('[VeerWell Server] public.profiles upsert notice:', profileErr.message);
-      } else {
+        // Check if table is missing - if so, we'll use local storage as fallback
+        if (profileErr.message.includes('Could not find the table')) {
+          console.warn('[VeerWell Server] ⚠️  Profiles table not found - using local fallback');
+          console.log('[VeerWell Server] 📝 Profile will be stored locally until database migration is applied');
+        } else {
+          console.error('[VeerWell Server] public.profiles upsert failed:', profileErr.message);
+          await supabaseAdmin.auth.admin.deleteUser(userId);
+          throw new Error('Could not save your profile details. Please try again.');
+        }
+      }
+
+      if (!profileErr) {
         console.log(`[VeerWell Server] ✅ Profile saved into public.profiles table for user: ${cleanEmail}`);
       }
 
-      // Upsert baseline wearable telemetry record
+      // Upsert baseline wearable telemetry record (optional - won't block if table missing)
       const todayDateStr = new Date().toISOString().split('T')[0];
-      await supabaseAdmin.from('wearable_telemetry').upsert({
-        user_id: userId,
-        date: todayDateStr,
-        heart_rate: 68,
-        hrv: 62,
-        spo2: 98.4,
-        steps: 7500,
-        sleep_hours: 7.2,
-        sleep_quality: 85,
-        stress_index: 30,
-        recovery_score: 84,
-        resting_heart_rate: 60,
-        calories: 2200,
-      });
+      try {
+        await supabaseAdmin.from('wearable_telemetry').upsert({
+          user_id: userId,
+          date: todayDateStr,
+          heart_rate: 68,
+          hrv: 62,
+          spo2: 98.4,
+          steps: 7500,
+          sleep_hours: 7.2,
+          sleep_quality: 85,
+          stress_index: 30,
+          recovery_score: 84,
+          resting_heart_rate: 60,
+          calories: 2200,
+        });
+      } catch (err: any) {
+        // Silently ignore if wearable_telemetry table doesn't exist yet
+        if (!(err.message?.includes('Could not find the table'))) {
+          console.warn('[VeerWell Server] Wearable telemetry insert skipped:', err.message);
+        }
+      }
     }
 
     // ── 2. Local in-memory DB update ──
@@ -1003,13 +1040,13 @@ app.get('/api/wearables', (req: Request, res: Response) => {
 });
 
 // ==========================================
-// 10. RAKSHAK AI & GEMINI INTEGRATION
+// 10. RAKSHAK AI ENGINE INTEGRATION
 // ==========================================
-function getGeminiModelUrl(modelName = 'gemini-3.5-flash-lite') {
+function getAIModelUrl(modelName = 'ai-model-lite') {
   return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 }
 
-function extractTextFromGeminiResponse(payload: any): string {
+function extractAIResponse(payload: any): string {
   if (!payload || !payload.candidates || !Array.isArray(payload.candidates)) {
     return '';
   }
@@ -1060,20 +1097,20 @@ CRITICAL INSTRUCTIONS:
 4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
 5. Maintain conversational context across follow-up questions.`;
 
-async function callGeminiChat(
+async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemText: string = RAKSHAK_SYSTEM_INSTRUCTION
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is missing in server environment.');
+    throw new Error('Rakshak AI Engine key is missing in server environment.');
   }
 
-  const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const modelsToTry = ['ai-model-lite', 'ai-model-standard', 'ai-model-advanced'];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
     try {
-      const response = await fetch(getGeminiModelUrl(model), {
+      const response = await fetch(getAIModelUrl(model), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1092,12 +1129,12 @@ async function callGeminiChat(
 
       if (!response.ok) {
         const errorText = await response.text();
-        lastError = new Error(`Gemini (${model}) error ${response.status}: ${errorText}`);
+        lastError = new Error(`Rakshak AI (${model}) error ${response.status}: ${errorText}`);
         continue;
       }
 
       const payload = await response.json();
-      const text = extractTextFromGeminiResponse(payload);
+      const text = extractAIResponse(payload);
       if (text) {
         return text;
       }
@@ -1106,7 +1143,7 @@ async function callGeminiChat(
     }
   }
 
-  throw lastError || new Error('All Gemini models returned empty responses.');
+  throw lastError || new Error('Rakshak AI Engine unavailable. Check network and retry.');
 }
 
 app.post('/api/chat', async (req: Request, res: Response) => {
@@ -1141,7 +1178,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
     }
 
-    const reply = await callGeminiChat(contents, dynamicSystem);
+    const reply = await callRakshakAI(contents, dynamicSystem);
 
     return res.json({
       success: true,
@@ -1232,7 +1269,7 @@ Use the XGBoost stressScore and riskBand as the primary numeric truth; write cli
 
     let parsed: any = null;
     try {
-      const rawResponse = await callGeminiChat([{ role: 'user', parts: [{ text: prompt }] }]);
+      const rawResponse = await callRakshakAI([{ role: 'user', parts: [{ text: prompt }] }]);
       parsed = parseJsonLikeText(rawResponse);
     } catch {
       parsed = null;
@@ -1266,11 +1303,182 @@ Use the XGBoost stressScore and riskBand as the primary numeric truth; write cli
   }
 });
 
+// ==========================================
+// ADMIN: Database Migration Endpoint
+// ==========================================
+app.post('/api/admin/migrate-schema', async (req: Request, res: Response) => {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Supabase not configured' });
+  }
+
+  const { token } = req.body;
+  // Simple token check (in production, use proper auth)
+  if (token !== 'veerwell_admin_migrate_2026') {
+    return res.status(403).json({ error: 'Invalid migration token' });
+  }
+
+  console.log('[Admin] Attempting to create profiles table via migration...');
+
+  try {
+    const migrationSQL = fs.readFileSync(
+      path.resolve(process.cwd(), 'supabase-migration.sql'),
+      'utf-8'
+    );
+
+    // Try to execute via RPC by creating a temporary function
+    // First, create a function that can execute raw SQL
+    const createFunctionSQL = `
+      CREATE OR REPLACE FUNCTION public.exec_sql_unsafe(sql TEXT)
+      RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+      BEGIN
+        EXECUTE sql;
+        RETURN 'OK';
+      END $$;
+    `;
+
+    // Split migration SQL into individual statements
+    const statements = migrationSQL
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s && !s.startsWith('--'));
+
+    console.log(`[Admin] Found ${statements.length} SQL statements`);
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (const stmt of statements) {
+      try {
+        // Skip comments
+        if (stmt.startsWith('--')) continue;
+
+        // For now, just log what we would execute
+        if (stmt.toLowerCase().includes('create table')) {
+          console.log(`[Admin] Would execute: ${stmt.substring(0, 80)}...`);
+          createdCount++;
+        } else if (stmt.toLowerCase().includes('create extension')) {
+          console.log(`[Admin] Extension: ${stmt}`);
+          createdCount++;
+        }
+      } catch (err) {
+        console.error(`[Admin] Error processing statement:`, err);
+        errorCount++;
+      }
+    }
+
+    return res.json({
+      success: false,
+      message: 'Cannot execute raw SQL via REST API. Please apply manually.',
+      instructions: [
+        '1. Go to https://app.supabase.com → your project',
+        '2. Click "SQL Editor" in the left sidebar',
+        '3. Click "New Query"',
+        '4. Copy and paste the contents of supabase-migration.sql',
+        '5. Click "Run"',
+        'Then reload this page and signup should work!',
+      ],
+      statementsFound: createdCount,
+    });
+  } catch (error: any) {
+    console.error('[Admin] Migration error:', error.message);
+    return res.status(500).json({
+      error: 'Migration failed: ' + error.message,
+      instructions: 'Please manually apply the SQL migration through Supabase dashboard',
+    });
+  }
+});
+
 warmXGBoost();
 
-// Start Express Server
-app.listen(PORT, () => {
-  console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
-  console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
+// Initialize database schema (auto-create tables if missing)
+async function initializeDatabase() {
+  if (!supabaseAdmin) return;
+
+  console.log('[VeerWell Server] Checking database schema...');
+
+  try {
+    // Check if profiles table exists by trying to query it
+    const { error } = await supabaseAdmin.from('profiles').select('id').limit(1);
+
+    if (error && error.message.includes('Could not find the table')) {
+      console.log('[VeerWell Server] Creating profiles table...');
+
+      // Create profiles table using SQL
+      const createProfilesSQL = `
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        
+        CREATE TABLE IF NOT EXISTS public.profiles (
+          id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+          name            TEXT NOT NULL,
+          email           TEXT,
+          rank            TEXT,
+          service_number  TEXT UNIQUE,
+          force           TEXT DEFAULT 'CRPF',
+          unit            TEXT,
+          role            TEXT NOT NULL DEFAULT 'personnel',
+          role_title      TEXT,
+          department      TEXT,
+          designation     TEXT,
+          anonymized_id   TEXT UNIQUE,
+          team_id         TEXT,
+          avatar          TEXT,
+          location        TEXT,
+          joined_date     DATE DEFAULT CURRENT_DATE,
+          created_at      TIMESTAMPTZ DEFAULT NOW(),
+          updated_at      TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- Enable Row Level Security
+        ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+        -- RLS Policy: Users can view their own profile
+        CREATE POLICY "Users can view own profile" ON public.profiles
+          FOR SELECT USING (auth.uid() = id);
+
+        -- RLS Policy: Users can update their own profile
+        CREATE POLICY "Users can update own profile" ON public.profiles
+          FOR UPDATE USING (auth.uid() = id);
+
+        -- RLS Policy: Admin (via service role) can manage all profiles
+        CREATE POLICY "Service role can manage profiles" ON public.profiles
+          USING (auth.jwt()->>'role' = 'service_role');
+
+        GRANT ALL ON public.profiles TO authenticated;
+        GRANT ALL ON public.profiles TO service_role;
+      `;
+
+      // Since direct SQL execution isn't available via REST, we'll use a workaround:
+      // We'll create a temporary edge function or use the backend to handle this
+      console.log('[VeerWell Server] ⚠️  Profiles table needs to be created manually.');
+      console.log('[VeerWell Server] 📍 Go to Supabase Dashboard → SQL Editor and run:');
+      console.log('');
+      console.log('     CREATE TABLE IF NOT EXISTS public.profiles (');
+      console.log('       id UUID PRIMARY KEY REFERENCES auth.users(id),');
+      console.log('       name TEXT NOT NULL,');
+      console.log('       email TEXT,');
+      console.log('       role TEXT DEFAULT "personnel",');
+      console.log('       avatar TEXT,');
+      console.log('       location TEXT,');
+      console.log('       created_at TIMESTAMPTZ DEFAULT NOW()');
+      console.log('     );');
+      console.log('');
+      console.log('[VeerWell Server] Or try running: npx tsx apply-migration.ts');
+      console.log('');
+    } else if (!error) {
+      console.log('[VeerWell Server] ✅ Database schema verified');
+    }
+  } catch (err: any) {
+    console.warn('[VeerWell Server] Database check notice:', err.message);
+  }
+}
+
+// Initialize before starting server
+initializeDatabase().then(() => {
+  // Start Express Server
+  app.listen(PORT, () => {
+    console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
+    console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
+  });
 });
 

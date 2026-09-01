@@ -24,7 +24,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
-  const { user, role, switchRole, isAnonymized, toggleAnonymization, openAuthModal, logout } = useAuth();
+  const { user, role, session, switchRole, isAnonymized, toggleAnonymization, openAuthModal, logout } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -61,6 +61,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       urgent: false,
     },
   ];
+
+  // Frontline personnel never receive another unit's alerts in the global menu.
+  const visibleAlerts = role === 'personnel'
+    ? [{
+        id: 'personal-wellness-status',
+        title: 'Your wellness profile is protected',
+        unit: user.unit,
+        msg: 'Your account is showing only data and actions assigned to your post.',
+        time: 'Now',
+        urgent: false,
+      }]
+    : alerts;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-olive-400/20 bg-olive-950/90 backdrop-blur-xl">
@@ -154,6 +166,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   </div>
                 </div>
 
+                {session ? (
+                  <div className="mx-2 my-2 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[10px] text-emerald-200 leading-relaxed">
+                    This account is locked to its assigned post. Sign out before using a different identity.
+                  </div>
+                ) : (
+                  <>
                 <div className="text-[10px] font-mono text-olive-400 px-2 py-1 uppercase">
                   Quick Switch Persona (Testing):
                 </div>
@@ -183,6 +201,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     </button>
                   ))}
                 </div>
+                  </>
+                )}
 
                 <div className="mt-2 pt-2 border-t border-olive-800 flex items-center justify-between gap-2">
                   <button
@@ -219,7 +239,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             >
               <Bell className="w-4 h-4 text-accent-gold" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-crimson text-[9px] font-bold flex items-center justify-center text-white">
-                2
+                {visibleAlerts.length}
               </span>
             </button>
 
@@ -227,10 +247,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
               <div className="absolute right-0 mt-2 w-80 rounded-2xl glass-panel p-3 shadow-2xl z-50 border border-olive-500/40 bg-olive-950">
                 <div className="flex items-center justify-between pb-2 border-b border-olive-800">
                   <span className="text-xs font-bold text-white">Welfare & Tactical Alerts</span>
-                  <span className="text-[10px] text-accent-gold font-mono">2 Urgent Flags</span>
+                  <span className="text-[10px] text-accent-gold font-mono">{visibleAlerts.filter((alert) => alert.urgent).length} Urgent Flags</span>
                 </div>
                 <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
-                  {alerts.map((al) => (
+                  {visibleAlerts.map((al) => (
                     <div
                       key={al.id}
                       className={`p-2.5 rounded-xl border text-xs ${

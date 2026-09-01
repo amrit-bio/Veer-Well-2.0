@@ -46,40 +46,40 @@ export const PredictiveAnalyticsTab: React.FC = () => {
   // Predictive Cohort Forecasts (7-14 Days Forward)
   const cohortForecasts = [
     {
-      cohort: 'Sector Leh Forward Patrols (High Altitude)',
-      currentStress: 6.9,
-      forecast7D: 7.6,
-      riskTier: 'High Strain Risk',
-      fatigueProbability: 82,
-      topFactor: 'Sub-zero temperatures & hypoxia sleep deficit',
-      action: 'Mandatory 48h base camp rest rotation',
+      cohort: 'BSF Rajasthan - Thar Desert Patrol Ops',
+      currentStress: 7.2,
+      forecast7D: 7.9,
+      riskTier: 'Critical Strain Risk',
+      fatigueProbability: 89,
+      topFactor: 'Extreme heat exposure, water scarcity, 12-hour border patrols',
+      action: 'Immediate rotation to cooler zone, enhanced hydration protocol',
     },
     {
-      cohort: '142 Bn Srinagar Tactical Reconnaissance',
-      currentStress: 5.8,
-      forecast7D: 5.2,
-      riskTier: 'Moderate Strain',
-      fatigueProbability: 46,
-      topFactor: 'Consecutive night duty handovers',
-      action: 'Shift balance optimization',
+      cohort: 'CRPF 142 Bn - Kashmir Anti-Militancy Ops',
+      currentStress: 6.4,
+      forecast7D: 6.1,
+      riskTier: 'High Strain',
+      fatigueProbability: 71,
+      topFactor: 'Sleep deprivation from night ambush preparations',
+      action: 'Scheduled rest cycles, peer counseling sessions',
     },
     {
-      cohort: '209 CoBRA Jungle Operations',
-      currentStress: 4.6,
-      forecast7D: 4.3,
-      riskTier: 'Low / Stable',
-      fatigueProbability: 24,
-      topFactor: 'High physical baseline conditioning',
-      action: 'Standard operational surveillance',
+      cohort: 'ITBP Ladakh Sector - High Altitude Deployment',
+      currentStress: 7.8,
+      forecast7D: 8.3,
+      riskTier: 'Critical Altitude Stress',
+      fatigueProbability: 92,
+      topFactor: 'Hypoxia (14,000 ft), sub-zero conditions, isolation',
+      action: 'Mandatory 72h lowland acclimatization rotation',
     },
     {
-      cohort: '88 Mahila Bn Quick Reaction Team',
-      currentStress: 3.8,
-      forecast7D: 3.6,
-      riskTier: 'Low / Optimal',
-      fatigueProbability: 18,
-      topFactor: 'Strong peer support culture',
-      action: 'Routine wellness maintenance',
+      cohort: 'CISF Airport Security - Round-the-Clock Vigilance',
+      currentStress: 4.2,
+      forecast7D: 4.1,
+      riskTier: 'Moderate - Stable',
+      fatigueProbability: 38,
+      topFactor: 'Repetitive screening duties, crowd management',
+      action: 'Roster optimization, break scheduling enhancement',
     },
   ];
 
@@ -118,49 +118,49 @@ export const PredictiveAnalyticsTab: React.FC = () => {
 
   // Correlation Scatter Data: Duty Hours (X) vs Stress Score (Y)
   const correlationData = [
-    { x: 38, y: 3.4, z: 28, node: 'CAPF-NODE-1001', unit: '88 Bn' },
-    { x: 42, y: 4.1, z: 35, node: 'CAPF-NODE-1002', unit: '209 CoBRA' },
-    { x: 46, y: 4.8, z: 45, node: 'CAPF-NODE-1003', unit: '142 Bn' },
-    { x: 50, y: 5.9, z: 62, node: 'CAPF-NODE-1004', unit: '142 Bn' },
-    { x: 54, y: 6.8, z: 74, node: 'CAPF-NODE-1005', unit: 'Leh ITBP' },
-    { x: 58, y: 7.8, z: 88, node: 'CAPF-NODE-1006', unit: 'Leh ITBP' },
-    { x: 40, y: 3.8, z: 30, node: 'CAPF-NODE-1007', unit: '88 Bn' },
-    { x: 45, y: 4.5, z: 40, node: 'CAPF-NODE-1008', unit: '209 CoBRA' },
-    { x: 52, y: 6.2, z: 68, node: 'CAPF-NODE-1009', unit: '142 Bn' },
-    { x: 56, y: 7.2, z: 80, node: 'CAPF-NODE-1010', unit: 'Leh ITBP' },
+    { x: 38, y: 3.2, z: 24, node: 'CAPF-NODE-0201', unit: 'CISF-Mumbai' },
+    { x: 42, y: 4.3, z: 35, node: 'CAPF-NODE-0202', unit: 'BSF-Gujarat' },
+    { x: 46, y: 5.1, z: 48, node: 'CAPF-NODE-0203', unit: 'CRPF-Kashmir' },
+    { x: 50, y: 6.2, z: 65, node: 'CAPF-NODE-0204', unit: 'BSF-Rajasthan' },
+    { x: 54, y: 7.4, z: 81, node: 'CAPF-NODE-0205', unit: 'ITBP-Ladakh' },
+    { x: 58, y: 8.2, z: 94, node: 'CAPF-NODE-0206', unit: 'ITBP-Siachen' },
+    { x: 40, y: 3.8, z: 28, node: 'CAPF-NODE-0207', unit: 'CISF-Delhi' },
+    { x: 45, y: 4.7, z: 42, node: 'CAPF-NODE-0208', unit: 'CRPF-Chhattisgarh' },
+    { x: 52, y: 6.5, z: 74, node: 'CAPF-NODE-0209', unit: 'BSF-Assam' },
+    { x: 56, y: 7.8, z: 88, node: 'CAPF-NODE-0210', unit: 'ITBP-Arunachal' },
   ];
 
   // Raw vs Anonymized Demo Data
   const sampleRecords = [
     {
-      rawName: 'Insp. Vikramaditya Shrestha',
-      rawService: 'CRPF-209-COBRA-841',
-      rawUnit: '209 CoBRA Bn (Gaya)',
-      anonId: 'CAPF-NODE-1042',
-      anonForce: 'CRPF Tactical Recon',
-      anonZone: 'Eastern Sector Grid Alpha',
-      stressScore: 4.6,
-      fatigueIndex: 42,
+      rawName: 'Insp. Arun Kumar Singh',
+      rawService: 'BSF-2891-TN-Rajasthan',
+      rawUnit: 'BSF Jaipur Frontier - Border Security Force',
+      anonId: 'CAPF-NODE-5821',
+      anonForce: 'Paramilitary Desert Patrol Unit',
+      anonZone: 'Western Border Sector - Thar Region',
+      stressScore: 7.3,
+      fatigueIndex: 82,
     },
     {
-      rawName: 'Sub-Insp. Rajeshwar Rao',
-      rawService: 'CRPF-142-SRN-920',
-      rawUnit: '142 Bn (Srinagar HQ)',
-      anonId: 'CAPF-NODE-1043',
-      anonForce: 'CRPF Urban Command',
-      anonZone: 'Northern Sector Grid Delta',
+      rawName: 'Sub-Insp. Neha Verma',
+      rawService: 'CRPF-4472-JK-Kashmir',
+      rawUnit: 'CRPF 142 Bn - Srinagar Command',
+      anonId: 'CAPF-NODE-6174',
+      anonForce: 'Central Armed Police Force - Urban Operations',
+      anonZone: 'Northern Conflict Zone - Mountain Sector',
       stressScore: 6.8,
       fatigueIndex: 74,
     },
     {
-      rawName: 'Head Const. Amit Kumar',
-      rawService: 'ITBP-LEH-FWD-114',
-      rawUnit: 'Leh Sector Outpost ITBP',
-      anonId: 'CAPF-NODE-1044',
-      anonForce: 'ITBP High Altitude',
-      anonZone: 'Frontier Sector Grid Echo',
-      stressScore: 7.6,
-      fatigueIndex: 86,
+      rawName: 'Head Const. Prem Prasad Negi',
+      rawService: 'ITBP-1605-LA-Ladakh',
+      rawUnit: 'ITBP Leh Forward Outpost - Siachen Adjacent',
+      anonId: 'CAPF-NODE-7392',
+      anonForce: 'High Altitude Paramilitary Force',
+      anonZone: 'Frontier High-Altitude Deployment - Extreme Elevation',
+      stressScore: 8.1,
+      fatigueIndex: 91,
     },
   ];
 
@@ -291,7 +291,7 @@ export const PredictiveAnalyticsTab: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-2xl bg-olive-900/60 border border-olive-700/60 text-xs">
           <div className="space-y-1.5">
             <div className="flex justify-between font-mono">
-              <span className="text-slate-200">Patrol Shift Length:</span>
+              <span className="text-slate-200">Weekly Border Patrol Hours:</span>
               <strong className="text-accent-gold">{simShiftHours} hrs/week</strong>
             </div>
             <input
@@ -303,15 +303,15 @@ export const PredictiveAnalyticsTab: React.FC = () => {
               className="w-full accent-amber-400 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-olive-400 font-mono">
-              <span>32h (Restful)</span>
-              <span>68h (Overtime)</span>
+              <span>32h (Standard)</span>
+              <span>68h (Extended Ops)</span>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <div className="flex justify-between font-mono">
-              <span className="text-slate-200">Weekly Rest Rotations:</span>
-              <strong className="text-emerald-400">{simRestDays} days off</strong>
+              <span className="text-slate-200">Mandatory Rest & Recovery Days:</span>
+              <strong className="text-emerald-400">{simRestDays} days/week</strong>
             </div>
             <input
               type="range"
@@ -322,8 +322,8 @@ export const PredictiveAnalyticsTab: React.FC = () => {
               className="w-full accent-emerald-400 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-olive-400 font-mono">
-              <span>1 Day (Intense)</span>
-              <span>4 Days (Recharge)</span>
+              <span>1 Day (Emergency)</span>
+              <span>4 Days (Optimal)</span>
             </div>
           </div>
 

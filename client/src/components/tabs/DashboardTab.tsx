@@ -167,6 +167,30 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
     },
   ]);
 
+  // Personnel accounts are deliberately limited to their own wellness context.
+  // Command and clinical roles retain their authorised aggregate/triage views.
+  const visibleUnitStats = role === 'personnel'
+    ? [{ name: 'My personal wellness record', wellness: liveMetrics.readinessScore, stress: liveMetrics.avgStress, workloadHours: 0, fatigue: 0 }]
+    : unitStats;
+  const visibleDutyTrends = role === 'personnel'
+    ? personal7DayData.map((entry) => ({
+        day: entry.day,
+        activeDuty: Math.round(entry.sleepHours * 5),
+        restRotation: Math.round(entry.recovery / 5),
+      }))
+    : dutyScheduleTrends;
+  const visibleWelfareAlerts = role === 'personnel'
+    ? [{
+        id: 'my-wellness-status',
+        type: 'info' as const,
+        title: 'My private wellness status',
+        unit: user.unit,
+        msg: 'Only you can view this personal recovery and assessment status.',
+        timeAgo: 'Just now',
+        action: 'Open confidential self-assessment',
+      }]
+    : welfareAlerts;
+
   // Real-Time Data Simulation Engine (Updates every 6 seconds)
   useEffect(() => {
     if (!isLiveStreaming) return;
@@ -579,7 +603,7 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
           )}
 
           <div className="space-y-1.5 pt-3 border-t border-olive-800 text-xs">
-            {unitStats.map((u) => (
+            {visibleUnitStats.map((u) => (
               <div key={u.name} className="flex items-center justify-between text-olive-200">
                 <span>{u.name}</span>
                 <span className="font-mono text-accent-gold font-bold">{u.wellness} W-Score</span>
@@ -597,17 +621,21 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-accent-gold" />
-              <h3 className="text-base font-bold text-white">Weekly Duty Schedules vs Rest Rotations</h3>
+              <h3 className="text-base font-bold text-white">
+                {role === 'personnel' ? 'My duty and recovery rhythm' : 'Weekly Duty Schedules vs Rest Rotations'}
+              </h3>
             </div>
             <span className="text-[10px] font-mono text-olive-300">Roster Optimization</span>
           </div>
           <p className="text-xs text-olive-300 mb-4">
-            Monitoring active duty hours vs scheduled wellness recharge respite.
+            {role === 'personnel'
+              ? 'Your personal recovery pattern is visible only to you.'
+              : 'Monitoring active duty hours vs scheduled wellness recharge respite.'}
           </p>
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dutyScheduleTrends}>
+              <AreaChart data={visibleDutyTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
                 <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 10 }} />
                 <YAxis stroke="#8faa80" tick={{ fontSize: 10 }} />
@@ -631,13 +659,15 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-accent-gold" />
-              <h3 className="text-base font-bold text-white">Welfare Officer Intel Stream</h3>
+              <h3 className="text-base font-bold text-white">
+                {role === 'personnel' ? 'My private wellness notice' : 'Welfare Officer Intel Stream'}
+              </h3>
             </div>
             <span className="text-[10px] font-mono text-accent-gold">Automated AI Trigger</span>
           </div>
 
           <div className="space-y-3 flex-1 overflow-y-auto max-h-72">
-            {welfareAlerts.map((al) => (
+            {visibleWelfareAlerts.map((al) => (
               <div
                 key={al.id}
                 className={`p-3 rounded-2xl border transition-all text-xs space-y-1.5 ${
@@ -657,10 +687,10 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
                 <div className="pt-1 text-[10px] font-mono text-accent-gold flex items-center justify-between">
                   <span>Action: {al.action}</span>
                   <button
-                    onClick={() => onNavigate('interventions')}
+                    onClick={() => onNavigate(role === 'personnel' ? 'assessment' : 'interventions')}
                     className="px-2 py-0.5 rounded bg-accent-gold/20 hover:bg-accent-gold hover:text-navy-950 text-accent-gold font-bold transition-all"
                   >
-                    Act Now
+                    {role === 'personnel' ? 'Open My Check-In' : 'Act Now'}
                   </button>
                 </div>
               </div>
