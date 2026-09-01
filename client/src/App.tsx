@@ -22,12 +22,14 @@ import { IntegrationsTab } from './components/tabs/IntegrationsTab';
 import { FeedbackTab } from './components/tabs/FeedbackTab';
 import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
 import { SupabaseAuth } from './components/auth/SupabaseAuth';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { getVisibleTabsForRole } from './config/navConfig';
 import { useAuth } from './context/AuthContext';
 import { BrandLogo } from './components/common/BrandLogo';
 import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
 
 const MainPlatform: React.FC = () => {
-  const { isAuthenticated, session, authLoading, switchRole } = useAuth();
+  const { isAuthenticated, session, authLoading, switchRole, role } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
@@ -150,28 +152,30 @@ const MainPlatform: React.FC = () => {
           {tabLoading ? (
             <BrandedLoader label="Loading module with VeerWell identity lock…" />
           ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-              >
-                {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
-                {activeTab === 'dashboard' && <DashboardTab onNavigate={handleTabChange} />}
-                {activeTab === 'assessment' && <SelfAssessmentTab />}
-                {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
-                {activeTab === 'interventions' && <InterventionsTab />}
-                {activeTab === 'privacy' && <PrivacySecurityTab />}
-                {activeTab === 'datasets' && <DatasetsSimulationTab />}
-                {activeTab === 'impact' && <ImpactBenefitsTab />}
-                {activeTab === 'about' && <HackathonAboutTab />}
-                {activeTab === 'integrations' && <IntegrationsTab />}
-                {activeTab === 'supabase-data' && <SupabaseDataTab />}
-                {activeTab === 'feedback' && <FeedbackTab />}
-              </motion.div>
-            </AnimatePresence>
+            <ProtectedRoute tabId={activeTab} onNavigate={handleTabChange}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                >
+                  {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
+                  {activeTab === 'dashboard' && <DashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'assessment' && <SelfAssessmentTab />}
+                  {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
+                  {activeTab === 'interventions' && <InterventionsTab />}
+                  {activeTab === 'privacy' && <PrivacySecurityTab />}
+                  {activeTab === 'datasets' && <DatasetsSimulationTab />}
+                  {activeTab === 'impact' && <ImpactBenefitsTab />}
+                  {activeTab === 'about' && <HackathonAboutTab />}
+                  {activeTab === 'integrations' && <IntegrationsTab />}
+                  {activeTab === 'supabase-data' && <SupabaseDataTab />}
+                  {activeTab === 'feedback' && <FeedbackTab />}
+                </motion.div>
+              </AnimatePresence>
+            </ProtectedRoute>
           )}
         </main>
       </div>
@@ -203,8 +207,9 @@ const MainPlatform: React.FC = () => {
         </motion.div>
       )}
 
+      {/* Dynamic Mobile Bottom Bar Filtered by RBAC Persona */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-olive-950/95 border-t border-olive-700/60 px-2 py-2 flex items-center justify-around backdrop-blur-xl">
-        {TABS.slice(0, 5).map((tab) => {
+        {getVisibleTabsForRole(role).slice(0, 5).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (

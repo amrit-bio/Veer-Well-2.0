@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ── 3. Supabase Sign Up ───────────────────────────────────────────────────
+  // ── 3. Supabase Sign Up (Auto-confirmed via backend & saved to public.profiles) ──
   const supabaseSignUp = async (
     email: string,
     password: string,
@@ -278,17 +278,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   ): Promise<{ error: Error | null; data?: any }> => {
     try {
+      const payload = {
+        email,
+        password,
+        name: metadata?.name || email.split('@')[0],
+        rank: metadata?.rank || 'Inspector',
+        serviceNumber: metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
+        force: metadata?.force || 'CRPF',
+        unit: metadata?.unit || '142 Bn (Srinagar Sector HQ)',
+        role: metadata?.role || 'personnel',
+      };
+
+      // 1. Try server-side verified registration (creates pre-confirmed user + inserts into public.profiles)
+      try {
+        const resp = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const resData = await resp.json();
+
+        if (resData.success) {
+          // Immediately sign in with the new confirmed credentials to establish real JWT session
+          const signInRes = await supabaseSignIn(email, password);
+          if (!signInRes.error) {
+            return { error: null, data: { user: resData.user, session: true } };
+          }
+        }
+      } catch (backendErr) {
+        console.warn('Backend register proxy unavailable, falling back to direct Supabase client:', backendErr);
+      }
+
+      // 2. Fallback: Direct client sign-up
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: metadata?.name || email.split('@')[0],
-            rank: metadata?.rank || 'Inspector',
-            serviceNumber: metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
-            force: metadata?.force || 'CRPF',
-            unit: metadata?.unit || '142 Bn (Srinagar Sector)',
-            role: metadata?.role || 'personnel',
+            name: payload.name,
+            rank: payload.rank,
+            serviceNumber: payload.serviceNumber,
+            force: payload.force,
+            unit: payload.unit,
+            role: payload.role,
           },
         },
       });

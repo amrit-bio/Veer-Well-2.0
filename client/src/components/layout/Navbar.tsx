@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Wordmark } from '../common/Wordmark';
 import { UserRole } from '../../types';
+import { isTabAccessible, getDefaultTabForRole } from '../../config/navConfig';
 import {
   Bell,
   Eye,
@@ -163,6 +164,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                       key={r.role}
                       onClick={() => {
                         switchRole(r.role);
+                        if (!isTabAccessible(activeTab, r.role)) {
+                          onTabChange(getDefaultTabForRole(r.role));
+                        }
                         setShowRoleMenu(false);
                       }}
                       className={`w-full flex flex-col items-start px-3 py-2 rounded-xl text-left transition-colors ${

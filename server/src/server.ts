@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import pdfParse from 'pdf-parse';
 import Papa from 'papaparse';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 import { SeededData, generateSeedData } from './utils/seedData.js';
 import { predictXGBoost, warmXGBoost } from './utils/xgboostEngine.js';
 
@@ -16,6 +17,22 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'veerwell_super_secret_jwt_key_2026';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+
+// Supabase Admin Client (using secret key for admin user creation and bypassing email confirm)
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://dsmveromndvzayrspcyx.supabase.co';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
+
+export const supabaseAdmin = SUPABASE_SECRET_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
+
+if (supabaseAdmin) {
+  console.log('[VeerWell Server] ✅ Supabase Admin connected to:', SUPABASE_URL);
+} else {
+  console.log('[VeerWell Server] ℹ️ Supabase Admin not configured (SUPABASE_SECRET_KEY missing)');
+}
 
 
 app.use(cors({ origin: '*' }));
@@ -79,6 +96,136 @@ app.use(authenticate);
 // ==========================================
 // 1. AUTHENTICATION & DEMO ROLES
 // ==========================================
+
+// Supabase Real-Time Registration Endpoint (Auto-confirms user & stores in profiles table with RLS)
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  try {
+    const {
+      email,
+      password,
+      name,
+      rank = 'Inspector',
+      serviceNumber,
+      force = 'CRPF',
+      unit = '142 Bn (Srinagar Sector HQ)',
+      role = 'personnel',
+      department = 'Operations',
+      roleTitle,
+    } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+
+    const finalServiceNo = serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`;
+    const finalName = name || email.split('@')[0];
+
+    let userId = '';
+
+    if (supabaseAdmin) {
+      // 1. Create user in auth.users with email_confirm: true (bypasses email confirmation requirement)
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          name: finalName,
+          rank,
+          serviceNumber: finalServiceNo,
+          force,
+          unit,
+          role,
+        },
+      });
+
+      if (authError) {
+        if (authError.message.toLowerCase().includes('already') || authError.message.toLowerCase().includes('exists')) {
+          // If already registered, update password and ensure email is confirmed
+          const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+          const existing = userList?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+          if (existing) {
+            userId = existing.id;
+            await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+              password,
+              email_confirm: true,
+              user_metadata: {
+                name: finalName,
+                rank,
+                serviceNumber: finalServiceNo,
+                force,
+                unit,
+                role,
+              },
+            });
+          } else {
+            return res.status(400).json({ success: false, error: authError.message });
+          }
+        } else {
+          return res.status(400).json({ success: false, error: authError.message });
+        }
+      } else if (authData?.user) {
+        userId = authData.user.id;
+      }
+
+      // 2. Insert into public.profiles table
+      if (userId) {
+        let hash = 0;
+        const key = `${finalServiceNo}-${finalName}`;
+        for (let i = 0; i < key.length; i++) {
+          hash = (hash << 5) - hash + key.charCodeAt(i);
+          hash |= 0;
+        }
+        const anonToken = `CAPF-NODE-${Math.abs(hash).toString(16).toUpperCase().slice(0, 5)}`;
+
+        const profileRecord = {
+          id: userId,
+          name: finalName,
+          email,
+          rank,
+          service_number: finalServiceNo,
+          force,
+          unit,
+          role,
+          department,
+          role_title: roleTitle || `${rank} (${role})`,
+          anonymized_id: anonToken,
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+          location: `${unit}, ${force}`,
+        };
+
+        const { error: profileErr } = await supabaseAdmin
+          .from('profiles')
+          .upsert(profileRecord);
+
+        if (profileErr) {
+          console.warn('[Supabase Register] Profiles table upsert notice:', profileErr.message);
+        } else {
+          console.log(`[Supabase Register] ✅ Profile saved to public.profiles for user: ${email} (${userId})`);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Account created and verified! You can now log in immediately.',
+      userId,
+      user: {
+        id: userId,
+        email,
+        name: finalName,
+        serviceNumber: finalServiceNo,
+        rank,
+        force,
+        unit,
+        role,
+      },
+    });
+  } catch (err: any) {
+    console.error('[Supabase Register] Error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Registration failed.' });
+  }
+});
+
 app.post('/api/auth/login', (req: Request, res: Response) => {
   const { email, role } = req.body;
   let user = db.users.find((u) => u.email.toLowerCase() === email?.toLowerCase());
@@ -88,7 +235,6 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   }
 
   if (!user) {
-    // Fallback to first user
     user = db.users[0];
   }
 

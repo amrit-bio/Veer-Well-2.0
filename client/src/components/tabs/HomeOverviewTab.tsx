@@ -21,23 +21,33 @@ import {
   UserPlus,
   Key,
   CheckCircle2,
+  AlertTriangle,
+  Flame,
+  Stethoscope,
+  PlaneTakeoff,
+  Database,
+  CalendarCheck,
+  TrendingUp,
+  LineChart,
+  Radio,
+  FileBadge,
 } from 'lucide-react';
 
 export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
-  const { role: currentRole, user: currentUser, login, openAuthModal } = useAuth();
+  const { role: currentRole, user: currentUser, login, openAuthModal, isAnonymized } = useAuth();
 
   const handleRoleQuickLogin = (roleKey: UserRole) => {
     const preset = ROLE_PRESETS[roleKey];
     login(preset.defaultLoginId, roleKey, preset.defaultPassword);
-    if (roleKey === 'commander') onNavigate('dashboard');
+    if (roleKey === 'commander') onNavigate('analytics');
     else if (roleKey === 'welfare_officer') onNavigate('interventions');
-    else if (roleKey === 'personnel') onNavigate('assessment');
+    else if (roleKey === 'personnel') onNavigate('dashboard');
     else if (roleKey === 'analyst') onNavigate('analytics');
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Hero Section */}
+      {/* ── 1. Hero Header Banner ────────────────────────────────────────────── */}
       <div className="relative glass-panel rounded-3xl p-6 md:p-10 border border-olive-400/30 overflow-hidden shadow-2xl">
         {/* Ambient Glows */}
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-accent-gold/15 rounded-full blur-[100px] pointer-events-none" />
@@ -58,33 +68,93 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
             </h1>
 
             <p className="text-sm md:text-base text-olive-100/90 leading-relaxed max-w-2xl">
-              वीरWell is an AI-powered proactive wellness telemetry and workforce resilience platform built for frontline personnel. Combining wearable physiological signals, duty rotation logs, and voluntary psychological surveys with cryptographic anonymization.
+              वीरWell (Rakshak AI) is an operational wellness telemetry and workforce resilience platform built for frontline personnel. Combining wearable physiological signals, duty rotation logs, and voluntary psychological surveys with cryptographic anonymization.
             </p>
 
-            {/* CTAs */}
+            {/* Role-Specific Primary CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                onClick={() => onNavigate('dashboard')}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-accent-gold via-amber-400 to-accent-saffron hover:opacity-95 text-navy-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
-              >
-                <span>Explore Operational Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {currentRole === 'personnel' && (
+                <>
+                  <button
+                    onClick={() => onNavigate('dashboard')}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-accent-gold via-amber-400 to-accent-saffron hover:opacity-95 text-navy-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
+                  >
+                    <span>View My Live Biometrics</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate('assessment')}
+                    className="px-5 py-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs md:text-sm flex items-center gap-2 transition-all"
+                  >
+                    <FileCheck2 className="w-4 h-4 text-emerald-400" />
+                    <span>Confidential Check-In</span>
+                  </button>
+                </>
+              )}
+
+              {currentRole === 'commander' && (
+                <>
+                  <button
+                    onClick={() => onNavigate('analytics')}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-accent-gold via-amber-400 to-accent-saffron hover:opacity-95 text-navy-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
+                  >
+                    <span>Inspect 14-Day Predictive Model</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate('interventions')}
+                    className="px-5 py-3 rounded-xl bg-olive-900/90 hover:bg-olive-800 border border-accent-gold/40 text-accent-gold font-bold text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
+                  >
+                    <CalendarCheck className="w-4 h-4" />
+                    <span>Approve Rest Rotations</span>
+                  </button>
+                </>
+              )}
+
+              {currentRole === 'welfare_officer' && (
+                <>
+                  <button
+                    onClick={() => onNavigate('interventions')}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:opacity-95 text-white font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-rose-500/25 transition-all transform active:scale-95"
+                  >
+                    <span>Prescribe Clinical Respite</span>
+                    <Stethoscope className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate('dashboard')}
+                    className="px-5 py-3 rounded-xl bg-olive-900/90 hover:bg-olive-800 border border-olive-700 text-slate-200 font-bold text-xs md:text-sm flex items-center gap-2 transition-all"
+                  >
+                    <Activity className="w-4 h-4 text-rose-400" />
+                    <span>Privileged Biometrics</span>
+                  </button>
+                </>
+              )}
+
+              {currentRole === 'analyst' && (
+                <>
+                  <button
+                    onClick={() => onNavigate('analytics')}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:opacity-95 text-navy-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/25 transition-all transform active:scale-95"
+                  >
+                    <span>Run Multivariate Regression</span>
+                    <Cpu className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate('datasets')}
+                    className="px-5 py-3 rounded-xl bg-olive-900/90 hover:bg-olive-800 border border-olive-700 text-slate-200 font-bold text-xs md:text-sm flex items-center gap-2 transition-all"
+                  >
+                    <Database className="w-4 h-4 text-cyan-400" />
+                    <span>Simulated Datasets</span>
+                  </button>
+                </>
+              )}
 
               <button
                 onClick={openAuthModal}
-                className="px-5 py-3 rounded-xl bg-olive-900/90 hover:bg-olive-800 border border-accent-gold/40 text-accent-gold font-bold text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
+                className="px-4 py-3 rounded-xl bg-olive-950/80 hover:bg-olive-900 border border-olive-700 text-olive-300 font-mono text-xs flex items-center gap-1.5 transition-all"
               >
-                <Key className="w-4 h-4 text-accent-gold" />
-                <span>Military Login / Register</span>
-              </button>
-
-              <button
-                onClick={() => onNavigate('assessment')}
-                className="px-5 py-3 rounded-xl bg-olive-950/80 hover:bg-olive-900 border border-olive-500/30 text-white font-semibold text-xs md:text-sm flex items-center gap-2 transition-all"
-              >
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>Take Self-Assessment</span>
+                <Key className="w-3.5 h-3.5 text-accent-gold" />
+                <span>Switch Persona</span>
               </button>
             </div>
           </div>
@@ -93,14 +163,288 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           <div className="lg:col-span-5 h-72 md:h-84 glass-card rounded-2xl border border-olive-400/30 p-2 relative flex items-center justify-center overflow-hidden">
             <LoginHero3D />
             <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-olive-200 bg-olive-950/80 px-2.5 py-1 rounded-lg border border-olive-600/40 backdrop-blur-md">
-              <span>🛡️ AI Bio-Telemetry Node</span>
-              <span>100% Anonymized Privacy</span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Active Node: {currentUser.serviceNumber}
+              </span>
+              <span className="text-accent-gold font-bold uppercase">{currentRole}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Role-Based Military Access Grid (Distinct Logins & Roles) */}
+      {/* ── 2. Dynamic RBAC Persona Clearance Overview Widgets ─────────────── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-accent-gold animate-pulse" />
+            <h2 className="text-lg md:text-xl font-black text-white tracking-tight">
+              Operational Command Deck • Clearance Tier: <span className="text-accent-gold uppercase font-mono">{currentRole}</span>
+            </h2>
+          </div>
+          <span className="text-xs font-mono text-olive-400">
+            Unit: <strong className="text-slate-200">{currentUser.unit}</strong>
+          </span>
+        </div>
+
+        {/* 🟢 TIER 1: FRONTLINE PERSONNEL WIDGETS */}
+        {currentRole === 'personnel' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-olive-950 to-emerald-950/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <HeartPulse className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
+                  SYNCED
+                </span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white font-mono">64 <span className="text-xs font-normal text-olive-400">ms</span></div>
+                <div className="text-xs font-bold text-slate-200">HRV Parasympathetic Tone</div>
+                <p className="text-[10px] text-emerald-300 mt-1">Optimal recovery state post-shift</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-olive-700 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-olive-300">Live IoT</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-accent-gold font-mono">98.2 <span className="text-xs font-normal text-olive-400">%</span></div>
+                <div className="text-xs font-bold text-slate-200">Blood Oxygen (SpO2)</div>
+                <p className="text-[10px] text-olive-300 mt-1">Normal high-altitude saturation</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-cyan-500/40 bg-gradient-to-br from-olive-950 to-cyan-950/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <CalendarCheck className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-cyan-300">Approved</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white font-mono">3 <span className="text-xs font-normal text-olive-400">Days</span></div>
+                <div className="text-xs font-bold text-slate-200">Wellness Recharge Respite</div>
+                <p className="text-[10px] text-cyan-300 mt-1">Scheduled for next rotation</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-accent-gold/40 bg-olive-900/40 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-xs font-bold text-accent-gold font-mono uppercase">Confidential Screener</div>
+                <div className="text-sm font-bold text-white mt-1">PHQ-9 Mental Vitality Check</div>
+                <p className="text-[10px] text-olive-300 mt-0.5">100% anonymized voluntary screener</p>
+              </div>
+              <button
+                onClick={() => onNavigate('assessment')}
+                className="w-full py-2 rounded-xl bg-accent-gold text-navy-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>Start Screener</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 🟡 TIER 2: COMMANDING OFFICER (CO) WIDGETS */}
+        {currentRole === 'commander' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 rounded-2xl border border-accent-gold/40 bg-gradient-to-br from-olive-950 to-amber-950/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
+                  <Award className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-olive-900 text-accent-gold border border-olive-700">
+                  142 BN HQ
+                </span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-accent-gold font-mono">88.4 <span className="text-xs font-normal text-olive-400">%</span></div>
+                <div className="text-xs font-bold text-white">Battalion Operational Readiness</div>
+                <p className="text-[10px] text-emerald-300 mt-1">Optimal readiness across 6 sectors</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-rose-500/40 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                  <Flame className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-rose-300">Siachen / Leh</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-rose-400 font-mono">4 <span className="text-xs font-normal text-olive-400">Nodes</span></div>
+                <div className="text-xs font-bold text-white">High-Altitude Hypoxia Strain</div>
+                <p className="text-[10px] text-rose-300 mt-1">48h rotation respite suggested</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-olive-700 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <CalendarCheck className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-cyan-300">Action Required</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white font-mono">3 <span className="text-xs font-normal text-olive-400">Pending</span></div>
+                <div className="text-xs font-bold text-white">Rest Rotation Authorizations</div>
+                <p className="text-[10px] text-olive-300 mt-1">Awaiting commander digital signature</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-accent-gold/40 bg-olive-900/40 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-xs font-bold text-accent-gold font-mono uppercase">14-Day Prediction</div>
+                <div className="text-sm font-bold text-white mt-1">Predictive Analytics Suite</div>
+                <p className="text-[10px] text-olive-300 mt-0.5">XGBoost 36-tree saturation model</p>
+              </div>
+              <button
+                onClick={() => onNavigate('analytics')}
+                className="w-full py-2 rounded-xl bg-accent-gold text-navy-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>Inspect Forecast</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 🔵 TIER 3: MEDICAL & WELFARE OFFICER WIDGETS */}
+        {currentRole === 'welfare_officer' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 rounded-2xl border border-rose-500/40 bg-gradient-to-br from-olive-950 to-rose-950/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700">
+                  TRIAGE ALERT
+                </span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-rose-400 font-mono">2 <span className="text-xs font-normal text-olive-400">Cases</span></div>
+                <div className="text-xs font-bold text-white">Acute Shift Fatigue Alerts</div>
+                <p className="text-[10px] text-rose-300 mt-1">Consecutive night deployment flag</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-emerald-500/40 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <HeartPulse className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-emerald-300">Clinical Data</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-emerald-400 font-mono">78.2 <span className="text-xs font-normal text-olive-400">%</span></div>
+                <div className="text-xs font-bold text-white">Parasympathetic Recovery Avg</div>
+                <p className="text-[10px] text-emerald-300 mt-1">Doctor-patient privileged view</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-cyan-500/40 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-cyan-300">Bio-Patches</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white font-mono">21 / 21</div>
+                <div className="text-xs font-bold text-white">Smart Telemetry Integrity</div>
+                <p className="text-[10px] text-cyan-300 mt-1">Continuous signal sync confirmed</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-rose-500/40 bg-rose-950/20 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-xs font-bold text-rose-300 font-mono uppercase">Prescriptions</div>
+                <div className="text-sm font-bold text-white mt-1">Issue 48h Hypoxia Respite</div>
+                <p className="text-[10px] text-olive-300 mt-0.5">Clinical rest directives</p>
+              </div>
+              <button
+                onClick={() => onNavigate('interventions')}
+                className="w-full py-2 rounded-xl bg-rose-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>Open Rx Console</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 🟣 TIER 4: BEHAVIORAL DATA SCIENTIST WIDGETS */}
+        {currentRole === 'analyst' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 rounded-2xl border border-cyan-500/40 bg-gradient-to-br from-olive-950 to-cyan-950/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700">
+                  36 TREES
+                </span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-cyan-400 font-mono">0.946 <span className="text-xs font-normal text-olive-400">AUC</span></div>
+                <div className="text-xs font-bold text-white">XGBoost Model ROC-AUC</div>
+                <p className="text-[10px] text-cyan-300 mt-1">14-day multi-variate horizon</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-emerald-500/40 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-emerald-300">Diff. Privacy</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-emerald-400 font-mono">ε = 0.85</div>
+                <div className="text-xs font-bold text-white">Differential Privacy Budget</div>
+                <p className="text-[10px] text-emerald-300 mt-1">Laplacian noise mechanism active</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-olive-700 bg-olive-950/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="p-2 rounded-xl bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
+                  <Database className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono text-accent-gold">Postgres RLS</span>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white font-mono">12 / 12</div>
+                <div className="text-xs font-bold text-white">Supabase Tables Synced</div>
+                <p className="text-[10px] text-olive-300 mt-1">Row-Level Security verified</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-xs font-bold text-cyan-300 font-mono uppercase">Simulation</div>
+                <div className="text-sm font-bold text-white mt-1">Roster What-If Engine</div>
+                <p className="text-[10px] text-olive-300 mt-0.5">Simulate duty shift variations</p>
+              </div>
+              <button
+                onClick={() => onNavigate('analytics')}
+                className="w-full py-2 rounded-xl bg-cyan-500 text-navy-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>Launch Simulator</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. Role-Based Military Access Grid (Distinct Logins & Roles) ─────── */}
       <div className="glass-panel p-6 md:p-8 rounded-3xl border border-olive-400/30 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-olive-800">
           <div>
@@ -129,7 +473,9 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
         {/* 4 Distinct Role Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Commander */}
-          <div className="glass-card p-5 rounded-2xl border border-accent-gold/40 space-y-3 bg-olive-950/80 flex flex-col justify-between">
+          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
+            currentRole === 'commander' ? 'border-accent-gold ring-1 ring-accent-gold shadow-lg shadow-amber-500/10' : 'border-olive-800'
+          }`}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-xl bg-accent-gold/20 text-accent-gold flex items-center justify-center border border-accent-gold/40">
@@ -158,7 +504,9 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </div>
 
           {/* Card 2: Medical & Welfare Officer */}
-          <div className="glass-card p-5 rounded-2xl border border-rose-500/40 space-y-3 bg-olive-950/80 flex flex-col justify-between">
+          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
+            currentRole === 'welfare_officer' ? 'border-rose-500 ring-1 ring-rose-500 shadow-lg shadow-rose-500/10' : 'border-olive-800'
+          }`}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/40">
@@ -187,7 +535,9 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </div>
 
           {/* Card 3: Frontline Personnel (Jawan) */}
-          <div className="glass-card p-5 rounded-2xl border border-emerald-500/40 space-y-3 bg-olive-950/80 flex flex-col justify-between">
+          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
+            currentRole === 'personnel' ? 'border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-olive-800'
+          }`}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40">
@@ -216,7 +566,9 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </div>
 
           {/* Card 4: Behavioral Data Scientist */}
-          <div className="glass-card p-5 rounded-2xl border border-cyan-500/40 space-y-3 bg-olive-950/80 flex flex-col justify-between">
+          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
+            currentRole === 'analyst' ? 'border-cyan-500 ring-1 ring-cyan-500 shadow-lg shadow-cyan-500/10' : 'border-olive-800'
+          }`}>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
@@ -246,7 +598,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
         </div>
       </div>
 
-      {/* Problem Statement vs Solution Cards */}
+      {/* ── 4. Strategic Problem Statement vs Solution Cards ────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Problem Card */}
         <div className="glass-panel p-6 md:p-8 rounded-3xl border border-rose-500/30 space-y-3 bg-gradient-to-br from-olive-950 via-rose-950/15 to-olive-950">
@@ -299,7 +651,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
         </div>
       </div>
 
-      {/* Key Highlights Section */}
+      {/* ── 5. Key Highlights Section ────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -311,12 +663,10 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </div>
         </div>
 
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Highlight 1: AI Stress Monitoring */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => onNavigate(currentRole === 'commander' || currentRole === 'analyst' ? 'analytics' : 'dashboard')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-accent-gold/20 border border-accent-gold/40 text-accent-gold flex items-center justify-center">
@@ -327,15 +677,14 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
               Real-time physiological modeling analyzing sympathetic vs parasympathetic tone, predicting burnout 7–14 days before clinical manifestation.
             </p>
             <div className="text-accent-gold text-xs font-bold flex items-center gap-1">
-              <span>View Dashboard</span>
+              <span>View Module</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </motion.div>
 
-          {/* Highlight 2: Privacy Safeguards */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('privacy')}
+            onClick={() => onNavigate(currentRole === 'welfare_officer' ? 'interventions' : 'privacy')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
@@ -351,10 +700,9 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
             </div>
           </motion.div>
 
-          {/* Highlight 3: Wearables & HRMS */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('integrations')}
+            onClick={() => onNavigate(currentRole === 'analyst' ? 'datasets' : 'integrations')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center">
