@@ -1,0 +1,16 @@
+[project]
+# VeerWell 2.0 Supabase Project Configuration
+project_id = "krshfwuqifaxecbtrxmy"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[realtime]
+enabled = true
+
+[auth]
+enable_signup = true
+enable_anonymous_signups = false

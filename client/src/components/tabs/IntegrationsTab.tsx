@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BioRing3D } from '../3d/BioRing3D';
+
 import { BrandLogo } from '../common/BrandLogo';
 import { BrandedLoader } from '../common/BrandedLoader';
 import {
@@ -107,41 +107,12 @@ export const IntegrationsTab: React.FC = () => {
       </div>
 
       {/* Grid: 3D BioRing & Integration Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* 3D Bio-Ring Centerpiece (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 rounded-3xl border border-olive-400/30 flex flex-col justify-between">
-          <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-accent-gold" />
-              3D Real-Time Biometric Stream
-            </h2>
-            <p className="text-xs text-olive-300 mt-1">
-              Visualizing active PPG cardiac pulse cadence and autonomic recovery frequency.
-            </p>
-          </div>
-
-          <div className="my-2">
-            <BioRing3D heartRate={68} hrv={64} className="h-60 md:h-68" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-olive-800 text-center text-xs">
-            <div className="p-2 rounded-xl bg-olive-900/60 border border-olive-700/50">
-              <span className="text-[10px] text-olive-400 block font-mono">Telemetry Status</span>
-              <strong className="text-emerald-400">Continuous 100Hz</strong>
-            </div>
-            <div className="p-2 rounded-xl bg-olive-900/60 border border-olive-700/50">
-              <span className="text-[10px] text-olive-400 block font-mono">Encryption</span>
-              <strong className="text-accent-gold">AES-256 BLE</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Integration Gateways List (7 Cols) */}
-        <div className="lg:col-span-7 space-y-3">
-          {isSyncingAll ? (
-            <BrandedLoader compact label="Synchronizing HRMS & BLE nodes…" />
-          ) : (
-            integrations.map((item) => (
+      {/* Integration Cards Grid */}
+      <div className="grid grid-cols-1 gap-4">
+        {isSyncingAll ? (
+          <BrandedLoader compact label="Synchronizing HRMS & BLE nodes…" />
+        ) : (
+          integrations.map((item) => (
             <motion.div
               key={item.id}
               whileHover={{ y: -2 }}
@@ -183,7 +154,6 @@ export const IntegrationsTab: React.FC = () => {
             </motion.div>
             ))
           )}
-        </div>
       </div>
     </div>
   );

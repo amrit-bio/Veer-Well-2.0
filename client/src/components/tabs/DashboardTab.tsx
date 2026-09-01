@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { StressOrb3D } from '../3d/StressOrb3D';
+
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../common/BrandLogo';
 import {
@@ -524,8 +524,8 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
             </span>
           </div>
 
-          <div className="my-2">
-            <StressOrb3D stressLevel={liveMetrics.avgStress} className="h-64 md:h-76" />
+          <div className="my-4 p-4 rounded-xl bg-olive-900/60 border border-olive-700/40">
+            <p className="text-xs text-olive-300 text-center">Stress Level: <strong className="text-accent-gold">{liveMetrics.avgStress}/10</strong></p>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-3 border-t border-olive-800 text-center text-xs">

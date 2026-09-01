@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Wordmark } from '../common/Wordmark';
-import { LoginHero3D } from '../3d/LoginHero3D';
-import { useAuth, ROLE_PRESETS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import {
   Shield,
@@ -34,16 +33,7 @@ import {
 } from 'lucide-react';
 
 export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
-  const { role: currentRole, user: currentUser, login, openAuthModal, isAnonymized, session } = useAuth();
-
-  const handleRoleQuickLogin = (roleKey: UserRole) => {
-    const preset = ROLE_PRESETS[roleKey];
-    login(preset.defaultLoginId, roleKey, preset.defaultPassword);
-    if (roleKey === 'commander') onNavigate('analytics');
-    else if (roleKey === 'welfare_officer') onNavigate('interventions');
-    else if (roleKey === 'personnel') onNavigate('dashboard');
-    else if (roleKey === 'analyst') onNavigate('analytics');
-  };
+  const { role: currentRole, user: currentUser, openAuthModal, isAnonymized, session } = useAuth();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -159,15 +149,19 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
             </div>
           </div>
 
-          {/* Right 3D Visual Centerpiece */}
-          <div className="lg:col-span-5 h-72 md:h-84 glass-card rounded-2xl border border-olive-400/30 p-2 relative flex items-center justify-center overflow-hidden">
-            <LoginHero3D />
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-olive-200 bg-olive-950/80 px-2.5 py-1 rounded-lg border border-olive-600/40 backdrop-blur-md">
-              <span className="flex items-center gap-1">
+          {/* Right Info Panel */}
+          <div className="lg:col-span-5 glass-card rounded-2xl border border-olive-400/30 p-6 space-y-4">
+            <div className="space-y-2">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-accent-gold">Your Profile</div>
+              <div className="text-sm font-bold text-white">{currentUser.name}</div>
+              <div className="text-xs text-olive-300 font-mono">{currentUser.serviceNumber}</div>
+            </div>
+            <div className="pt-2 border-t border-olive-800">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-300 mb-2">Status</div>
+              <div className="flex items-center gap-2 text-xs text-olive-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Active Node: {currentUser.serviceNumber}
-              </span>
-              <span className="text-accent-gold font-bold uppercase">{currentRole}</span>
+                <span>Active Session</span>
+              </div>
             </div>
           </div>
         </div>
@@ -471,130 +465,23 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
           </button>
         </div>
 
-        {/* 4 Distinct Role Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Commander */}
-          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
-            currentRole === 'commander' ? 'border-accent-gold ring-1 ring-accent-gold shadow-lg shadow-amber-500/10' : 'border-olive-800'
-          }`}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-accent-gold/20 text-accent-gold flex items-center justify-center border border-accent-gold/40">
-                  <Award className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-olive-900 text-accent-gold border border-olive-700">
-                  ID: CRPF-CMD-7801
-                </span>
+        {/* Get Started with VeerWell */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-olive-800 space-y-2">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold text-white">New Personnel</h3>
               </div>
-              <h3 className="text-sm font-bold text-white">Commanding Officer</h3>
-              <p className="text-[11px] text-olive-200 leading-relaxed">
-                Battalion aggregate readiness, rest rotation authorizations, and high-altitude operational heatmap tracking.
-              </p>
+              <p className="text-xs text-olive-300">Create your secure account with email and password. All data is encrypted and anonymized.</p>
             </div>
-            <button
-              onClick={() => handleRoleQuickLogin('commander')}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all ${
-                currentRole === 'commander'
-                  ? 'bg-accent-gold text-navy-950 font-black shadow-md'
-                  : 'bg-olive-900 text-white hover:bg-olive-800 border border-olive-700'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{currentRole === 'commander' ? 'Active Session' : 'Login as Commander'}</span>
-            </button>
-          </div>
-
-          {/* Card 2: Medical & Welfare Officer */}
-          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
-            currentRole === 'welfare_officer' ? 'border-rose-500 ring-1 ring-rose-500 shadow-lg shadow-rose-500/10' : 'border-olive-800'
-          }`}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/40">
-                  <HeartPulse className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-olive-900 text-rose-300 border border-olive-700">
-                  ID: CRPF-MED-8492
-                </span>
+            <div className="glass-card p-4 rounded-2xl border border-olive-800 space-y-2">
+              <div className="flex items-center gap-2">
+                <LogIn className="w-4 h-4 text-accent-gold" />
+                <h3 className="text-sm font-bold text-white">Existing Users</h3>
               </div>
-              <h3 className="text-sm font-bold text-white">Medical & Welfare Officer</h3>
-              <p className="text-[11px] text-olive-200 leading-relaxed">
-                Prescribe 48h hypoxia recovery respite, psychological debriefings, and clinical counseling under doctor-patient privilege.
-              </p>
+              <p className="text-xs text-olive-300">Sign in with your email credentials to access your dashboards and biometric data.</p>
             </div>
-            <button
-              onClick={() => handleRoleQuickLogin('welfare_officer')}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all ${
-                currentRole === 'welfare_officer'
-                  ? 'bg-rose-500 text-white font-black shadow-md'
-                  : 'bg-olive-900 text-white hover:bg-olive-800 border border-olive-700'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{currentRole === 'welfare_officer' ? 'Active Session' : 'Login as Medical Officer'}</span>
-            </button>
-          </div>
-
-          {/* Card 3: Frontline Personnel (Jawan) */}
-          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
-            currentRole === 'personnel' ? 'border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-olive-800'
-          }`}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-olive-900 text-emerald-300 border border-olive-700">
-                  ID: CRPF-COBRA-1042
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-white">Frontline Personnel (Jawan)</h3>
-              <p className="text-[11px] text-olive-200 leading-relaxed">
-                Voluntary PHQ-9 self-assessment, smartwatch PPG/SpO2 sync, and 3-day confidential Wellness Recharge leave requests.
-              </p>
-            </div>
-            <button
-              onClick={() => handleRoleQuickLogin('personnel')}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all ${
-                currentRole === 'personnel'
-                  ? 'bg-emerald-500 text-navy-950 font-black shadow-md'
-                  : 'bg-olive-900 text-white hover:bg-olive-800 border border-olive-700'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{currentRole === 'personnel' ? 'Active Session' : 'Login as Jawan'}</span>
-            </button>
-          </div>
-
-          {/* Card 4: Behavioral Data Scientist */}
-          <div className={`glass-card p-5 rounded-2xl border transition-all space-y-3 bg-olive-950/80 flex flex-col justify-between ${
-            currentRole === 'analyst' ? 'border-cyan-500 ring-1 ring-cyan-500 shadow-lg shadow-cyan-500/10' : 'border-olive-800'
-          }`}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-olive-900 text-cyan-300 border border-olive-700">
-                  ID: MHA-ANA-9104
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-white">Behavioral Data Scientist</h3>
-              <p className="text-[11px] text-olive-200 leading-relaxed">
-                14-day multi-variate predictive regression models, What-If roster stress simulations, and differential privacy data sets.
-              </p>
-            </div>
-            <button
-              onClick={() => handleRoleQuickLogin('analyst')}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all ${
-                currentRole === 'analyst'
-                  ? 'bg-cyan-500 text-navy-950 font-black shadow-md'
-                  : 'bg-olive-900 text-white hover:bg-olive-800 border border-olive-700'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{currentRole === 'analyst' ? 'Active Session' : 'Login as Data Analyst'}</span>
-            </button>
           </div>
         </div>
       </div>

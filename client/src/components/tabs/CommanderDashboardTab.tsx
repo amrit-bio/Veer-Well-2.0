@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../common/BrandLogo';
-import { StressOrb3D } from '../3d/StressOrb3D';
+
 import {
   LayoutDashboard,
   Users,
@@ -377,7 +377,11 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
             </div>
             <span className="text-xs font-mono text-accent-gold font-bold">Index: {metrics.avgStress}/10</span>
           </div>
-          <StressOrb3D stressLevel={metrics.avgStress} className="h-72" />
+          <div className="py-8 px-4 rounded-xl bg-olive-900/40 border border-olive-700/30 text-center">
+            <p className="text-xs text-olive-300 mb-2">Average Battalion Stress</p>
+            <p className="text-4xl font-black text-accent-gold">{metrics.avgStress}</p>
+            <p className="text-xs text-olive-400 mt-1">Personnel at risk: 4</p>
+          </div>
         </div>
 
         {/* Stress Distribution Pie Chart */}
