@@ -296,49 +296,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cleanForce = metadata?.force || 'CRPF';
       const cleanUnit = metadata?.unit || '142 Bn (Srinagar Sector HQ)';
 
-      // 1. Register with backend server (creates confirmed user in Supabase Auth & public.profiles)
+      // 1. Try to register with backend server (optional - for production deployment)
+      // This is non-blocking - if backend is unavailable, we fall back to Supabase-only auth
       let serverSuccess = false;
-      let userId = '';
+      let userId = cleanServiceNumber;
 
-      try {
-        const signupUrl = getApiUrl('/auth/signup');
-        console.log('[VeerWell Client] 📡 Calling signup endpoint:', signupUrl);
-        
-        const res = await fetch(signupUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password,
-            name: cleanName,
-            rank: cleanRank,
-            serviceNumber: cleanServiceNumber,
-            force: cleanForce,
-            unit: cleanUnit,
-            role: cleanRole,
-            department: 'Operations',
-            designation: `${cleanRank} (${cleanRole})`,
-          }),
-        });
+      const signupUrl = getApiUrl('/auth/signup');
+      console.log('[VeerWell Client] 📡 Backend API Base:', API_BASE);
+      console.log('[VeerWell Client] 📡 Attempting to call signup endpoint:', signupUrl);
+      
+      // Only attempt backend call if API_BASE is configured and not localhost (on Vercel)
+      if (API_BASE && !API_BASE.includes('localhost') && API_BASE.startsWith('http')) {
+        try {
+          const res = await fetch(signupUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: cleanEmail,
+              password,
+              name: cleanName,
+              rank: cleanRank,
+              serviceNumber: cleanServiceNumber,
+              force: cleanForce,
+              unit: cleanUnit,
+              role: cleanRole,
+              department: 'Operations',
+              designation: `${cleanRank} (${cleanRole})`,
+            }),
+          });
 
-        if (res.ok) {
-          const result = await res.json();
-          serverSuccess = true;
-          userId = result.userId || result.user?.id || cleanServiceNumber;
-          console.log('[VeerWell Client] ✅ User successfully registered in Supabase backend:', userId);
-        } else {
-          const errJson = await res.json().catch(() => ({}));
-          console.warn('[VeerWell Client] Server signup error - Status:', res.status, res.statusText);
-          console.warn('[VeerWell Client] Server signup error - Response:', errJson);
-          console.warn('[VeerWell Client] API_BASE configured as:', API_BASE);
-          const errorMsg = errJson.error || errJson.message || `Server error (${res.status}: ${res.statusText})`;
-          return { error: new Error(errorMsg) };
+          if (res.ok) {
+            const result = await res.json();
+            serverSuccess = true;
+            userId = result.userId || result.user?.id || cleanServiceNumber;
+            console.log('[VeerWell Client] ✅ User registered via backend:', userId);
+          } else {
+            console.warn('[VeerWell Client] ⚠️  Backend signup failed with status:', res.status);
+            console.log('[VeerWell Client] 📝 Falling back to Supabase-only registration...');
+          }
+        } catch (srvErr) {
+          console.warn('[VeerWell Client] ⚠️  Backend not available:', (srvErr as any).message);
+          console.log('[VeerWell Client] 📝 This is normal if backend is not deployed yet.');
+          console.log('[VeerWell Client] 📝 Continuing with Supabase-only registration...');
         }
-      } catch (srvErr) {
-        console.warn('[VeerWell Client] Could not reach backend signup endpoint:', srvErr);
-        console.warn('[VeerWell Client] API_BASE:', API_BASE);
-        console.warn('[VeerWell Client] Make sure backend is running and VITE_API_BASE is set correctly');
-        return { error: new Error('Server connection failed. Make sure backend is running.') };
+      } else {
+        console.log('[VeerWell Client] ℹ️  VITE_API_BASE not configured properly');
+        console.log('[VeerWell Client] 📝 Proceeding with Supabase-only authentication');
       }
 
       // 2. Immediately sign in with the new confirmed credentials to establish a live Supabase session
