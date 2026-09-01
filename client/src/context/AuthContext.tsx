@@ -344,43 +344,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[VeerWell Client] 📝 Proceeding with Supabase-only authentication');
       }
 
-      // 2. Immediately sign in with the new confirmed credentials to establish a live Supabase session
-      let loginData = null;
-      let loginError = null;
-
-      const firstAttempt = await supabase.auth.signInWithPassword({
+      // 2. Create the Supabase auth user first. For many setups, email confirmation is enabled,
+      // so signUp will succeed but no session is returned until the user confirms their email.
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/verify`,
+          data: {
+            name: cleanName,
+            rank: cleanRank,
+            serviceNumber: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
+          },
+        },
       });
 
-      loginData = firstAttempt.data;
-      loginError = firstAttempt.error;
-
-      // If slight propagation delay, retry after 400ms
-      if (loginError && loginError.message.includes('Invalid login credentials')) {
-        await new Promise((r) => setTimeout(r, 450));
-        const retryAttempt = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        loginData = retryAttempt.data;
-        loginError = retryAttempt.error;
+      if (signupError) {
+        console.warn('[VeerWell Client] Supabase sign-up error:', signupError.message);
+        return { error: signupError };
       }
 
-      if (loginError) {
-        console.warn('[VeerWell Client] Immediate sign-in error:', loginError.message);
-        return { error: loginError };
+      if (!signupData?.user) {
+        return { error: new Error('Account creation did not return a valid user. Please try again.') };
       }
 
-      if (loginData?.session) {
-        setSession(loginData.session);
-        setSupabaseUser(loginData.user);
-        await syncUserProfile(loginData.user);
-        setIsAuthenticated(true);
-        setIsAuthModalOpen(false);
+      // If email confirmation is enabled, signUp will not create a session immediately.
+      if (!signupData.session) {
+        console.log('[VeerWell Client] ✅ Account created. Email confirmation is required before login.');
+        return {
+          error: null,
+          data: {
+            requiresEmailConfirmation: true,
+            user: signupData.user,
+          },
+        };
       }
 
-      return { error: null, data: loginData };
+      // If email confirmation is off, immediately log the user in after account creation.
+      setSession(signupData.session);
+      setSupabaseUser(signupData.user);
+      await syncUserProfile(signupData.user);
+      setIsAuthenticated(true);
+      setIsAuthModalOpen(false);
+
+      return { error: null, data: signupData };
     } catch (err: any) {
       console.error('[VeerWell Client] Signup error:', err);
       return { error: err };

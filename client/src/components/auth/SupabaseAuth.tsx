@@ -97,7 +97,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     }
 
     setLoading(true);
-    const { error } = await supabaseSignUp(email.trim(), password, {
+    const { error, data } = await supabaseSignUp(email.trim(), password, {
       name: name.trim() || email.split('@')[0],
       rank,
       serviceNumber: serviceNumber.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -109,6 +109,11 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
     if (error) {
       setErrorMsg(error.message || 'Failed to register account. Please try again.');
+    } else if (data?.requiresEmailConfirmation) {
+      setSuccessMsg('✅ Account created successfully! Please check your email and confirm your address before logging in.');
+      setTimeout(() => {
+        setMode('login');
+      }, 2500);
     } else {
       setSuccessMsg('✅ Account created and verified! Loading your profile…');
       setTimeout(() => {
