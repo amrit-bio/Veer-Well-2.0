@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ── 3. Supabase Sign Up (Auto-confirmed via backend & saved to public.profiles) ──
+  // ── 3. Supabase Sign Up (Auto-confirmed & stored in public.profiles with RLS) ──
   const supabaseSignUp = async (
     email: string,
     password: string,
@@ -278,64 +278,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   ): Promise<{ error: Error | null; data?: any }> => {
     try {
-      const payload = {
-        email,
-        password,
-        name: metadata?.name || email.split('@')[0],
-        rank: metadata?.rank || 'Inspector',
-        serviceNumber: metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
-        force: metadata?.force || 'CRPF',
-        unit: metadata?.unit || '142 Bn (Srinagar Sector HQ)',
-        role: metadata?.role || 'personnel',
-      };
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanServiceNumber = metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`;
+      const cleanName = metadata?.name || email.split('@')[0];
+      const cleanRole = metadata?.role || 'personnel';
+      const cleanRank = metadata?.rank || 'Inspector';
+      const cleanForce = metadata?.force || 'CRPF';
+      const cleanUnit = metadata?.unit || '142 Bn (Srinagar Sector HQ)';
 
-      // 1. Try server-side verified registration (creates pre-confirmed user + inserts into public.profiles)
+      // 1. Register with backend server (creates confirmed user in Supabase Auth & public.profiles)
       try {
-        const resp = await fetch('/api/auth/register', {
+        const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            email: cleanEmail,
+            password,
+            name: cleanName,
+            rank: cleanRank,
+            serviceNumber: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
+            department: 'Operations',
+            designation: `${cleanRank} (${cleanRole})`,
+          }),
         });
-        const resData = await resp.json();
 
-        if (resData.success) {
-          // Immediately sign in with the new confirmed credentials to establish real JWT session
-          const signInRes = await supabaseSignIn(email, password);
-          if (!signInRes.error) {
-            return { error: null, data: { user: resData.user, session: true } };
-          }
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          console.warn('Server signup notice:', errJson);
         }
-      } catch (backendErr) {
-        console.warn('Backend register proxy unavailable, falling back to direct Supabase client:', backendErr);
+      } catch (srvErr) {
+        console.warn('Could not reach backend signup endpoint, falling back to direct client registration:', srvErr);
+        // Fallback to client signUp
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: {
+              name: cleanName,
+              rank: cleanRank,
+              serviceNumber: cleanServiceNumber,
+              force: cleanForce,
+              unit: cleanUnit,
+              role: cleanRole,
+            },
+          },
+        });
       }
 
-      // 2. Fallback: Direct client sign-up
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      // 2. Immediately sign in with the new confirmed credentials to establish a live Supabase session
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
         password,
-        options: {
-          data: {
-            name: payload.name,
-            rank: payload.rank,
-            serviceNumber: payload.serviceNumber,
-            force: payload.force,
-            unit: payload.unit,
-            role: payload.role,
-          },
-        },
       });
 
-      if (error) return { error };
+      if (loginError) {
+        console.warn('Immediate sign-in warning:', loginError.message);
+        return { error: loginError };
+      }
 
-      if (data.session) {
-        setSession(data.session);
-        setSupabaseUser(data.user);
-        if (data.user) syncUserProfile(data.user);
+      if (loginData?.session) {
+        setSession(loginData.session);
+        setSupabaseUser(loginData.user);
+        await syncUserProfile(loginData.user);
         setIsAuthenticated(true);
         setIsAuthModalOpen(false);
       }
 
-      return { error: null, data };
+      return { error: null, data: loginData };
     } catch (err: any) {
       return { error: err };
     }

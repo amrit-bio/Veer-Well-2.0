@@ -108,14 +108,10 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     if (error) {
       setErrorMsg(error.message || 'Failed to register account. Please try again.');
     } else {
-      if (data?.session) {
-        setSuccessMsg('Account created successfully! Connecting to live tactical database…');
+      setSuccessMsg('✅ Account created and verified in Supabase! Storing profile with RLS and entering command grid…');
+      setTimeout(() => {
         if (onSuccess) onSuccess();
-      } else {
-        setSuccessMsg(
-          'Registration request submitted! If email confirmation is enabled on your Supabase project, please verify your inbox.'
-        );
-      }
+      }, 700);
     }
   };
 
