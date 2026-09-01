@@ -4,12 +4,23 @@ import {
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
 
 // Get API base from environment variable, fallback to relative path for development
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
 const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+
+// Helper function to construct API URLs
+export const getApiUrl = (endpoint: string): string => {
+  // If API_BASE is a full URL (http/https), use it directly
+  if (API_BASE.startsWith('http://') || API_BASE.startsWith('https://')) {
+    return `${API_BASE}${endpoint}`;
+  }
+  // Otherwise use relative path
+  return `${API_BASE}${endpoint}`;
+};
 
 // Log API configuration for debugging
 if (typeof window !== 'undefined') {
   console.log('[API] Base URL:', API_BASE);
+  console.log('[API] Environment:', (import.meta as any).env?.MODE || 'production');
   console.log('[API] Gemini Key configured:', !!GEMINI_API_KEY);
 }
 

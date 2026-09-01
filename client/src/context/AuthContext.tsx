@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 export interface RoleCredentials {
@@ -300,7 +301,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let userId = '';
 
       try {
-        const res = await fetch('/api/auth/signup', {
+        const signupUrl = getApiUrl('/auth/signup');
+        console.log('[VeerWell Client] 📡 Calling signup endpoint:', signupUrl);
+        
+        const res = await fetch(signupUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -326,12 +330,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const errJson = await res.json().catch(() => ({}));
           console.warn('[VeerWell Client] Server signup error - Status:', res.status, res.statusText);
           console.warn('[VeerWell Client] Server signup error - Response:', errJson);
+          console.warn('[VeerWell Client] API_BASE configured as:', API_BASE);
           const errorMsg = errJson.error || errJson.message || `Server error (${res.status}: ${res.statusText})`;
           return { error: new Error(errorMsg) };
         }
       } catch (srvErr) {
         console.warn('[VeerWell Client] Could not reach backend signup endpoint:', srvErr);
-        return { error: new Error('Server connection failed. Please try again.') };
+        console.warn('[VeerWell Client] API_BASE:', API_BASE);
+        console.warn('[VeerWell Client] Make sure backend is running and VITE_API_BASE is set correctly');
+        return { error: new Error('Server connection failed. Make sure backend is running.') };
       }
 
       // 2. Immediately sign in with the new confirmed credentials to establish a live Supabase session
