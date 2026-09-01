@@ -4,6 +4,7 @@ import { useAuth, ROLE_PRESETS } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { BrandLogo } from '../common/BrandLogo';
 import { BrandedLoader } from '../common/BrandedLoader';
+import { SupabaseAuth } from './SupabaseAuth';
 import {
   Shield,
   Lock,
@@ -22,11 +23,12 @@ import {
   AlertCircle,
   Building2,
   BadgeAlert,
+  Database,
 } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, login, signup, role: activeContextRole, user: currentUser } = useAuth();
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'supabase' | 'login' | 'signup'>('supabase');
   const [selectedRole, setSelectedRole] = useState<UserRole>(activeContextRole || 'commander');
 
   // Login form state
@@ -134,21 +136,36 @@ export const AuthModal: React.FC = () => {
               <BrandedLoader label="Authenticating on the CAPF identity grid…" />
             ) : (
             <>
-            {/* Mode Switcher Pills: Login vs Sign Up */}
-            <div className="flex items-center p-1 rounded-2xl bg-olive-900/80 border border-olive-700/60 max-w-sm mx-auto text-xs">
+            {/* Mode Switcher Pills: Supabase vs Military Presets vs Sign Up */}
+            <div className="flex items-center p-1 rounded-2xl bg-olive-900/80 border border-olive-700/60 max-w-md mx-auto text-xs">
+              <button
+                onClick={() => {
+                  setAuthMode('supabase');
+                  setLoginError('');
+                }}
+                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                  authMode === 'supabase'
+                    ? 'bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 shadow-md font-black'
+                    : 'text-olive-300 hover:text-white'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span>Supabase Live Auth</span>
+              </button>
+
               <button
                 onClick={() => {
                   setAuthMode('login');
                   setLoginError('');
                 }}
-                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                   authMode === 'login'
                     ? 'bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 shadow-md font-black'
                     : 'text-olive-300 hover:text-white'
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>Military Login</span>
+                <span>Role Presets</span>
               </button>
 
               <button
@@ -156,17 +173,26 @@ export const AuthModal: React.FC = () => {
                   setAuthMode('signup');
                   setLoginError('');
                 }}
-                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-2 transition-all ${
+                className={`flex-1 py-2 text-center font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                   authMode === 'signup'
                     ? 'bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 shadow-md font-black'
                     : 'text-olive-300 hover:text-white'
                 }`}
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>New Registration</span>
+                <span>Enrol</span>
               </button>
             </div>
 
+            {/* View 0: Supabase Live Email & Password Component */}
+            {authMode === 'supabase' && (
+              <div className="pt-2">
+                <SupabaseAuth onSuccess={closeAuthModal} />
+              </div>
+            )}
+
+            {authMode !== 'supabase' && (
+            <>
             {/* Role Selection Cards (Distinct Military Roles) */}
             <div className="space-y-2">
               <label className="block text-[11px] font-mono uppercase tracking-wider text-accent-gold font-bold">
@@ -379,6 +405,8 @@ export const AuthModal: React.FC = () => {
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
+            )}
+            </>
             )}
             </>
             )}

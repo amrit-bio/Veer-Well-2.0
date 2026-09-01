@@ -112,6 +112,14 @@ export const TABS: TabItem[] = [
     description: 'HRMS & tactical smartwatch sync',
   },
   {
+    id: 'supabase-data',
+    label: 'Supabase Live Data',
+    category: 'Platform & Demo',
+    icon: Database,
+    badge: 'Postgres RLS',
+    description: 'Query all 12 live backend tables',
+  },
+  {
     id: 'feedback',
     label: 'Hackathon Feedback',
     category: 'Platform & Demo',

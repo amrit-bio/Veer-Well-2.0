@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
+import { supabase } from '../lib/supabaseClient';
+import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 export interface RoleCredentials {
   role: UserRole;
@@ -126,6 +128,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAnonymized: boolean;
   isAuthModalOpen: boolean;
+  session: Session | null;
+  supabaseUser: SupabaseAuthUser | null;
+  authLoading: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
   toggleAnonymization: () => void;
@@ -140,6 +145,20 @@ interface AuthContextType {
     role: UserRole;
     password?: string;
   }) => boolean;
+  supabaseSignIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  supabaseSignUp: (
+    email: string,
+    password: string,
+    metadata?: {
+      name?: string;
+      rank?: string;
+      serviceNumber?: string;
+      force?: string;
+      unit?: string;
+      role?: UserRole;
+    }
+  ) => Promise<{ error: Error | null; data?: any }>;
+  supabaseSignOut: () => Promise<void>;
   logout: () => void;
 }
 
@@ -151,16 +170,166 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [isAnonymized, setIsAnonymized] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseAuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
-  // Switch role directly (e.g. quick selector)
+  // ── 1. Supabase Auth Listener (Session tracking) ───────────────────────────
+  useEffect(() => {
+    // Check initial active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        syncUserProfile(session.user);
+        setIsAuthenticated(true);
+      }
+      setAuthLoading(false);
+    });
+
+    // Listen for auth state changes across the entire app
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        syncUserProfile(session.user);
+        setIsAuthenticated(true);
+      } else {
+        // When signed out from Supabase
+        setIsAuthenticated(false);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Sync Supabase Auth User data to application military User state
+  const syncUserProfile = async (sbUser: SupabaseAuthUser) => {
+    try {
+      // Try to fetch profile from public.profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', sbUser.id)
+        .maybeSingle();
+
+      const meta = sbUser.user_metadata || {};
+      const userRole = (profile?.role || meta.role || 'personnel') as UserRole;
+      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst'].includes(userRole)
+        ? userRole
+        : 'personnel';
+
+      setRole(validRole);
+      setUser({
+        id: sbUser.id,
+        name: profile?.name || meta.name || sbUser.email?.split('@')[0] || 'Personnel',
+        rank: profile?.rank || meta.rank || 'Inspector',
+        serviceNumber: profile?.service_number || meta.serviceNumber || 'CRPF-NODE-LIVE',
+        force: (profile?.force || meta.force || 'CRPF') as any,
+        unit: profile?.unit || meta.unit || '142 Bn (Srinagar Sector)',
+        role: validRole,
+        roleTitle: profile?.role_title || ROLE_PRESETS[validRole]?.roleLabel || 'Forces Personnel',
+        anonymizedId: profile?.anonymized_id || `CAPF-NODE-${sbUser.id.slice(0, 5).toUpperCase()}`,
+        avatar: profile?.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
+        location: profile?.location || `${profile?.unit || 'HQ Sector'}, ${profile?.force || 'CAPF'}`,
+      });
+    } catch (e) {
+      console.warn('Could not sync user profile from Supabase table:', e);
+    }
+  };
+
+  // ── 2. Supabase Sign In with Password ───────────────────────────────────────
+  const supabaseSignIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) return { error };
+
+      if (data.session) {
+        setSession(data.session);
+        setSupabaseUser(data.user);
+        syncUserProfile(data.user);
+        setIsAuthenticated(true);
+        setIsAuthModalOpen(false);
+      }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  // ── 3. Supabase Sign Up ───────────────────────────────────────────────────
+  const supabaseSignUp = async (
+    email: string,
+    password: string,
+    metadata?: {
+      name?: string;
+      rank?: string;
+      serviceNumber?: string;
+      force?: string;
+      unit?: string;
+      role?: UserRole;
+    }
+  ): Promise<{ error: Error | null; data?: any }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: metadata?.name || email.split('@')[0],
+            rank: metadata?.rank || 'Inspector',
+            serviceNumber: metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
+            force: metadata?.force || 'CRPF',
+            unit: metadata?.unit || '142 Bn (Srinagar Sector)',
+            role: metadata?.role || 'personnel',
+          },
+        },
+      });
+
+      if (error) return { error };
+
+      if (data.session) {
+        setSession(data.session);
+        setSupabaseUser(data.user);
+        if (data.user) syncUserProfile(data.user);
+        setIsAuthenticated(true);
+        setIsAuthModalOpen(false);
+      }
+
+      return { error: null, data };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
+  // ── 4. Supabase Sign Out ───────────────────────────────────────────────────
+  const supabaseSignOut = async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut();
+      setSession(null);
+      setSupabaseUser(null);
+      setIsAuthenticated(false);
+      setIsAuthModalOpen(true);
+    } catch (e) {
+      console.error('Error signing out:', e);
+    }
+  };
+
+  // ── 5. Demo / Preset Quick Switchers ───────────────────────────────────────
   const switchRole = (newRole: UserRole) => {
     setRole(newRole);
     setUser(INITIAL_USERS[newRole]);
     setIsAuthenticated(true);
   };
 
-  // Login with credentials
-  const login = (loginId: string, targetRole: UserRole, password?: string): boolean => {
+  const login = (loginId: string, targetRole: UserRole, _password?: string): boolean => {
     const matchedPreset = INITIAL_USERS[targetRole];
     if (matchedPreset) {
       setRole(targetRole);
@@ -175,7 +344,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  // Sign up a new user with custom military credentials
   const signup = (data: {
     name: string;
     rank: string;
@@ -185,7 +353,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     role: UserRole;
     password?: string;
   }): boolean => {
-    // Generate deterministic anonymized hash
     let hash = 0;
     const key = `${data.serviceNumber}-${data.name}`;
     for (let i = 0; i < key.length; i++) {
@@ -216,8 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
-    setIsAuthModalOpen(true);
+    supabaseSignOut();
   };
 
   const toggleAnonymization = () => {
@@ -235,12 +401,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated,
         isAnonymized,
         isAuthModalOpen,
+        session,
+        supabaseUser,
+        authLoading,
         openAuthModal,
         closeAuthModal,
         toggleAnonymization,
         switchRole,
         login,
         signup,
+        supabaseSignIn,
+        supabaseSignUp,
+        supabaseSignOut,
         logout,
       }}
     >
@@ -256,4 +428,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-

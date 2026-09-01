@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, TABS } from './components/layout/Sidebar';
@@ -19,16 +20,76 @@ import { ImpactBenefitsTab } from './components/tabs/ImpactBenefitsTab';
 import { HackathonAboutTab } from './components/tabs/HackathonAboutTab';
 import { IntegrationsTab } from './components/tabs/IntegrationsTab';
 import { FeedbackTab } from './components/tabs/FeedbackTab';
+import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
+import { SupabaseAuth } from './components/auth/SupabaseAuth';
+import { useAuth } from './context/AuthContext';
+import { BrandLogo } from './components/common/BrandLogo';
+import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
 
 const MainPlatform: React.FC = () => {
+  const { isAuthenticated, session, authLoading, switchRole } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
+  const [supabaseStatus, setSupabaseStatus] = useState<'loading' | 'connected' | 'error'>('loading');
+  const [supabaseMessage, setSupabaseMessage] = useState('');
+  const [showStatus, setShowStatus] = useState(true);
+  const [demoBypass, setDemoBypass] = useState(false);
 
   useEffect(() => {
     const t = window.setTimeout(() => setBootLoading(false), 1400);
     return () => window.clearTimeout(t);
   }, []);
+
+  // ── Supabase Connection Test ──────────────────────────────────────
+  useEffect(() => {
+    async function testSupabaseConnection() {
+      try {
+        console.log('[VeerWell] 🔌 Testing Supabase connection...');
+        const startTime = performance.now();
+
+        // Query the real profiles table to verify connection + schema
+        const { data, error, count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        const elapsed = Math.round(performance.now() - startTime);
+
+        if (error) {
+          console.error('[VeerWell] ❌ Supabase connection error:', error.message);
+          setSupabaseStatus('error');
+          setSupabaseMessage(`Error: ${error.message}`);
+        } else {
+          console.log(`[VeerWell] ✅ Supabase connected successfully (${elapsed}ms)`);
+          console.log(`[VeerWell] 📊 Profiles table: ${count ?? 0} rows`);
+
+          // Quick health check — verify all core tables are accessible
+          const tables = [
+            'profiles', 'wearable_telemetry', 'assessments', 'stress_metrics',
+            'deployments', 'leave_records', 'wellness_surveys', 'survey_responses',
+            'workload_records', 'interventions', 'welfare_alerts', 'feedback',
+          ];
+          let tablesOk = 0;
+          for (const t of tables) {
+            const { error: tErr } = await supabase.from(t).select('*', { head: true, count: 'exact' });
+            if (!tErr) tablesOk++;
+          }
+
+          console.log(`[VeerWell] 🗄️  Tables verified: ${tablesOk}/${tables.length}`);
+          setSupabaseStatus('connected');
+          setSupabaseMessage(`Connected in ${elapsed}ms — ${tablesOk}/${tables.length} tables OK, ${count ?? 0} profiles`);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('[VeerWell] ❌ Supabase connection failed:', message);
+        setSupabaseStatus('error');
+        setSupabaseMessage(`Failed: ${message}`);
+      }
+    }
+
+    testSupabaseConnection();
+  }, []);
+
 
   const handleTabChange = (tabId: string) => {
     if (tabId === activeTab) return;
@@ -37,8 +98,41 @@ const MainPlatform: React.FC = () => {
     window.setTimeout(() => setTabLoading(false), 420);
   };
 
-  if (bootLoading) {
-    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & XGBoost welfare engine…" />;
+  if (bootLoading || authLoading) {
+    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & PostgreSQL session…" />;
+  }
+
+  // ── Authentication Gate: Unauthenticated users see the Supabase Auth login screen ──
+  if (!isAuthenticated && !demoBypass) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-navy-950 text-slate-100 relative overflow-hidden">
+        <div className="fixed inset-0 bg-tactical-grid opacity-30 pointer-events-none z-0" />
+        <div className="fixed -top-40 -right-40 w-[600px] h-[600px] bg-accent-gold/10 rounded-full blur-[140px] pointer-events-none z-0" />
+        <div className="fixed bottom-0 -left-40 w-[600px] h-[600px] bg-olive-500/15 rounded-full blur-[140px] pointer-events-none z-0" />
+
+        <div className="relative z-10 w-full max-w-lg space-y-6">
+          <div className="flex justify-center mb-2">
+            <BrandLogo size="lg" />
+          </div>
+
+          <SupabaseAuth onSuccess={() => setDemoBypass(true)} />
+
+          <div className="text-center pt-2">
+            <button
+              onClick={() => {
+                switchRole('commander');
+                setDemoBypass(true);
+              }}
+              className="inline-flex items-center gap-2 text-xs font-mono text-olive-300 hover:text-accent-gold transition-colors py-2 px-4 rounded-xl bg-olive-900/60 border border-olive-800 hover:border-accent-gold/50"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent-gold" />
+              <span>Or explore in Instant Commander Demo Mode</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -74,6 +168,7 @@ const MainPlatform: React.FC = () => {
                 {activeTab === 'impact' && <ImpactBenefitsTab />}
                 {activeTab === 'about' && <HackathonAboutTab />}
                 {activeTab === 'integrations' && <IntegrationsTab />}
+                {activeTab === 'supabase-data' && <SupabaseDataTab />}
                 {activeTab === 'feedback' && <FeedbackTab />}
               </motion.div>
             </AnimatePresence>
@@ -84,6 +179,29 @@ const MainPlatform: React.FC = () => {
       <Footer onNavigate={handleTabChange} />
       <AiWelfareCopilot />
       <AuthModal />
+
+      {/* Supabase Connection Status Toast */}
+      {showStatus && supabaseStatus !== 'loading' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className={`fixed bottom-20 lg:bottom-6 right-6 z-50 px-4 py-3 rounded-xl backdrop-blur-xl border shadow-2xl text-sm font-mono flex items-center gap-3 max-w-sm ${
+            supabaseStatus === 'connected'
+              ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
+              : 'bg-red-950/80 border-red-500/40 text-red-300'
+          }`}
+        >
+          <span className="text-lg">{supabaseStatus === 'connected' ? '✅' : '❌'}</span>
+          <span className="flex-1 leading-tight">{supabaseMessage}</span>
+          <button
+            onClick={() => setShowStatus(false)}
+            className="ml-2 text-white/50 hover:text-white transition-colors text-xs"
+          >
+            ✕
+          </button>
+        </motion.div>
+      )}
 
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-olive-950/95 border-t border-olive-700/60 px-2 py-2 flex items-center justify-around backdrop-blur-xl">
         {TABS.slice(0, 5).map((tab) => {
