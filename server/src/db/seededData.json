@@ -272,6 +272,40 @@
       "teamId": "team-field-beta",
       "joinedDate": "2023-07-12",
       "avatar": "https://images.unsplash.com/photo-1535713890002?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "e0c9623e-7aad-48f8-8e87-3995be0ccced",
+      "name": "Test Sentinel",
+      "email": "new.sentinel.test@veerwell.org",
+      "rank": "Inspector",
+      "serviceNumber": "CRPF-999111",
+      "force": "CRPF",
+      "unit": "209 CoBRA",
+      "role": "personnel",
+      "roleTitle": "Inspector (personnel)",
+      "department": "Operations",
+      "designation": "Inspector (personnel)",
+      "anonymizedId": "CAPF-NODE-E0C96",
+      "teamId": "team-ops-alpha",
+      "joinedDate": "2026-09-01",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "a4fd2e20-4ff8-47c6-abc8-43c30329b187",
+      "name": "Lt. NKJ",
+      "email": "agniksamai080903@gmail.com",
+      "rank": "Commandant / CO",
+      "serviceNumber": "NSG-6969",
+      "force": "NSG",
+      "unit": "142 Bn (Srinagar Sector HQ)",
+      "role": "commander",
+      "roleTitle": "Commandant / CO (commander)",
+      "department": "Operations",
+      "designation": "Commandant / CO (commander)",
+      "anonymizedId": "CAPF-NODE-A4FD2",
+      "teamId": "team-ops-alpha",
+      "joinedDate": "2026-09-01",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
     }
   ],
   "wearables": {
@@ -19215,6 +19249,1810 @@
         "hrv": 78,
         "calories": 2704,
         "stressScore": 95
+      }
+    ],
+    "e0c9623e-7aad-48f8-8e87-3995be0ccced": [
+      {
+        "date": "2026-06-04",
+        "steps": 11105,
+        "restingHeartRate": 70,
+        "sleepHours": 8,
+        "sleepQuality": 83,
+        "hrv": 68,
+        "calories": 2396,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-06-05",
+        "steps": 12048,
+        "restingHeartRate": 68,
+        "sleepHours": 7.7,
+        "sleepQuality": 81,
+        "hrv": 73,
+        "calories": 2292,
+        "stressScore": 64
+      },
+      {
+        "date": "2026-06-06",
+        "steps": 10802,
+        "restingHeartRate": 66,
+        "sleepHours": 8.2,
+        "sleepQuality": 86,
+        "hrv": 68,
+        "calories": 2544,
+        "stressScore": 60
+      },
+      {
+        "date": "2026-06-07",
+        "steps": 11129,
+        "restingHeartRate": 66,
+        "sleepHours": 8.2,
+        "sleepQuality": 90,
+        "hrv": 77,
+        "calories": 2495,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-06-08",
+        "steps": 11725,
+        "restingHeartRate": 66,
+        "sleepHours": 7.2,
+        "sleepQuality": 84,
+        "hrv": 68,
+        "calories": 2289,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-06-09",
+        "steps": 9457,
+        "restingHeartRate": 69,
+        "sleepHours": 7.3,
+        "sleepQuality": 90,
+        "hrv": 58,
+        "calories": 2433,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-06-10",
+        "steps": 10786,
+        "restingHeartRate": 70,
+        "sleepHours": 7.4,
+        "sleepQuality": 90,
+        "hrv": 75,
+        "calories": 2415,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-06-11",
+        "steps": 9476,
+        "restingHeartRate": 67,
+        "sleepHours": 8.2,
+        "sleepQuality": 79,
+        "hrv": 76,
+        "calories": 2343,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-06-12",
+        "steps": 10447,
+        "restingHeartRate": 69,
+        "sleepHours": 8.1,
+        "sleepQuality": 85,
+        "hrv": 66,
+        "calories": 2575,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-06-13",
+        "steps": 9073,
+        "restingHeartRate": 69,
+        "sleepHours": 8.3,
+        "sleepQuality": 79,
+        "hrv": 69,
+        "calories": 2202,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-06-14",
+        "steps": 10038,
+        "restingHeartRate": 66,
+        "sleepHours": 8.2,
+        "sleepQuality": 85,
+        "hrv": 63,
+        "calories": 2435,
+        "stressScore": 46
+      },
+      {
+        "date": "2026-06-15",
+        "steps": 9752,
+        "restingHeartRate": 68,
+        "sleepHours": 8.5,
+        "sleepQuality": 79,
+        "hrv": 74,
+        "calories": 2489,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-06-16",
+        "steps": 8858,
+        "restingHeartRate": 71,
+        "sleepHours": 7.7,
+        "sleepQuality": 80,
+        "hrv": 75,
+        "calories": 2512,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-06-17",
+        "steps": 12091,
+        "restingHeartRate": 66,
+        "sleepHours": 8.3,
+        "sleepQuality": 86,
+        "hrv": 78,
+        "calories": 2378,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-06-18",
+        "steps": 10955,
+        "restingHeartRate": 71,
+        "sleepHours": 7.3,
+        "sleepQuality": 79,
+        "hrv": 58,
+        "calories": 2478,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-06-19",
+        "steps": 12082,
+        "restingHeartRate": 67,
+        "sleepHours": 7.9,
+        "sleepQuality": 88,
+        "hrv": 61,
+        "calories": 2551,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-06-20",
+        "steps": 11678,
+        "restingHeartRate": 69,
+        "sleepHours": 7,
+        "sleepQuality": 93,
+        "hrv": 73,
+        "calories": 2467,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-06-21",
+        "steps": 9676,
+        "restingHeartRate": 67,
+        "sleepHours": 8.4,
+        "sleepQuality": 95,
+        "hrv": 62,
+        "calories": 2211,
+        "stressScore": 59
+      },
+      {
+        "date": "2026-06-22",
+        "steps": 9977,
+        "restingHeartRate": 68,
+        "sleepHours": 8.2,
+        "sleepQuality": 79,
+        "hrv": 64,
+        "calories": 2446,
+        "stressScore": 61
+      },
+      {
+        "date": "2026-06-23",
+        "steps": 9673,
+        "restingHeartRate": 65,
+        "sleepHours": 8.3,
+        "sleepQuality": 94,
+        "hrv": 77,
+        "calories": 2523,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-06-24",
+        "steps": 10986,
+        "restingHeartRate": 69,
+        "sleepHours": 7.8,
+        "sleepQuality": 89,
+        "hrv": 60,
+        "calories": 2570,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-06-25",
+        "steps": 8499,
+        "restingHeartRate": 64,
+        "sleepHours": 7.5,
+        "sleepQuality": 92,
+        "hrv": 71,
+        "calories": 2460,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-06-26",
+        "steps": 9961,
+        "restingHeartRate": 67,
+        "sleepHours": 7.6,
+        "sleepQuality": 82,
+        "hrv": 69,
+        "calories": 2323,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-06-27",
+        "steps": 11560,
+        "restingHeartRate": 72,
+        "sleepHours": 7.4,
+        "sleepQuality": 95,
+        "hrv": 64,
+        "calories": 2237,
+        "stressScore": 64
+      },
+      {
+        "date": "2026-06-28",
+        "steps": 12174,
+        "restingHeartRate": 66,
+        "sleepHours": 8.1,
+        "sleepQuality": 92,
+        "hrv": 75,
+        "calories": 2542,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-06-29",
+        "steps": 8267,
+        "restingHeartRate": 68,
+        "sleepHours": 7.4,
+        "sleepQuality": 88,
+        "hrv": 77,
+        "calories": 2493,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-06-30",
+        "steps": 10688,
+        "restingHeartRate": 71,
+        "sleepHours": 7.5,
+        "sleepQuality": 82,
+        "hrv": 59,
+        "calories": 2481,
+        "stressScore": 57
+      },
+      {
+        "date": "2026-07-01",
+        "steps": 10797,
+        "restingHeartRate": 67,
+        "sleepHours": 8.2,
+        "sleepQuality": 92,
+        "hrv": 71,
+        "calories": 2440,
+        "stressScore": 57
+      },
+      {
+        "date": "2026-07-02",
+        "steps": 9400,
+        "restingHeartRate": 66,
+        "sleepHours": 7.7,
+        "sleepQuality": 84,
+        "hrv": 74,
+        "calories": 2599,
+        "stressScore": 62
+      },
+      {
+        "date": "2026-07-03",
+        "steps": 8554,
+        "restingHeartRate": 64,
+        "sleepHours": 7,
+        "sleepQuality": 88,
+        "hrv": 77,
+        "calories": 2433,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-04",
+        "steps": 9774,
+        "restingHeartRate": 66,
+        "sleepHours": 7.8,
+        "sleepQuality": 96,
+        "hrv": 63,
+        "calories": 2441,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-05",
+        "steps": 8608,
+        "restingHeartRate": 65,
+        "sleepHours": 7.5,
+        "sleepQuality": 93,
+        "hrv": 60,
+        "calories": 2277,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-07-06",
+        "steps": 11428,
+        "restingHeartRate": 70,
+        "sleepHours": 7,
+        "sleepQuality": 92,
+        "hrv": 66,
+        "calories": 2497,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-07-07",
+        "steps": 11973,
+        "restingHeartRate": 70,
+        "sleepHours": 7.3,
+        "sleepQuality": 93,
+        "hrv": 77,
+        "calories": 2499,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-07-08",
+        "steps": 11872,
+        "restingHeartRate": 67,
+        "sleepHours": 7.4,
+        "sleepQuality": 91,
+        "hrv": 78,
+        "calories": 2262,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-07-09",
+        "steps": 8762,
+        "restingHeartRate": 70,
+        "sleepHours": 7.9,
+        "sleepQuality": 88,
+        "hrv": 75,
+        "calories": 2243,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-07-10",
+        "steps": 9662,
+        "restingHeartRate": 67,
+        "sleepHours": 7.2,
+        "sleepQuality": 82,
+        "hrv": 61,
+        "calories": 2287,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-11",
+        "steps": 8698,
+        "restingHeartRate": 70,
+        "sleepHours": 8.1,
+        "sleepQuality": 94,
+        "hrv": 76,
+        "calories": 2430,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-07-12",
+        "steps": 10091,
+        "restingHeartRate": 67,
+        "sleepHours": 8.3,
+        "sleepQuality": 89,
+        "hrv": 75,
+        "calories": 2484,
+        "stressScore": 35
+      },
+      {
+        "date": "2026-07-13",
+        "steps": 11316,
+        "restingHeartRate": 70,
+        "sleepHours": 7.4,
+        "sleepQuality": 93,
+        "hrv": 64,
+        "calories": 2551,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-07-14",
+        "steps": 11918,
+        "restingHeartRate": 66,
+        "sleepHours": 7.9,
+        "sleepQuality": 81,
+        "hrv": 76,
+        "calories": 2371,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-07-15",
+        "steps": 11072,
+        "restingHeartRate": 68,
+        "sleepHours": 7.2,
+        "sleepQuality": 93,
+        "hrv": 73,
+        "calories": 2322,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-07-16",
+        "steps": 12014,
+        "restingHeartRate": 67,
+        "sleepHours": 7.1,
+        "sleepQuality": 90,
+        "hrv": 60,
+        "calories": 2556,
+        "stressScore": 49
+      },
+      {
+        "date": "2026-07-17",
+        "steps": 10452,
+        "restingHeartRate": 68,
+        "sleepHours": 8,
+        "sleepQuality": 91,
+        "hrv": 70,
+        "calories": 2366,
+        "stressScore": 60
+      },
+      {
+        "date": "2026-07-18",
+        "steps": 10854,
+        "restingHeartRate": 67,
+        "sleepHours": 8.4,
+        "sleepQuality": 81,
+        "hrv": 73,
+        "calories": 2295,
+        "stressScore": 59
+      },
+      {
+        "date": "2026-07-19",
+        "steps": 9489,
+        "restingHeartRate": 71,
+        "sleepHours": 7.2,
+        "sleepQuality": 94,
+        "hrv": 59,
+        "calories": 2524,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-07-20",
+        "steps": 8847,
+        "restingHeartRate": 67,
+        "sleepHours": 8.2,
+        "sleepQuality": 79,
+        "hrv": 72,
+        "calories": 2409,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-07-21",
+        "steps": 10657,
+        "restingHeartRate": 66,
+        "sleepHours": 7.7,
+        "sleepQuality": 92,
+        "hrv": 70,
+        "calories": 2301,
+        "stressScore": 39
+      },
+      {
+        "date": "2026-07-22",
+        "steps": 11552,
+        "restingHeartRate": 69,
+        "sleepHours": 8.3,
+        "sleepQuality": 82,
+        "hrv": 64,
+        "calories": 2274,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-07-23",
+        "steps": 8544,
+        "restingHeartRate": 68,
+        "sleepHours": 7.3,
+        "sleepQuality": 91,
+        "hrv": 73,
+        "calories": 2354,
+        "stressScore": 37
+      },
+      {
+        "date": "2026-07-24",
+        "steps": 11276,
+        "restingHeartRate": 68,
+        "sleepHours": 8.1,
+        "sleepQuality": 85,
+        "hrv": 58,
+        "calories": 2273,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-07-25",
+        "steps": 8253,
+        "restingHeartRate": 69,
+        "sleepHours": 8,
+        "sleepQuality": 82,
+        "hrv": 67,
+        "calories": 2402,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-07-26",
+        "steps": 11181,
+        "restingHeartRate": 69,
+        "sleepHours": 7.1,
+        "sleepQuality": 89,
+        "hrv": 64,
+        "calories": 2495,
+        "stressScore": 37
+      },
+      {
+        "date": "2026-07-27",
+        "steps": 12016,
+        "restingHeartRate": 64,
+        "sleepHours": 8.3,
+        "sleepQuality": 80,
+        "hrv": 76,
+        "calories": 2225,
+        "stressScore": 50
+      },
+      {
+        "date": "2026-07-28",
+        "steps": 10670,
+        "restingHeartRate": 65,
+        "sleepHours": 7.3,
+        "sleepQuality": 82,
+        "hrv": 61,
+        "calories": 2345,
+        "stressScore": 36
+      },
+      {
+        "date": "2026-07-29",
+        "steps": 8264,
+        "restingHeartRate": 70,
+        "sleepHours": 7.3,
+        "sleepQuality": 80,
+        "hrv": 76,
+        "calories": 2230,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-07-30",
+        "steps": 8567,
+        "restingHeartRate": 66,
+        "sleepHours": 8.3,
+        "sleepQuality": 92,
+        "hrv": 59,
+        "calories": 2256,
+        "stressScore": 43
+      },
+      {
+        "date": "2026-07-31",
+        "steps": 10006,
+        "restingHeartRate": 71,
+        "sleepHours": 7.4,
+        "sleepQuality": 88,
+        "hrv": 61,
+        "calories": 2595,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-08-01",
+        "steps": 10051,
+        "restingHeartRate": 64,
+        "sleepHours": 8.5,
+        "sleepQuality": 86,
+        "hrv": 59,
+        "calories": 2513,
+        "stressScore": 35
+      },
+      {
+        "date": "2026-08-02",
+        "steps": 9581,
+        "restingHeartRate": 71,
+        "sleepHours": 7.5,
+        "sleepQuality": 86,
+        "hrv": 74,
+        "calories": 2524,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-08-03",
+        "steps": 9380,
+        "restingHeartRate": 69,
+        "sleepHours": 8.2,
+        "sleepQuality": 83,
+        "hrv": 70,
+        "calories": 2488,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-08-04",
+        "steps": 8855,
+        "restingHeartRate": 71,
+        "sleepHours": 7,
+        "sleepQuality": 87,
+        "hrv": 72,
+        "calories": 2390,
+        "stressScore": 38
+      },
+      {
+        "date": "2026-08-05",
+        "steps": 9943,
+        "restingHeartRate": 70,
+        "sleepHours": 7.3,
+        "sleepQuality": 92,
+        "hrv": 76,
+        "calories": 2341,
+        "stressScore": 65
+      },
+      {
+        "date": "2026-08-06",
+        "steps": 11679,
+        "restingHeartRate": 71,
+        "sleepHours": 7.7,
+        "sleepQuality": 88,
+        "hrv": 70,
+        "calories": 2283,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-08-07",
+        "steps": 9602,
+        "restingHeartRate": 69,
+        "sleepHours": 8.3,
+        "sleepQuality": 88,
+        "hrv": 64,
+        "calories": 2415,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-08-08",
+        "steps": 9667,
+        "restingHeartRate": 66,
+        "sleepHours": 7.3,
+        "sleepQuality": 95,
+        "hrv": 67,
+        "calories": 2516,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-08-09",
+        "steps": 11059,
+        "restingHeartRate": 64,
+        "sleepHours": 7.1,
+        "sleepQuality": 95,
+        "hrv": 63,
+        "calories": 2321,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-08-10",
+        "steps": 10234,
+        "restingHeartRate": 65,
+        "sleepHours": 8,
+        "sleepQuality": 88,
+        "hrv": 63,
+        "calories": 2373,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-08-11",
+        "steps": 9078,
+        "restingHeartRate": 69,
+        "sleepHours": 8,
+        "sleepQuality": 91,
+        "hrv": 72,
+        "calories": 2431,
+        "stressScore": 50
+      },
+      {
+        "date": "2026-08-12",
+        "steps": 11077,
+        "restingHeartRate": 65,
+        "sleepHours": 7.6,
+        "sleepQuality": 94,
+        "hrv": 74,
+        "calories": 2544,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-08-13",
+        "steps": 8778,
+        "restingHeartRate": 64,
+        "sleepHours": 7.7,
+        "sleepQuality": 88,
+        "hrv": 67,
+        "calories": 2385,
+        "stressScore": 51
+      },
+      {
+        "date": "2026-08-14",
+        "steps": 8616,
+        "restingHeartRate": 67,
+        "sleepHours": 8.3,
+        "sleepQuality": 87,
+        "hrv": 76,
+        "calories": 2503,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-08-15",
+        "steps": 9496,
+        "restingHeartRate": 66,
+        "sleepHours": 7.4,
+        "sleepQuality": 88,
+        "hrv": 76,
+        "calories": 2577,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-08-16",
+        "steps": 10197,
+        "restingHeartRate": 64,
+        "sleepHours": 7.4,
+        "sleepQuality": 83,
+        "hrv": 61,
+        "calories": 2438,
+        "stressScore": 35
+      },
+      {
+        "date": "2026-08-17",
+        "steps": 10155,
+        "restingHeartRate": 70,
+        "sleepHours": 7.4,
+        "sleepQuality": 78,
+        "hrv": 70,
+        "calories": 2305,
+        "stressScore": 57
+      },
+      {
+        "date": "2026-08-18",
+        "steps": 9221,
+        "restingHeartRate": 65,
+        "sleepHours": 8.1,
+        "sleepQuality": 88,
+        "hrv": 68,
+        "calories": 2377,
+        "stressScore": 49
+      },
+      {
+        "date": "2026-08-19",
+        "steps": 9144,
+        "restingHeartRate": 71,
+        "sleepHours": 8.2,
+        "sleepQuality": 88,
+        "hrv": 65,
+        "calories": 2397,
+        "stressScore": 46
+      },
+      {
+        "date": "2026-08-20",
+        "steps": 10948,
+        "restingHeartRate": 72,
+        "sleepHours": 7.9,
+        "sleepQuality": 85,
+        "hrv": 59,
+        "calories": 2558,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-08-21",
+        "steps": 11696,
+        "restingHeartRate": 72,
+        "sleepHours": 7.1,
+        "sleepQuality": 83,
+        "hrv": 75,
+        "calories": 2505,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-08-22",
+        "steps": 9238,
+        "restingHeartRate": 69,
+        "sleepHours": 7.1,
+        "sleepQuality": 94,
+        "hrv": 63,
+        "calories": 2460,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-08-23",
+        "steps": 11274,
+        "restingHeartRate": 65,
+        "sleepHours": 8.4,
+        "sleepQuality": 83,
+        "hrv": 73,
+        "calories": 2238,
+        "stressScore": 38
+      },
+      {
+        "date": "2026-08-24",
+        "steps": 10214,
+        "restingHeartRate": 66,
+        "sleepHours": 7.9,
+        "sleepQuality": 85,
+        "hrv": 70,
+        "calories": 2356,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-08-25",
+        "steps": 11152,
+        "restingHeartRate": 71,
+        "sleepHours": 7,
+        "sleepQuality": 79,
+        "hrv": 76,
+        "calories": 2534,
+        "stressScore": 38
+      },
+      {
+        "date": "2026-08-26",
+        "steps": 8488,
+        "restingHeartRate": 65,
+        "sleepHours": 7.9,
+        "sleepQuality": 90,
+        "hrv": 60,
+        "calories": 2267,
+        "stressScore": 51
+      },
+      {
+        "date": "2026-08-27",
+        "steps": 9676,
+        "restingHeartRate": 65,
+        "sleepHours": 8.3,
+        "sleepQuality": 88,
+        "hrv": 64,
+        "calories": 2260,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-08-28",
+        "steps": 10359,
+        "restingHeartRate": 70,
+        "sleepHours": 8.2,
+        "sleepQuality": 88,
+        "hrv": 66,
+        "calories": 2310,
+        "stressScore": 35
+      },
+      {
+        "date": "2026-08-29",
+        "steps": 10872,
+        "restingHeartRate": 70,
+        "sleepHours": 8.2,
+        "sleepQuality": 91,
+        "hrv": 72,
+        "calories": 2395,
+        "stressScore": 49
+      },
+      {
+        "date": "2026-08-30",
+        "steps": 9092,
+        "restingHeartRate": 68,
+        "sleepHours": 7,
+        "sleepQuality": 87,
+        "hrv": 71,
+        "calories": 2281,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-08-31",
+        "steps": 10923,
+        "restingHeartRate": 68,
+        "sleepHours": 8.3,
+        "sleepQuality": 96,
+        "hrv": 74,
+        "calories": 2595,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-09-01",
+        "steps": 9694,
+        "restingHeartRate": 65,
+        "sleepHours": 8.2,
+        "sleepQuality": 89,
+        "hrv": 64,
+        "calories": 2269,
+        "stressScore": 58
+      }
+    ],
+    "a4fd2e20-4ff8-47c6-abc8-43c30329b187": [
+      {
+        "date": "2026-06-04",
+        "steps": 9829,
+        "restingHeartRate": 64,
+        "sleepHours": 7.8,
+        "sleepQuality": 95,
+        "hrv": 74,
+        "calories": 2319,
+        "stressScore": 49
+      },
+      {
+        "date": "2026-06-05",
+        "steps": 11152,
+        "restingHeartRate": 64,
+        "sleepHours": 8.1,
+        "sleepQuality": 93,
+        "hrv": 66,
+        "calories": 2428,
+        "stressScore": 39
+      },
+      {
+        "date": "2026-06-06",
+        "steps": 9736,
+        "restingHeartRate": 70,
+        "sleepHours": 7,
+        "sleepQuality": 88,
+        "hrv": 68,
+        "calories": 2307,
+        "stressScore": 44
+      },
+      {
+        "date": "2026-06-07",
+        "steps": 9593,
+        "restingHeartRate": 67,
+        "sleepHours": 8.1,
+        "sleepQuality": 82,
+        "hrv": 69,
+        "calories": 2368,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-06-08",
+        "steps": 8866,
+        "restingHeartRate": 64,
+        "sleepHours": 8.4,
+        "sleepQuality": 81,
+        "hrv": 71,
+        "calories": 2251,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-06-09",
+        "steps": 11178,
+        "restingHeartRate": 69,
+        "sleepHours": 7.6,
+        "sleepQuality": 88,
+        "hrv": 66,
+        "calories": 2587,
+        "stressScore": 35
+      },
+      {
+        "date": "2026-06-10",
+        "steps": 9129,
+        "restingHeartRate": 71,
+        "sleepHours": 7.2,
+        "sleepQuality": 80,
+        "hrv": 69,
+        "calories": 2386,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-06-11",
+        "steps": 10284,
+        "restingHeartRate": 69,
+        "sleepHours": 8.1,
+        "sleepQuality": 87,
+        "hrv": 73,
+        "calories": 2245,
+        "stressScore": 50
+      },
+      {
+        "date": "2026-06-12",
+        "steps": 11798,
+        "restingHeartRate": 71,
+        "sleepHours": 8.2,
+        "sleepQuality": 89,
+        "hrv": 64,
+        "calories": 2333,
+        "stressScore": 38
+      },
+      {
+        "date": "2026-06-13",
+        "steps": 10277,
+        "restingHeartRate": 67,
+        "sleepHours": 7.4,
+        "sleepQuality": 93,
+        "hrv": 61,
+        "calories": 2437,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-06-14",
+        "steps": 9673,
+        "restingHeartRate": 70,
+        "sleepHours": 7.9,
+        "sleepQuality": 92,
+        "hrv": 67,
+        "calories": 2205,
+        "stressScore": 43
+      },
+      {
+        "date": "2026-06-15",
+        "steps": 12153,
+        "restingHeartRate": 65,
+        "sleepHours": 7.9,
+        "sleepQuality": 79,
+        "hrv": 59,
+        "calories": 2466,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-06-16",
+        "steps": 9350,
+        "restingHeartRate": 71,
+        "sleepHours": 7.4,
+        "sleepQuality": 96,
+        "hrv": 59,
+        "calories": 2499,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-06-17",
+        "steps": 10555,
+        "restingHeartRate": 65,
+        "sleepHours": 8.1,
+        "sleepQuality": 94,
+        "hrv": 77,
+        "calories": 2548,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-06-18",
+        "steps": 11574,
+        "restingHeartRate": 67,
+        "sleepHours": 8.3,
+        "sleepQuality": 80,
+        "hrv": 64,
+        "calories": 2407,
+        "stressScore": 43
+      },
+      {
+        "date": "2026-06-19",
+        "steps": 10119,
+        "restingHeartRate": 71,
+        "sleepHours": 7.8,
+        "sleepQuality": 83,
+        "hrv": 75,
+        "calories": 2569,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-06-20",
+        "steps": 8359,
+        "restingHeartRate": 68,
+        "sleepHours": 8,
+        "sleepQuality": 80,
+        "hrv": 68,
+        "calories": 2278,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-06-21",
+        "steps": 10996,
+        "restingHeartRate": 71,
+        "sleepHours": 8.1,
+        "sleepQuality": 95,
+        "hrv": 60,
+        "calories": 2259,
+        "stressScore": 60
+      },
+      {
+        "date": "2026-06-22",
+        "steps": 11148,
+        "restingHeartRate": 65,
+        "sleepHours": 8.3,
+        "sleepQuality": 83,
+        "hrv": 64,
+        "calories": 2498,
+        "stressScore": 46
+      },
+      {
+        "date": "2026-06-23",
+        "steps": 8327,
+        "restingHeartRate": 68,
+        "sleepHours": 7,
+        "sleepQuality": 85,
+        "hrv": 71,
+        "calories": 2462,
+        "stressScore": 49
+      },
+      {
+        "date": "2026-06-24",
+        "steps": 8492,
+        "restingHeartRate": 69,
+        "sleepHours": 8,
+        "sleepQuality": 83,
+        "hrv": 68,
+        "calories": 2357,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-06-25",
+        "steps": 9486,
+        "restingHeartRate": 66,
+        "sleepHours": 7,
+        "sleepQuality": 86,
+        "hrv": 66,
+        "calories": 2323,
+        "stressScore": 38
+      },
+      {
+        "date": "2026-06-26",
+        "steps": 9055,
+        "restingHeartRate": 69,
+        "sleepHours": 7.9,
+        "sleepQuality": 89,
+        "hrv": 62,
+        "calories": 2359,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-06-27",
+        "steps": 8329,
+        "restingHeartRate": 67,
+        "sleepHours": 7.3,
+        "sleepQuality": 81,
+        "hrv": 73,
+        "calories": 2450,
+        "stressScore": 43
+      },
+      {
+        "date": "2026-06-28",
+        "steps": 10012,
+        "restingHeartRate": 70,
+        "sleepHours": 7.3,
+        "sleepQuality": 89,
+        "hrv": 60,
+        "calories": 2564,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-06-29",
+        "steps": 9914,
+        "restingHeartRate": 66,
+        "sleepHours": 7.1,
+        "sleepQuality": 85,
+        "hrv": 61,
+        "calories": 2455,
+        "stressScore": 61
+      },
+      {
+        "date": "2026-06-30",
+        "steps": 10653,
+        "restingHeartRate": 68,
+        "sleepHours": 7.7,
+        "sleepQuality": 82,
+        "hrv": 71,
+        "calories": 2483,
+        "stressScore": 40
+      },
+      {
+        "date": "2026-07-01",
+        "steps": 11040,
+        "restingHeartRate": 69,
+        "sleepHours": 8.3,
+        "sleepQuality": 85,
+        "hrv": 66,
+        "calories": 2218,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-07-02",
+        "steps": 8216,
+        "restingHeartRate": 66,
+        "sleepHours": 7.2,
+        "sleepQuality": 79,
+        "hrv": 74,
+        "calories": 2584,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-07-03",
+        "steps": 9342,
+        "restingHeartRate": 66,
+        "sleepHours": 7.5,
+        "sleepQuality": 85,
+        "hrv": 66,
+        "calories": 2328,
+        "stressScore": 61
+      },
+      {
+        "date": "2026-07-04",
+        "steps": 8417,
+        "restingHeartRate": 71,
+        "sleepHours": 7.8,
+        "sleepQuality": 96,
+        "hrv": 61,
+        "calories": 2534,
+        "stressScore": 65
+      },
+      {
+        "date": "2026-07-05",
+        "steps": 9492,
+        "restingHeartRate": 64,
+        "sleepHours": 7.1,
+        "sleepQuality": 83,
+        "hrv": 59,
+        "calories": 2233,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-07-06",
+        "steps": 9125,
+        "restingHeartRate": 64,
+        "sleepHours": 7.8,
+        "sleepQuality": 83,
+        "hrv": 72,
+        "calories": 2456,
+        "stressScore": 62
+      },
+      {
+        "date": "2026-07-07",
+        "steps": 8336,
+        "restingHeartRate": 69,
+        "sleepHours": 8,
+        "sleepQuality": 81,
+        "hrv": 62,
+        "calories": 2236,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-08",
+        "steps": 11588,
+        "restingHeartRate": 70,
+        "sleepHours": 8.1,
+        "sleepQuality": 92,
+        "hrv": 78,
+        "calories": 2585,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-09",
+        "steps": 11646,
+        "restingHeartRate": 64,
+        "sleepHours": 8.4,
+        "sleepQuality": 80,
+        "hrv": 61,
+        "calories": 2453,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-07-10",
+        "steps": 9009,
+        "restingHeartRate": 69,
+        "sleepHours": 7.1,
+        "sleepQuality": 80,
+        "hrv": 63,
+        "calories": 2502,
+        "stressScore": 44
+      },
+      {
+        "date": "2026-07-11",
+        "steps": 9219,
+        "restingHeartRate": 68,
+        "sleepHours": 7.1,
+        "sleepQuality": 81,
+        "hrv": 63,
+        "calories": 2581,
+        "stressScore": 62
+      },
+      {
+        "date": "2026-07-12",
+        "steps": 11029,
+        "restingHeartRate": 70,
+        "sleepHours": 7.1,
+        "sleepQuality": 92,
+        "hrv": 70,
+        "calories": 2464,
+        "stressScore": 59
+      },
+      {
+        "date": "2026-07-13",
+        "steps": 10931,
+        "restingHeartRate": 69,
+        "sleepHours": 7.9,
+        "sleepQuality": 91,
+        "hrv": 58,
+        "calories": 2405,
+        "stressScore": 37
+      },
+      {
+        "date": "2026-07-14",
+        "steps": 11753,
+        "restingHeartRate": 64,
+        "sleepHours": 7.7,
+        "sleepQuality": 91,
+        "hrv": 65,
+        "calories": 2485,
+        "stressScore": 50
+      },
+      {
+        "date": "2026-07-15",
+        "steps": 8490,
+        "restingHeartRate": 66,
+        "sleepHours": 7.8,
+        "sleepQuality": 84,
+        "hrv": 64,
+        "calories": 2447,
+        "stressScore": 37
+      },
+      {
+        "date": "2026-07-16",
+        "steps": 11317,
+        "restingHeartRate": 70,
+        "sleepHours": 8.5,
+        "sleepQuality": 92,
+        "hrv": 59,
+        "calories": 2423,
+        "stressScore": 36
+      },
+      {
+        "date": "2026-07-17",
+        "steps": 12177,
+        "restingHeartRate": 69,
+        "sleepHours": 7.7,
+        "sleepQuality": 79,
+        "hrv": 69,
+        "calories": 2360,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-07-18",
+        "steps": 9224,
+        "restingHeartRate": 66,
+        "sleepHours": 7.9,
+        "sleepQuality": 93,
+        "hrv": 78,
+        "calories": 2216,
+        "stressScore": 53
+      },
+      {
+        "date": "2026-07-19",
+        "steps": 11370,
+        "restingHeartRate": 68,
+        "sleepHours": 8.5,
+        "sleepQuality": 86,
+        "hrv": 69,
+        "calories": 2301,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-07-20",
+        "steps": 9219,
+        "restingHeartRate": 69,
+        "sleepHours": 7.9,
+        "sleepQuality": 92,
+        "hrv": 76,
+        "calories": 2537,
+        "stressScore": 51
+      },
+      {
+        "date": "2026-07-21",
+        "steps": 11429,
+        "restingHeartRate": 72,
+        "sleepHours": 7.3,
+        "sleepQuality": 93,
+        "hrv": 66,
+        "calories": 2507,
+        "stressScore": 64
+      },
+      {
+        "date": "2026-07-22",
+        "steps": 8428,
+        "restingHeartRate": 71,
+        "sleepHours": 7.5,
+        "sleepQuality": 88,
+        "hrv": 69,
+        "calories": 2279,
+        "stressScore": 60
+      },
+      {
+        "date": "2026-07-23",
+        "steps": 8709,
+        "restingHeartRate": 71,
+        "sleepHours": 7.2,
+        "sleepQuality": 96,
+        "hrv": 65,
+        "calories": 2383,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-07-24",
+        "steps": 10613,
+        "restingHeartRate": 67,
+        "sleepHours": 8.3,
+        "sleepQuality": 81,
+        "hrv": 69,
+        "calories": 2567,
+        "stressScore": 48
+      },
+      {
+        "date": "2026-07-25",
+        "steps": 9410,
+        "restingHeartRate": 67,
+        "sleepHours": 7.6,
+        "sleepQuality": 78,
+        "hrv": 76,
+        "calories": 2325,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-07-26",
+        "steps": 11454,
+        "restingHeartRate": 65,
+        "sleepHours": 8.3,
+        "sleepQuality": 92,
+        "hrv": 61,
+        "calories": 2252,
+        "stressScore": 40
+      },
+      {
+        "date": "2026-07-27",
+        "steps": 10821,
+        "restingHeartRate": 68,
+        "sleepHours": 8.1,
+        "sleepQuality": 88,
+        "hrv": 75,
+        "calories": 2454,
+        "stressScore": 64
+      },
+      {
+        "date": "2026-07-28",
+        "steps": 9678,
+        "restingHeartRate": 69,
+        "sleepHours": 8.4,
+        "sleepQuality": 92,
+        "hrv": 75,
+        "calories": 2331,
+        "stressScore": 42
+      },
+      {
+        "date": "2026-07-29",
+        "steps": 9699,
+        "restingHeartRate": 69,
+        "sleepHours": 7.2,
+        "sleepQuality": 95,
+        "hrv": 69,
+        "calories": 2320,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-07-30",
+        "steps": 11438,
+        "restingHeartRate": 67,
+        "sleepHours": 7.6,
+        "sleepQuality": 81,
+        "hrv": 73,
+        "calories": 2228,
+        "stressScore": 47
+      },
+      {
+        "date": "2026-07-31",
+        "steps": 9928,
+        "restingHeartRate": 66,
+        "sleepHours": 7.9,
+        "sleepQuality": 83,
+        "hrv": 68,
+        "calories": 2321,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-08-01",
+        "steps": 11147,
+        "restingHeartRate": 72,
+        "sleepHours": 8,
+        "sleepQuality": 88,
+        "hrv": 64,
+        "calories": 2522,
+        "stressScore": 64
+      },
+      {
+        "date": "2026-08-02",
+        "steps": 8936,
+        "restingHeartRate": 72,
+        "sleepHours": 7.5,
+        "sleepQuality": 78,
+        "hrv": 77,
+        "calories": 2476,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-08-03",
+        "steps": 9250,
+        "restingHeartRate": 71,
+        "sleepHours": 7.3,
+        "sleepQuality": 95,
+        "hrv": 67,
+        "calories": 2499,
+        "stressScore": 46
+      },
+      {
+        "date": "2026-08-04",
+        "steps": 9430,
+        "restingHeartRate": 71,
+        "sleepHours": 7.5,
+        "sleepQuality": 86,
+        "hrv": 70,
+        "calories": 2485,
+        "stressScore": 59
+      },
+      {
+        "date": "2026-08-05",
+        "steps": 10463,
+        "restingHeartRate": 68,
+        "sleepHours": 8.4,
+        "sleepQuality": 88,
+        "hrv": 62,
+        "calories": 2211,
+        "stressScore": 40
+      },
+      {
+        "date": "2026-08-06",
+        "steps": 9018,
+        "restingHeartRate": 71,
+        "sleepHours": 7.1,
+        "sleepQuality": 80,
+        "hrv": 77,
+        "calories": 2263,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-08-07",
+        "steps": 8365,
+        "restingHeartRate": 67,
+        "sleepHours": 7.5,
+        "sleepQuality": 95,
+        "hrv": 71,
+        "calories": 2550,
+        "stressScore": 45
+      },
+      {
+        "date": "2026-08-08",
+        "steps": 8776,
+        "restingHeartRate": 68,
+        "sleepHours": 8,
+        "sleepQuality": 80,
+        "hrv": 70,
+        "calories": 2345,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-08-09",
+        "steps": 11619,
+        "restingHeartRate": 69,
+        "sleepHours": 8.1,
+        "sleepQuality": 85,
+        "hrv": 75,
+        "calories": 2593,
+        "stressScore": 61
+      },
+      {
+        "date": "2026-08-10",
+        "steps": 9786,
+        "restingHeartRate": 70,
+        "sleepHours": 7.1,
+        "sleepQuality": 78,
+        "hrv": 62,
+        "calories": 2481,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-08-11",
+        "steps": 10105,
+        "restingHeartRate": 65,
+        "sleepHours": 8,
+        "sleepQuality": 90,
+        "hrv": 72,
+        "calories": 2265,
+        "stressScore": 46
+      },
+      {
+        "date": "2026-08-12",
+        "steps": 8222,
+        "restingHeartRate": 67,
+        "sleepHours": 8.1,
+        "sleepQuality": 92,
+        "hrv": 60,
+        "calories": 2453,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-08-13",
+        "steps": 11304,
+        "restingHeartRate": 67,
+        "sleepHours": 8,
+        "sleepQuality": 80,
+        "hrv": 78,
+        "calories": 2525,
+        "stressScore": 51
+      },
+      {
+        "date": "2026-08-14",
+        "steps": 10298,
+        "restingHeartRate": 64,
+        "sleepHours": 8.5,
+        "sleepQuality": 92,
+        "hrv": 77,
+        "calories": 2442,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-08-15",
+        "steps": 11629,
+        "restingHeartRate": 72,
+        "sleepHours": 8.3,
+        "sleepQuality": 79,
+        "hrv": 70,
+        "calories": 2393,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-08-16",
+        "steps": 9436,
+        "restingHeartRate": 65,
+        "sleepHours": 7.3,
+        "sleepQuality": 83,
+        "hrv": 65,
+        "calories": 2542,
+        "stressScore": 39
+      },
+      {
+        "date": "2026-08-17",
+        "steps": 9454,
+        "restingHeartRate": 66,
+        "sleepHours": 8.5,
+        "sleepQuality": 87,
+        "hrv": 58,
+        "calories": 2225,
+        "stressScore": 43
+      },
+      {
+        "date": "2026-08-18",
+        "steps": 11408,
+        "restingHeartRate": 69,
+        "sleepHours": 8.1,
+        "sleepQuality": 91,
+        "hrv": 72,
+        "calories": 2592,
+        "stressScore": 39
+      },
+      {
+        "date": "2026-08-19",
+        "steps": 9007,
+        "restingHeartRate": 66,
+        "sleepHours": 7.6,
+        "sleepQuality": 80,
+        "hrv": 65,
+        "calories": 2494,
+        "stressScore": 52
+      },
+      {
+        "date": "2026-08-20",
+        "steps": 11316,
+        "restingHeartRate": 71,
+        "sleepHours": 8.3,
+        "sleepQuality": 84,
+        "hrv": 73,
+        "calories": 2337,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-08-21",
+        "steps": 8712,
+        "restingHeartRate": 66,
+        "sleepHours": 8.4,
+        "sleepQuality": 88,
+        "hrv": 61,
+        "calories": 2357,
+        "stressScore": 57
+      },
+      {
+        "date": "2026-08-22",
+        "steps": 10159,
+        "restingHeartRate": 70,
+        "sleepHours": 7,
+        "sleepQuality": 93,
+        "hrv": 60,
+        "calories": 2245,
+        "stressScore": 59
+      },
+      {
+        "date": "2026-08-23",
+        "steps": 10261,
+        "restingHeartRate": 72,
+        "sleepHours": 7.5,
+        "sleepQuality": 82,
+        "hrv": 58,
+        "calories": 2382,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-08-24",
+        "steps": 9127,
+        "restingHeartRate": 70,
+        "sleepHours": 8.1,
+        "sleepQuality": 92,
+        "hrv": 70,
+        "calories": 2205,
+        "stressScore": 41
+      },
+      {
+        "date": "2026-08-25",
+        "steps": 10703,
+        "restingHeartRate": 68,
+        "sleepHours": 7.9,
+        "sleepQuality": 92,
+        "hrv": 66,
+        "calories": 2554,
+        "stressScore": 55
+      },
+      {
+        "date": "2026-08-26",
+        "steps": 10094,
+        "restingHeartRate": 67,
+        "sleepHours": 8.1,
+        "sleepQuality": 95,
+        "hrv": 65,
+        "calories": 2254,
+        "stressScore": 58
+      },
+      {
+        "date": "2026-08-27",
+        "steps": 11738,
+        "restingHeartRate": 66,
+        "sleepHours": 7.2,
+        "sleepQuality": 80,
+        "hrv": 69,
+        "calories": 2265,
+        "stressScore": 54
+      },
+      {
+        "date": "2026-08-28",
+        "steps": 8751,
+        "restingHeartRate": 67,
+        "sleepHours": 7.9,
+        "sleepQuality": 85,
+        "hrv": 75,
+        "calories": 2224,
+        "stressScore": 56
+      },
+      {
+        "date": "2026-08-29",
+        "steps": 8635,
+        "restingHeartRate": 71,
+        "sleepHours": 7.6,
+        "sleepQuality": 83,
+        "hrv": 58,
+        "calories": 2573,
+        "stressScore": 63
+      },
+      {
+        "date": "2026-08-30",
+        "steps": 11757,
+        "restingHeartRate": 69,
+        "sleepHours": 8.4,
+        "sleepQuality": 84,
+        "hrv": 72,
+        "calories": 2443,
+        "stressScore": 60
+      },
+      {
+        "date": "2026-08-31",
+        "steps": 10053,
+        "restingHeartRate": 69,
+        "sleepHours": 7.6,
+        "sleepQuality": 83,
+        "hrv": 70,
+        "calories": 2211,
+        "stressScore": 62
+      },
+      {
+        "date": "2026-09-01",
+        "steps": 11028,
+        "restingHeartRate": 66,
+        "sleepHours": 7.6,
+        "sleepQuality": 95,
+        "hrv": 72,
+        "calories": 2203,
+        "stressScore": 57
       }
     ]
   },
