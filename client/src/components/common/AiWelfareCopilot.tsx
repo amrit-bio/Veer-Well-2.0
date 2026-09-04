@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { BrandLogo } from './BrandLogo';
 import { predictXGBoost } from '../../lib/xgboostEngine';
+import { generateRakshakIntelligence } from '../../lib/rakshakEngine';
 
 interface Message {
   id: string;
@@ -233,12 +234,23 @@ export const AiWelfareCopilot: React.FC = () => {
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err: any) {
+      const fallbackIntel = generateRakshakIntelligence(text, {
+        userRank: user.rank,
+        userName: isAnonymized ? user.anonymizedId : user.name,
+        force: user.force,
+        unit: user.unit,
+        role,
+        isAnonymized,
+        shiftHours: simShiftHours,
+        altitudeActive: simAltitude,
+      });
       const fallbackMsg: Message = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: 'Acknowledged. Telemetry connectivity is limited. For operational fatigue, maintain adequate hydration and consult your Unit Welfare Officer under the confidential Welfare Doctrine.',
+        text: fallbackIntel.reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        badge: 'Offline Fallback',
+        badge: fallbackIntel.model,
+        recommendations: fallbackIntel.recommendations,
       };
       setMessages((prev) => [...prev, fallbackMsg]);
     } finally {

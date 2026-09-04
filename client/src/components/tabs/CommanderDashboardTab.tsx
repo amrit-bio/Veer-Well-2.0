@@ -384,7 +384,7 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
           </div>
         </div>
 
-        {/* Stress Distribution Pie Chart */}
+        {/* Stress Distribution Donut Chart */}
         <div className="glass-panel p-6 rounded-3xl border border-olive-400/30">
           <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
             <Activity className="w-4 h-4 text-accent-gold" />
@@ -397,11 +397,12 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
                   data={stressDistribution}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.name}`}
-                  outerRadius={80}
-                  fill="#8884d8"
+                  innerRadius={52}
+                  outerRadius={82}
+                  paddingAngle={3}
                   dataKey="value"
+                  stroke="#0c1a14"
+                  strokeWidth={2}
                 >
                   {stressDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={STRESS_COLORS[index % STRESS_COLORS.length]} />
@@ -409,23 +410,27 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#192215',
-                    borderColor: '#435a37',
-                    borderRadius: '12px',
+                    backgroundColor: '#0c1a14',
+                    borderColor: '#d4af37',
+                    borderRadius: '16px',
+                    color: '#f8fafc',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                     fontSize: '12px',
+                    fontFamily: 'monospace',
                   }}
+                  itemStyle={{ color: '#e2e8f0' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-1.5 text-xs mt-3 border-t border-olive-800 pt-3">
+          <div className="space-y-1.5 text-xs mt-3 border-t border-olive-800 pt-3 font-mono">
             {stressDistribution.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STRESS_COLORS[idx] }} />
+                <span className="flex items-center gap-2 text-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STRESS_COLORS[idx] }} />
                   {item.name}
                 </span>
-                <strong className="text-white">{item.count} personnel</strong>
+                <strong className="text-white">{item.count} Jawans</strong>
               </div>
             ))}
           </div>
@@ -437,34 +442,59 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Calendar className="w-4 h-4 text-accent-gold" />
-            7-Day Personnel Wellness Trend
+            7-Day Personnel Wellness & Readiness Trajectory
           </h2>
-          <span className="text-[10px] font-mono text-olive-300">Aggregated View</span>
+          <span className="text-[10px] font-mono text-accent-gold px-2 py-0.5 rounded bg-olive-900 border border-olive-700">142 Bn Sector HQ</span>
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={wellnessTimeline}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-              <XAxis dataKey="day" stroke="#8faa80" />
-              <YAxis stroke="#8faa80" />
+            <AreaChart data={wellnessTimeline} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cmdReadinessGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#d4af37" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#d4af37" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="cmdStressGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+              <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+              <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#192215',
-                  borderColor: '#435a37',
-                  borderRadius: '12px',
+                  backgroundColor: '#0c1a14',
+                  borderColor: '#d4af37',
+                  borderRadius: '16px',
+                  color: '#f8fafc',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                   fontSize: '12px',
+                  fontFamily: 'monospace',
                 }}
+                itemStyle={{ color: '#e2e8f0' }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
               <Area
                 type="monotone"
                 dataKey="readiness"
                 name="Readiness Score"
-                stroke="#eab308"
-                fill="#eab308"
-                fillOpacity={0.3}
+                stroke="#d4af37"
+                strokeWidth={2.5}
+                fill="url(#cmdReadinessGrad)"
+                dot={{ fill: '#d4af37', r: 4 }}
+                activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               />
-              <Area type="monotone" dataKey="stress" name="Avg Stress" stroke="#f97316" fill="#f97316" fillOpacity={0.2} />
+              <Area
+                type="monotone"
+                dataKey="stress"
+                name="Avg Stress Index"
+                stroke="#f97316"
+                strokeWidth={2.5}
+                fill="url(#cmdStressGrad)"
+                dot={{ fill: '#f97316', r: 4 }}
+                activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -502,22 +532,26 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
           <h2 className="text-base font-bold text-white mb-4">Battalion Performance Matrix</h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={battalionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                <XAxis dataKey="name" stroke="#8faa80" tick={{ fontSize: 10 }} />
-                <YAxis stroke="#8faa80" tick={{ fontSize: 10 }} />
+              <BarChart data={battalionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                <XAxis dataKey="name" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+                <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#192215',
-                    borderColor: '#435a37',
-                    borderRadius: '12px',
+                    backgroundColor: '#0c1a14',
+                    borderColor: '#d4af37',
+                    borderRadius: '16px',
+                    color: '#f8fafc',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                     fontSize: '12px',
+                    fontFamily: 'monospace',
                   }}
+                  itemStyle={{ color: '#e2e8f0' }}
                 />
-                <Legend />
-                <Bar dataKey="readiness" fill="#eab308" name="Readiness Score" />
-                <Bar dataKey="stress" fill="#f97316" name="Avg Stress" />
-                <Bar dataKey="workload" fill="#06b6d4" name="Workload (hrs/week)" />
+                <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                <Bar dataKey="readiness" fill="#d4af37" name="Readiness Score" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="stress" fill="#f97316" name="Avg Stress" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="workload" fill="#06b6d4" name="Workload (hrs/week)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -530,14 +564,14 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={battalionRadarData}>
-                <PolarGrid stroke="#435a37" />
-                <PolarAngleAxis dataKey="dimension" stroke="#b4c7a9" tick={{ fontSize: 9 }} />
-                <PolarRadiusAxis stroke="#6f8e5f" domain={[0, 100]} />
-                <Radar name="142 Bn" dataKey="142Bn" stroke="#eab308" fill="#eab308" fillOpacity={0.15} />
-                <Radar name="209 CoBRA" dataKey="209CoBRA" stroke="#10b981" fill="#10b981" fillOpacity={0.15} />
-                <Radar name="88 Mahila Bn" dataKey="88Mahila" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.15} />
-                <Radar name="Leh Sector" dataKey="LehSector" stroke="#f97316" fill="#f97316" fillOpacity={0.15} />
-                <Legend />
+                <PolarGrid stroke="#2d4a3e" />
+                <PolarAngleAxis dataKey="dimension" stroke="#b4c7a9" tick={{ fontSize: 11, fill: '#b4c7a9' }} />
+                <PolarRadiusAxis stroke="#6f8e5f" domain={[0, 100]} tick={{ fontSize: 10, fill: '#6f8e5f' }} />
+                <Radar name="142 Bn" dataKey="142Bn" stroke="#d4af37" fill="#d4af37" fillOpacity={0.25} strokeWidth={2} />
+                <Radar name="209 CoBRA" dataKey="209CoBRA" stroke="#10b981" fill="#10b981" fillOpacity={0.25} strokeWidth={2} />
+                <Radar name="88 Mahila Bn" dataKey="88Mahila" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.25} strokeWidth={2} />
+                <Radar name="Leh Sector" dataKey="LehSector" stroke="#f97316" fill="#f97316" fillOpacity={0.25} strokeWidth={2} />
+                <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -628,22 +662,26 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
           <h2 className="text-base font-bold text-white mb-4">4-Week Rotation Schedule</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={rotationSchedule}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                <XAxis dataKey="week" stroke="#8faa80" />
-                <YAxis stroke="#8faa80" />
+              <BarChart data={rotationSchedule} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                <XAxis dataKey="week" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+                <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#192215',
-                    borderColor: '#435a37',
-                    borderRadius: '12px',
+                    backgroundColor: '#0c1a14',
+                    borderColor: '#d4af37',
+                    borderRadius: '16px',
+                    color: '#f8fafc',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                     fontSize: '12px',
+                    fontFamily: 'monospace',
                   }}
+                  itemStyle={{ color: '#e2e8f0' }}
                 />
-                <Legend />
-                <Bar dataKey="scheduled" fill="#eab308" name="Scheduled Personnel" />
-                <Bar dataKey="onLeave" fill="#f97316" name="On Leave/Rest" />
-                <Bar dataKey="available" fill="#10b981" name="Available for Duty" />
+                <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                <Bar dataKey="scheduled" fill="#d4af37" name="Scheduled Personnel" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="onLeave" fill="#f97316" name="On Leave / Rest" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="available" fill="#10b981" name="Available for Duty" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -655,34 +693,39 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
           <h2 className="text-base font-bold text-white mb-4">Personnel Availability Forecast</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={rotationSchedule}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                <XAxis dataKey="week" stroke="#8faa80" />
-                <YAxis stroke="#8faa80" />
+              <LineChart data={rotationSchedule} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                <XAxis dataKey="week" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+                <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#192215',
-                    borderColor: '#435a37',
-                    borderRadius: '12px',
+                    backgroundColor: '#0c1a14',
+                    borderColor: '#d4af37',
+                    borderRadius: '16px',
+                    color: '#f8fafc',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                     fontSize: '12px',
+                    fontFamily: 'monospace',
                   }}
+                  itemStyle={{ color: '#e2e8f0' }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
                 <Line
                   type="monotone"
                   dataKey="available"
                   stroke="#10b981"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   name="Currently Available"
-                  dot={{ fill: '#10b981' }}
+                  dot={{ fill: '#10b981', r: 4 }}
+                  activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="forecast"
-                  stroke="#eab308"
-                  strokeWidth={2}
+                  stroke="#d4af37"
+                  strokeWidth={2.5}
                   name="Forecasted Available"
-                  dot={{ fill: '#eab308' }}
+                  dot={{ fill: '#d4af37', r: 4 }}
                   strokeDasharray="5 5"
                 />
               </LineChart>

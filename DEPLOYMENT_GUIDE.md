@@ -125,7 +125,7 @@ Since Vercel isn't ideal for backends, use one of these options:
      SUPABASE_SECRET_KEY = [Your secret key]
      SUPABASE_PUBLISHABLE_KEY = [Your anon key]
      GEMINI_API_KEY = [Your API key]
-     JWT_SECRET = veerwell_super_secret_jwt_key_2026
+     JWT_SECRET = [Generate a secure 32+ character random string (e.g. openssl rand -base64 32)]
      NODE_ENV = production
      ```
 5. **Deploy**

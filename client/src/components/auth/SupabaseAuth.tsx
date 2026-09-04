@@ -64,7 +64,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     setSuccessMsg(null);
 
     if (!email.trim() || !password.trim()) {
-      setErrorMsg('Please enter both your email address and password.');
+      setErrorMsg('Please enter both your Email Address / Service ID and password.');
       return;
     }
 
@@ -75,8 +75,10 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     if (error) {
       setErrorMsg(error.message || 'Failed to authenticate. Please check your credentials.');
     } else {
-      setSuccessMsg('Authentication successful! Loading your profile from the database…');
-      if (onSuccess) onSuccess();
+      setSuccessMsg('Authentication successful! Loading your authorized military clearance profile…');
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+      }, 500);
     }
   };
 
@@ -330,19 +332,50 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         mode === 'verify-otp' ? handleVerifyOtp :
         handleForgotPassword
       } className="mt-4 space-y-4 relative z-10">
-        {/* Email Address */}
+        {/* Quick Autofill Presets in Login Mode */}
+        {mode === 'login' && (
+          <div className="space-y-1.5 pb-2">
+            <div className="text-[10px] font-mono text-olive-400 uppercase tracking-wider flex items-center justify-between">
+              <span>Quick Military Clearance Presets:</span>
+              <span className="text-accent-gold text-[9px]">1-Click Autofill</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: 'CO (Commander)', id: 'CRPF-CMD-7801', pass: 'co-password-2026', color: 'border-accent-gold/40 text-accent-gold hover:bg-accent-gold/10' },
+                { label: 'Medical / Welfare', id: 'CRPF-MED-8492', pass: 'med-password-2026', color: 'border-rose-500/40 text-rose-300 hover:bg-rose-500/10' },
+                { label: 'Jawan / Sentinel', id: 'CRPF-COBRA-1042', pass: 'jawan-password-2026', color: 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10' },
+                { label: 'Behavioral Analyst', id: 'MHA-ANA-9104', pass: 'ana-password-2026', color: 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10' },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setEmail(preset.id);
+                    setPassword(preset.pass);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl border bg-olive-900/70 text-[11px] font-mono text-left transition-all truncate flex items-center justify-between ${preset.color}`}
+                >
+                  <span className="font-bold truncate">{preset.label}</span>
+                  <span className="text-[9px] opacity-70 ml-1 font-mono">↳</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Email Address or Service ID */}
         <div>
           <label className="block text-xs font-bold text-olive-300 font-mono mb-1.5 flex items-center gap-1.5">
             <Mail className="w-3.5 h-3.5 text-accent-gold" />
-            Email Address
+            <span>Email Address or Military Service ID</span>
           </label>
           <div className="relative">
             <input
-              type="email"
+              type="text"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. commander.singh@crpf.gov.in"
+              placeholder="e.g. commander.singh@crpf.gov.in or CRPF-CMD-7801"
               className="w-full px-4 py-3 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono transition-all outline-none"
             />
           </div>

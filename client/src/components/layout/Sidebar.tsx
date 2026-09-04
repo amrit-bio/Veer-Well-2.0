@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
             onClick={openAuthModal}
             className="text-[9px] font-mono text-accent-gold hover:underline flex items-center gap-0.5"
           >
-            <span>Switch ID</span>
+            <span>Profile</span>
             <ChevronRight className="w-2.5 h-2.5" />
           </button>
         </div>
