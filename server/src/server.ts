@@ -1095,8 +1095,8 @@ app.get('/api/wearables', (req: Request, res: Response) => {
 // ==========================================
 // 10. RAKSHAK AI ENGINE INTEGRATION
 // ==========================================
-function getAIModelUrl(modelName = 'ai-model-lite') {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+function getAIModelUrl(modelName = GEMINI_MODEL) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 }
 
 function extractAIResponse(payload: any): string {
@@ -1158,7 +1158,8 @@ async function callRakshakAI(
     throw new Error('Rakshak AI Engine key is missing in server environment.');
   }
 
-  const modelsToTry = ['ai-model-lite', 'ai-model-standard', 'ai-model-advanced'];
+  const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   let lastError: any = null;
 
   for (const model of modelsToTry) {
