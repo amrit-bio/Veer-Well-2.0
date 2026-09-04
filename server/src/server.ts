@@ -1160,6 +1160,7 @@ async function callRakshakAI(
 
   const GEMINI_MODEL =
   process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const modelsToTry = [GEMINI_MODEL];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
