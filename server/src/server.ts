@@ -1091,7 +1091,6 @@ app.get('/api/wearables', (req: Request, res: Response) => {
 function getAIModelUrl(modelName = 'gemini-3.6-flash') {
   return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 }
-}
 
 function extractAIResponse(payload: any): string {
   if (!payload || !payload.candidates || !Array.isArray(payload.candidates)) {
