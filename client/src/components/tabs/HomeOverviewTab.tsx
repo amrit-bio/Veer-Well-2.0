@@ -624,7 +624,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'commander' || currentRole === 'analyst' ? 'analytics' : 'dashboard')}
+            onClick={() => onNavigate(currentRole === 'commander' ? 'commander-dashboard' : currentRole === 'analyst' ? 'algorithm-telemetry' : currentRole === 'welfare_officer' ? 'clinical-dashboard' : 'dashboard')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-accent-gold/20 border border-accent-gold/40 text-accent-gold flex items-center justify-center">
@@ -642,7 +642,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
 
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'welfare_officer' ? 'interventions' : 'privacy')}
+            onClick={() => onNavigate(currentRole === 'welfare_officer' ? 'clinical-dashboard' : 'privacy')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
@@ -660,7 +660,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
 
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'analyst' ? 'datasets' : 'integrations')}
+            onClick={() => onNavigate(currentRole === 'analyst' ? 'datasets' : currentRole === 'personnel' ? 'voice-assistant' : 'integrations')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center">

@@ -13,9 +13,15 @@ import {
   Cpu,
   MessageSquare,
   Shield,
+  Mic,
+  Radio,
+  Stethoscope,
+  Activity,
+  MapPin,
+  Users,
 } from 'lucide-react';
 
-export type NavCategory = 'Core Modules' | 'Analytics & Welfare' | 'Platform & Demo';
+export type NavCategory = 'Core Modules' | 'Analytics & Welfare' | 'Operational Command' | 'Platform & Demo';
 
 export interface TabItem {
   id: string;
@@ -51,13 +57,33 @@ export const NAV_CONFIG: TabItem[] = [
   },
   {
     id: 'dashboard',
-    label: 'Command & Personnel Dashboard',
+    label: 'My Readiness',
     category: 'Core Modules',
     icon: LayoutDashboard,
     badge: 'Live',
-    description: 'Live PPG, SpO2, sleep architecture, parasympathetic tone & battalion readiness',
-    roles: ['personnel', 'commander', 'welfare_officer'],
-    operationalScope: 'Commanders (Battalion Command), Frontline Jawans (Own Biometrics) & Medical Officers (Clinical Triage)',
+    description: 'Live PPG, SpO2, sleep architecture, parasympathetic tone & personal readiness',
+    roles: ['personnel'],
+    operationalScope: 'Frontline Jawans (Personal Biometrics & Sovereignty)',
+  },
+  {
+    id: 'commander-dashboard',
+    label: 'Unit Readiness',
+    category: 'Operational Command',
+    icon: LayoutDashboard,
+    badge: 'Live',
+    description: 'Aggregated unit heatmap, deployment logistics & actionable insights',
+    roles: ['commander'],
+    operationalScope: 'Commanding Officers (Battalion Command & Strategic Readiness)',
+  },
+  {
+    id: 'clinical-dashboard',
+    label: 'Clinical Dashboard',
+    category: 'Operational Command',
+    icon: Stethoscope,
+    badge: 'Clinical',
+    description: 'De-anonymized high-risk profiles, automated intervention recommendations & clinical triage',
+    roles: ['welfare_officer'],
+    operationalScope: 'Medical & Welfare Officers (Doctor-Patient Privilege)',
   },
   {
     id: 'assessment',
@@ -85,7 +111,7 @@ export const NAV_CONFIG: TabItem[] = [
   },
   {
     id: 'interventions',
-    label: 'Welfare Interventions',
+    label: 'Intervention Pipeline',
     category: 'Analytics & Welfare',
     icon: HeartPulse,
     badge: 'Rest Roster',
@@ -105,11 +131,35 @@ export const NAV_CONFIG: TabItem[] = [
   },
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 3. PLATFORM & DEMO
+  // 3. OPERATIONAL COMMAND
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: 'deployment-logistics',
+    label: 'Deployment Logistics',
+    category: 'Operational Command',
+    icon: MapPin,
+    badge: 'Tactical',
+    description: 'Post locations mapped against unit readiness, fatigue scores & altitude risk',
+    roles: ['commander'],
+    operationalScope: 'Commanding Officers (Operational Deployment Planning)',
+  },
+  {
+    id: 'algorithm-telemetry',
+    label: 'Algorithm Telemetry',
+    category: 'Operational Command',
+    icon: Activity,
+    badge: 'ML Ops',
+    description: 'Model accuracy monitoring, false positives/negatives, ROC-AUC drift & feature importance',
+    roles: ['analyst'],
+    operationalScope: 'Behavioral Data Analysts (Model Validation & Continuous Training)',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 4. PLATFORM & DEMO
   // ──────────────────────────────────────────────────────────────────────────
   {
     id: 'datasets',
-    label: 'Datasets & Simulation',
+    label: 'Data Analytics Hub',
     category: 'Platform & Demo',
     icon: Database,
     badge: 'CSV / PDF',
@@ -134,6 +184,25 @@ export const NAV_CONFIG: TabItem[] = [
     description: 'Smartwatch/tactical bio-sensor sync, medical PPG patches & telemetry integrity',
     roles: ['personnel', 'welfare_officer'],
     operationalScope: 'Jawans (Personal Smartwatch Sync) & Medical Officers (Clinical Patch Status)',
+  },
+  {
+    id: 'voice-assistant',
+    label: 'Tactical Voice Assistant',
+    category: 'Core Modules',
+    icon: Mic,
+    badge: 'PTT',
+    description: 'Push-to-talk voice interface for wellness reporting, leave requests & hands-free navigation',
+    roles: ['personnel'],
+    operationalScope: 'Frontline Personnel (Hands-Free Tactical Operations)',
+  },
+  {
+    id: 'peer-support',
+    label: 'Peer Support & Resources',
+    category: 'Analytics & Welfare',
+    icon: Users,
+    description: 'Privacy-preserving wellness modules, anonymous counseling channels & unit support',
+    roles: ['personnel'],
+    operationalScope: 'Frontline Personnel (Confidential Peer Support Network)',
   },
   {
     id: 'supabase-data',
@@ -169,6 +238,7 @@ export const NAV_CONFIG: TabItem[] = [
 export const NAV_CATEGORIES: NavCategory[] = [
   'Core Modules',
   'Analytics & Welfare',
+  'Operational Command',
   'Platform & Demo',
 ];
 
@@ -202,5 +272,15 @@ export function isTabAccessible(tabId: string, role: UserRole): boolean {
  * Returns the default fallback tab for a role if currently on an unauthorized tab.
  */
 export function getDefaultTabForRole(role: UserRole): string {
-  return 'home';
+  switch (role) {
+    case 'commander':
+      return 'commander-dashboard';
+    case 'welfare_officer':
+      return 'clinical-dashboard';
+    case 'analyst':
+      return 'algorithm-telemetry';
+    case 'personnel':
+    default:
+      return 'dashboard';
+  }
 }

@@ -22,7 +22,8 @@
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.3.0",
-    "three": "^0.165.0"
+    "three": "^0.165.0",
+    "tesseract.js": "^5.0.4"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",

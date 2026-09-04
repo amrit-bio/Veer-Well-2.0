@@ -22,6 +22,11 @@ import { HackathonAboutTab } from './components/tabs/HackathonAboutTab';
 import { IntegrationsTab } from './components/tabs/IntegrationsTab';
 import { FeedbackTab } from './components/tabs/FeedbackTab';
 import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
+import { ClinicalDashboardTab } from './components/tabs/ClinicalDashboardTab';
+import { DeploymentLogisticsTab } from './components/tabs/DeploymentLogisticsTab';
+import { AlgorithmTelemetryTab } from './components/tabs/AlgorithmTelemetryTab';
+import { VoiceAssistantTab } from './components/tabs/VoiceAssistantTab';
+import { PeerSupportTab } from './components/tabs/PeerSupportTab';
 import { SupabaseAuth } from './components/auth/SupabaseAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { getDefaultTabForRole, getVisibleTabsForRole, isTabAccessible } from './config/navConfig';
@@ -170,8 +175,9 @@ const MainPlatform: React.FC = () => {
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
                   {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
-                  {activeTab === 'dashboard' && role === 'commander' && <CommanderDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'dashboard' && role !== 'commander' && <DashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'commander-dashboard' && role === 'commander' && <CommanderDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'clinical-dashboard' && role === 'welfare_officer' && <ClinicalDashboardTab />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
                   {activeTab === 'interventions' && <InterventionsTab />}
@@ -182,6 +188,10 @@ const MainPlatform: React.FC = () => {
                   {activeTab === 'integrations' && <IntegrationsTab />}
                   {activeTab === 'supabase-data' && <SupabaseDataTab />}
                   {activeTab === 'feedback' && <FeedbackTab />}
+                  {activeTab === 'deployment-logistics' && role === 'commander' && <DeploymentLogisticsTab />}
+                  {activeTab === 'algorithm-telemetry' && role === 'analyst' && <AlgorithmTelemetryTab />}
+                  {activeTab === 'voice-assistant' && role === 'personnel' && <VoiceAssistantTab />}
+                  {activeTab === 'peer-support' && role === 'personnel' && <PeerSupportTab />}
                 </motion.div>
               </AnimatePresence>
             </ProtectedRoute>
