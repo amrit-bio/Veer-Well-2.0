@@ -151,8 +151,8 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Platform & Demo',
     icon: Info,
     description: 'Platform architecture, armed forces welfare doctrine & hackathon roadmap',
-    roles: ['analyst'],
-    operationalScope: 'Behavioral Data Analysts (Platform architecture and data-governance reference)',
+    roles: [],
+    operationalScope: 'Removed from analyst role per access-control update',
   },
   {
     id: 'feedback',
@@ -161,8 +161,8 @@ export const NAV_CONFIG: TabItem[] = [
     icon: MessageSquare,
     badge: 'Evaluate',
     description: 'Jury & evaluator review form across AI, UI, security & strategic impact',
-    roles: ['analyst'],
-    operationalScope: 'Behavioral Data Analysts (platform quality and data-governance review)',
+    roles: [],
+    operationalScope: 'Removed from analyst role per access-control update',
   },
 ];
 
