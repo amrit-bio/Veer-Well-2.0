@@ -165,7 +165,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             onClick={openAuthModal}
             className="px-4 py-2.5 rounded-xl bg-olive-900 hover:bg-olive-800 border border-olive-700 text-slate-200 text-xs font-bold font-mono transition-colors"
           >
-            Switch Role
+            Clearance Profile
           </button>
         </div>
       </div>

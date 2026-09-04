@@ -51,13 +51,13 @@ export const NAV_CONFIG: TabItem[] = [
   },
   {
     id: 'dashboard',
-    label: 'Personnel Dashboard',
+    label: 'Command & Personnel Dashboard',
     category: 'Core Modules',
     icon: LayoutDashboard,
     badge: 'Live',
-    description: 'Live PPG, SpO2, sleep architecture, parasympathetic tone & stress index',
-    roles: ['personnel', 'welfare_officer'],
-    operationalScope: 'Frontline Personnel (Own Telemetry) & Medical Officers (Clinical Modeling)',
+    description: 'Live PPG, SpO2, sleep architecture, parasympathetic tone & battalion readiness',
+    roles: ['personnel', 'commander', 'welfare_officer'],
+    operationalScope: 'Commanders (Battalion Command), Frontline Jawans (Own Biometrics) & Medical Officers (Clinical Triage)',
   },
   {
     id: 'assessment',

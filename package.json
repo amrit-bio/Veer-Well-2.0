@@ -19,5 +19,8 @@
     "framer-motion"
   ],
   "author": "VeerWell Engineering Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "omniroute": "^3.8.50"
+  }
 }

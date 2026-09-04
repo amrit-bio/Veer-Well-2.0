@@ -2,6 +2,7 @@ import {
   UnitStressSummary,
 } from '../types';
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
+import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
 // Get API base from environment variable, fallback to relative path for development
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
@@ -9,12 +10,16 @@ const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
 
 // Helper function to construct API URLs
 export const getApiUrl = (endpoint: string): string => {
-  // If API_BASE is a full URL (http/https), use it directly
-  if (API_BASE.startsWith('http://') || API_BASE.startsWith('https://')) {
-    return `${API_BASE}${endpoint}`;
+  const base = (API_BASE || '/api').replace(/\/+$/, '');
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  if (base.endsWith('/api')) {
+    return cleanEndpoint.startsWith('/api') ? `${base}${cleanEndpoint.slice(4)}` : `${base}${cleanEndpoint}`;
   }
-  // Otherwise use relative path
-  return `${API_BASE}${endpoint}`;
+  if (cleanEndpoint.startsWith('/api')) {
+    return `${base}${cleanEndpoint}`;
+  }
+  return `${base}/api${cleanEndpoint}`;
 };
 
 // Log API configuration for debugging
@@ -22,6 +27,9 @@ if (typeof window !== 'undefined') {
   console.log('[API] Base URL:', API_BASE);
   console.log('[API] Environment:', (import.meta as any).env?.MODE || 'production');
   console.log('[API] Gemini Key configured:', !!GEMINI_API_KEY);
+  if (!GEMINI_API_KEY) {
+    console.warn('[API] ⚠️ VITE_GEMINI_API_KEY is not set. Rakshak AI will use offline fallback mode.');
+  }
 }
 
 
@@ -37,28 +45,52 @@ CRITICAL INSTRUCTIONS:
 4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
 5. Maintain conversational context across follow-up questions.`;
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 // VeerWell AI Engine - Rakshak AI backbone powered by generative AI
 async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
-  const models = ['ai-model-lite', 'ai-model-standard', 'ai-model-advanced'];
+  // Pre-flight: validate key format before making any network calls
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+    throw new Error('GEMINI_API_KEY_UNAVAILABLE');
+  }
+
+  const models = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-2.5-pro',
+  ];
   let lastErr: any = null;
 
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents,
-          generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+      const res = await withTimeout(
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
+            },
+            contents,
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          }),
         }),
-      });
+        8000
+      );
 
       if (!res.ok) {
         lastErr = new Error(`AI Model ${model} Error: ${res.status}`);
@@ -136,56 +168,66 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Try Express Backend first
+    // 1. Try Express Backend first if available
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, messages: conversationHistory, context }),
-      });
+      const res = await withTimeout(
+        fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, messages: conversationHistory, context }),
+        }),
+        15000
+      );
       if (res.ok) {
         const json = await res.json();
-        if (json.reply) return json;
+        if (json.reply && !json.reply.toLowerCase().includes('telemetry connectivity is limited')) {
+          return json;
+        }
       }
     } catch (e) {
-      // Backend not running or proxy not active, fall through to Rakshak AI direct inference
+      // Backend not running or proxy not active, fall through
     }
 
-    // 2. Rakshak AI direct inference fallback
-    try {
-      const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+    // 2. Try Direct Google Gemini if API key is configured
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
+      try {
+        const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
-      if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-        for (const m of conversationHistory) {
-          if (m.text && m.text.trim()) {
-            contents.push({
-              role: m.sender === 'user' ? 'user' : 'model',
-              parts: [{ text: m.text }],
-            });
+        if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+          for (const m of conversationHistory) {
+            if (m.text && m.text.trim()) {
+              contents.push({
+                role: m.sender === 'user' ? 'user' : 'model',
+                parts: [{ text: m.text }],
+              });
+            }
           }
+        } else {
+          contents.push({
+            role: 'user',
+            parts: [{ text: message }],
+          });
         }
-      } else {
-        contents.push({
-          role: 'user',
-          parts: [{ text: message }],
-        });
-      }
 
-      let dynamicSystem = RAKSHAK_SYSTEM_PROMPT;
-      if (context && Object.keys(context).length > 0) {
-        dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
-      }
+        let dynamicSystem = RAKSHAK_SYSTEM_PROMPT;
+        if (context && Object.keys(context).length > 0) {
+          dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
+        }
 
-      const reply = await callRakshakAI(contents, dynamicSystem);
-      return { success: true, reply, model: 'Rakshak AI Engine' };
-    } catch (err: any) {
-      console.error('Direct AI error:', err);
-      return {
-        success: false,
-        reply: 'Jai Hind. Telemetry connectivity is limited. Recommended immediate protocol: Prioritize hydration, check duty roster, and consult your Unit Welfare Officer under the confidential Welfare Doctrine.',
-        model: 'Offline Resiliency Fallback',
-      };
+        const reply = await callRakshakAI(contents, dynamicSystem);
+        return { success: true, reply, model: 'Rakshak AI (Gemini Core)' };
+      } catch (err) {
+        // Fall through to dedicated local Rakshak intelligence
+      }
     }
+
+    // 3. Rakshak Specialized Military & Clinical Intelligence Engine
+    const intel = generateRakshakIntelligence(message, context, conversationHistory);
+    return {
+      success: true,
+      reply: intel.reply,
+      model: intel.model,
+    };
   },
 
 
@@ -243,9 +285,17 @@ Return ONLY valid JSON:
           parts: [{ text: prompt }],
         },
       ]);
-      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleaned);
-
+      const cleaned = text
+        .replace(/```json\s*/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) return JSON.parse(match[0]);
+        throw new Error('Invalid JSON from AI');
+      }
     } catch (err) {
       return {
         overallRisk: 'Moderate',

@@ -572,20 +572,52 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
           {role === 'personnel' ? (
             <div className="h-60 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={personal7DayData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                  <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 9 }} />
-                  <YAxis stroke="#8faa80" tick={{ fontSize: 9 }} />
+                <AreaChart data={personal7DayData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="persRecoveryGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="persHrvGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#d4af37" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#d4af37" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                  <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+                  <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#192215',
-                      borderColor: '#435a37',
-                      borderRadius: '12px',
+                      backgroundColor: '#0c1a14',
+                      borderColor: '#d4af37',
+                      borderRadius: '16px',
+                      color: '#f8fafc',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                       fontSize: '12px',
+                      fontFamily: 'monospace',
                     }}
+                    itemStyle={{ color: '#e2e8f0' }}
                   />
-                  <Area type="monotone" dataKey="recovery" name="Recovery Score" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-                  <Area type="monotone" dataKey="hrv" name="HRV (ms)" stroke="#eab308" fill="#eab308" fillOpacity={0.2} />
+                  <Area
+                    type="monotone"
+                    dataKey="recovery"
+                    name="Recovery Score"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    fill="url(#persRecoveryGrad)"
+                    dot={{ fill: '#10b981', r: 3 }}
+                    activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="hrv"
+                    name="HRV (ms)"
+                    stroke="#d4af37"
+                    strokeWidth={2.5}
+                    fill="url(#persHrvGrad)"
+                    dot={{ fill: '#d4af37', r: 3 }}
+                    activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -593,16 +625,16 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
             <div className="h-60 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData}>
-                  <PolarGrid stroke="#435a37" />
-                  <PolarAngleAxis dataKey="dimension" stroke="#b4c7a9" tick={{ fontSize: 9 }} />
-                  <PolarRadiusAxis stroke="#6f8e5f" angle={30} domain={[0, 100]} />
-                  <Radar name="Score" dataKey="score" stroke="#eab308" fill="#eab308" fillOpacity={0.4} />
+                  <PolarGrid stroke="#2d4a3e" />
+                  <PolarAngleAxis dataKey="dimension" stroke="#b4c7a9" tick={{ fontSize: 10, fill: '#b4c7a9' }} />
+                  <PolarRadiusAxis stroke="#6f8e5f" angle={30} domain={[0, 100]} tick={{ fontSize: 9, fill: '#6f8e5f' }} />
+                  <Radar name="Score" dataKey="score" stroke="#d4af37" fill="#d4af37" fillOpacity={0.3} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          <div className="space-y-1.5 pt-3 border-t border-olive-800 text-xs">
+          <div className="space-y-1.5 pt-3 border-t border-olive-800 text-xs font-mono">
             {visibleUnitStats.map((u) => (
               <div key={u.name} className="flex items-center justify-between text-olive-200">
                 <span>{u.name}</span>
@@ -625,7 +657,7 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
                 {role === 'personnel' ? 'My duty and recovery rhythm' : 'Weekly Duty Schedules vs Rest Rotations'}
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-olive-300">Roster Optimization</span>
+            <span className="text-[10px] font-mono text-accent-gold">Roster Optimization</span>
           </div>
           <p className="text-xs text-olive-300 mb-4">
             {role === 'personnel'
@@ -635,20 +667,52 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={visibleDutyTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 10 }} />
-                <YAxis stroke="#8faa80" tick={{ fontSize: 10 }} />
+              <AreaChart data={visibleDutyTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dutyActiveGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#d4af37" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#d4af37" stopOpacity={0.0} />
+                  </linearGradient>
+                  <linearGradient id="dutyRestGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+                <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#192215',
-                    borderColor: '#435a37',
-                    borderRadius: '12px',
+                    backgroundColor: '#0c1a14',
+                    borderColor: '#d4af37',
+                    borderRadius: '16px',
+                    color: '#f8fafc',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                     fontSize: '12px',
+                    fontFamily: 'monospace',
                   }}
+                  itemStyle={{ color: '#e2e8f0' }}
                 />
-                <Area type="monotone" dataKey="activeDuty" name="Active Duty (Personnel)" stroke="#eab308" fill="#eab308" fillOpacity={0.3} />
-                <Area type="monotone" dataKey="restRotation" name="Rest / Recharge Leave" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
+                <Area
+                  type="monotone"
+                  dataKey="activeDuty"
+                  name="Active Duty Load"
+                  stroke="#d4af37"
+                  strokeWidth={2.5}
+                  fill="url(#dutyActiveGrad)"
+                  dot={{ fill: '#d4af37', r: 3 }}
+                  activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="restRotation"
+                  name="Rest / Recharge Leave"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fill="url(#dutyRestGrad)"
+                  dot={{ fill: '#10b981', r: 3 }}
+                  activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

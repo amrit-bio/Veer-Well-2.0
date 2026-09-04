@@ -269,7 +269,7 @@ GET /api/stream?role={role}
 
 1. **Commander logs in** → Role detected as 'commander'
 2. **Navigates to Dashboard** → CommanderDashboardTab loads
-3. **Selects Overview tab** → 4 metrics + 3D orb + pie chart + timeline
+3. **Selects Overview tab** → 4 metrics + pie chart + timeline
 4. **Switches to Readiness** → Battalion comparison & radar appear
 5. **Switches subtab** → Different data transformation applied
 6. **Metrics update** → Every 6 seconds with role-appropriate data

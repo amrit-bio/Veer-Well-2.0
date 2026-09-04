@@ -144,7 +144,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
                 className="px-4 py-3 rounded-xl bg-olive-950/80 hover:bg-olive-900 border border-olive-700 text-olive-300 font-mono text-xs flex items-center gap-1.5 transition-all"
               >
                 <Key className="w-3.5 h-3.5 text-accent-gold" />
-                <span>{session ? 'My Account' : 'Switch Persona'}</span>
+                <span>Clearance Profile</span>
               </button>
             </div>
           </div>
@@ -438,54 +438,123 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
         )}
       </div>
 
-      {/* ── 3. Role-Based Military Access Grid (Distinct Logins & Roles) ─────── */}
-      {!session && (
+      {/* ── 3. Role-Specific Operational Mandate & Duty Directives ─────── */}
       <div className="glass-panel p-6 md:p-8 rounded-3xl border border-olive-400/30 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-olive-800">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
-                Multi-Persona RBAC Access Control
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/40 uppercase">
+                Active Clearance Mandate • {currentRole.replace('_', ' ')}
               </span>
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">
-              Select Military Persona & Authenticate by Login ID
+              Operational Scope & Clearance Directives
             </h2>
             <p className="text-xs text-olive-300 mt-0.5">
-              Each role possesses unique military credentials, granular access scopes, and duty responsibilities.
+              Strictly isolated under the Armed Forces Welfare Doctrine (§ 108.4 Privacy Charter).
             </p>
           </div>
 
-          <button
-            onClick={openAuthModal}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-accent-gold to-accent-saffron text-navy-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 hover:opacity-95 transition-all self-start sm:self-auto"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Open Login / Signup Portal</span>
-          </button>
-        </div>
-
-        {/* Get Started with VeerWell */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="glass-card p-4 rounded-2xl border border-olive-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">New Personnel</h3>
-              </div>
-              <p className="text-xs text-olive-300">Create your secure account with email and password. All data is encrypted and anonymized.</p>
-            </div>
-            <div className="glass-card p-4 rounded-2xl border border-olive-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <LogIn className="w-4 h-4 text-accent-gold" />
-                <h3 className="text-sm font-bold text-white">Existing Users</h3>
-              </div>
-              <p className="text-xs text-olive-300">Sign in with your email credentials to access your dashboards and biometric data.</p>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-xl bg-olive-900 border border-olive-700 text-xs text-accent-gold font-mono font-bold">
+              ID: {currentUser.serviceNumber}
+            </span>
           </div>
         </div>
+
+        {/* Role-Specific Formal Directive Cards */}
+        {currentRole === 'commander' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-accent-gold/40 space-y-2">
+              <div className="text-xs font-bold text-accent-gold font-mono uppercase">Readiness Authorization</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Review macro fatigue heatmaps and authorize 48-hour base camp rest rotations across deployed battalion sectors.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
+              <div className="text-xs font-bold text-white font-mono uppercase">14-Day Predictive Curve</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Evaluate XGBoost forecasted fatigue trajectories to adjust patrol roster schedules before mission saturation.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
+              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Welfare Doctrine Compliance</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                All individual names are masked under k-anonymity to ensure zero evaluation or disciplinary bias.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentRole === 'welfare_officer' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-rose-500/40 space-y-2">
+              <div className="text-xs font-bold text-rose-400 font-mono uppercase">Clinical Triage Directives</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Prescribe 48-hour hypoxia recovery respites and schedule structured psychological defusing debriefs.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
+              <div className="text-xs font-bold text-white font-mono uppercase">Doctor-Patient Privilege</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Access privileged biometric waveforms (PPG, SpO2, HRV) strictly for medical recovery management.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
+              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Medical Protocol SOP</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Track nocturnal desaturation clusters in Leh and Siachen outposts for early AMS prevention.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentRole === 'personnel' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
+              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Personal Biometric Sovereignty</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Your live smartwatch telemetry (HRV, SpO2, sleep recovery) is private to you and your Medical Officer.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
+              <div className="text-xs font-bold text-white font-mono uppercase">Confidential PHQ-9 Screener</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Take voluntary mental stamina assessments without fear of stigma or appraisal impact.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-accent-gold/40 space-y-2">
+              <div className="text-xs font-bold text-accent-gold font-mono uppercase">3-Day Wellness Leave</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Submit confidential wellness recharge requests directly to your unit welfare desk.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentRole === 'analyst' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-cyan-500/40 space-y-2">
+              <div className="text-xs font-bold text-cyan-400 font-mono uppercase">Differential Privacy Pipeline</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Manage Laplacian noise parameters (ε = 0.85) and export anonymized training datasets.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
+              <div className="text-xs font-bold text-white font-mono uppercase">Multivariate XGBoost Engine</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Validate 36-tree GBDT model accuracy (ROC-AUC 0.946) across 12 physiological and operational features.
+              </p>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
+              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Postgres RLS Schema Audit</div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Verify multi-table Row-Level Security policies and data-at-rest encryption across CAPF grids.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
-      )}
 
       {/* ── 4. Strategic Problem Statement vs Solution Cards ────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

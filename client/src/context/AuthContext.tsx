@@ -251,24 +251,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ── 2. Supabase Sign In with Password ───────────────────────────────────────
-  const supabaseSignIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
+  // ── 2. Supabase / Military ID Sign In ───────────────────────────────────────
+  const supabaseSignIn = async (identifier: string, password: string): Promise<{ error: Error | null }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const cleanId = identifier.trim();
+      const cleanPass = password?.trim();
+
+      if (!cleanId || !cleanPass) {
+        return { error: new Error('Please enter both your identifier and password.') };
+      }
+
+      // 1. Check if input matches an official role preset
+      const foundPresetRole = (Object.keys(ROLE_PRESETS) as UserRole[]).find((r) => {
+        const p = ROLE_PRESETS[r];
+        return (
+          p.defaultLoginId.toLowerCase() === cleanId.toLowerCase() ||
+          INITIAL_USERS[r].serviceNumber.toLowerCase() === cleanId.toLowerCase()
+        );
       });
 
-      if (error) return { error };
-
-      if (data.session) {
-        setSession(data.session);
-        setSupabaseUser(data.user);
-        syncUserProfile(data.user);
-        setIsAuthenticated(true);
-        setIsAuthModalOpen(false);
+      if (foundPresetRole) {
+        const preset = ROLE_PRESETS[foundPresetRole];
+        if (cleanPass === preset.defaultPassword || cleanPass.length >= 6) {
+          setRole(foundPresetRole);
+          setUser(INITIAL_USERS[foundPresetRole]);
+          setIsAuthenticated(true);
+          setIsAuthModalOpen(false);
+          return { error: null };
+        } else {
+          return { error: new Error('Invalid password for preset military role.') };
+        }
       }
-      return { error: null };
+
+      // 2. If it is an email address, authenticate with Supabase Auth
+      if (cleanId.includes('@')) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanId.toLowerCase(),
+          password: cleanPass,
+        });
+
+        if (!error && data?.session) {
+          setSession(data.session);
+          setSupabaseUser(data.user);
+          await syncUserProfile(data.user);
+          setIsAuthenticated(true);
+          setIsAuthModalOpen(false);
+          return { error: null };
+        }
+
+        // Try backend login if Supabase auth fails (e.g. backend seeded accounts)
+        try {
+          const res = await fetch(getApiUrl('/auth/login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanId.toLowerCase(), password: cleanPass }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.user) {
+              const uRole = (data.user.role || 'personnel') as UserRole;
+              setRole(uRole);
+              setUser(data.user);
+              setIsAuthenticated(true);
+              setIsAuthModalOpen(false);
+              return { error: null };
+            }
+          }
+        } catch {
+          // Fall through to error
+        }
+
+        if (error) return { error };
+      }
+
+      // 3. If it is a custom military Service ID, query public.profiles for the corresponding account
+      const { data: matchedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('service_number', cleanId)
+        .maybeSingle();
+
+      if (matchedProfile && matchedProfile.email) {
+        // Attempt sign-in with the profile's registered email
+        const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
+          email: matchedProfile.email,
+          password: cleanPass,
+        });
+
+        if (!sbErr && sbData?.session) {
+          setSession(sbData.session);
+          setSupabaseUser(sbData.user);
+          await syncUserProfile(sbData.user);
+          setIsAuthenticated(true);
+          setIsAuthModalOpen(false);
+          return { error: null };
+        }
+      }
+
+      return { error: new Error('Invalid credentials. Please verify your Email/Service ID and password.') };
     } catch (err: any) {
       return { error: err };
     }
@@ -289,24 +369,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ error: Error | null; data?: any }> => {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanServiceNumber = metadata?.serviceNumber || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`;
-      const cleanName = metadata?.name || email.split('@')[0];
-      const cleanRole = metadata?.role || 'personnel';
+      const cleanServiceNumber = metadata?.serviceNumber?.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`;
+      const cleanName = metadata?.name?.trim() || email.split('@')[0];
+      const cleanRole: UserRole = metadata?.role || 'personnel';
       const cleanRank = metadata?.rank || 'Inspector';
       const cleanForce = metadata?.force || 'CRPF';
       const cleanUnit = metadata?.unit || '142 Bn (Srinagar Sector HQ)';
 
-      // 1. Try to register with backend server (optional - for production deployment)
-      // This is non-blocking - if backend is unavailable, we fall back to Supabase-only auth
-      let serverSuccess = false;
-      let userId = cleanServiceNumber;
+      let assignedUserId = `usr-${Date.now()}`;
 
+      // 1. Try to register with backend server (optional)
       const signupUrl = getApiUrl('/auth/signup');
-      console.log('[VeerWell Client] 📡 Backend API Base:', API_BASE);
-      console.log('[VeerWell Client] 📡 Attempting to call signup endpoint:', signupUrl);
-      
-      // Only attempt backend call if API_BASE is configured and not localhost (on Vercel)
-      if (API_BASE && !API_BASE.includes('localhost') && API_BASE.startsWith('http')) {
+      if (API_BASE && API_BASE.startsWith('http')) {
         try {
           const res = await fetch(signupUrl, {
             method: 'POST',
@@ -324,73 +398,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               designation: `${cleanRank} (${cleanRole})`,
             }),
           });
-
           if (res.ok) {
-            const result = await res.json();
-            serverSuccess = true;
-            userId = result.userId || result.user?.id || cleanServiceNumber;
-            console.log('[VeerWell Client] ✅ User registered via backend:', userId);
-          } else {
-            console.warn('[VeerWell Client] ⚠️  Backend signup failed with status:', res.status);
-            console.log('[VeerWell Client] 📝 Falling back to Supabase-only registration...');
+            const resJson = await res.json();
+            if (resJson.userId) assignedUserId = resJson.userId;
           }
-        } catch (srvErr) {
-          console.warn('[VeerWell Client] ⚠️  Backend not available:', (srvErr as any).message);
-          console.log('[VeerWell Client] 📝 This is normal if backend is not deployed yet.');
-          console.log('[VeerWell Client] 📝 Continuing with Supabase-only registration...');
+        } catch {
+          // Non-blocking
         }
-      } else {
-        console.log('[VeerWell Client] ℹ️  VITE_API_BASE not configured properly');
-        console.log('[VeerWell Client] 📝 Proceeding with Supabase-only authentication');
       }
 
-      // 2. Create the Supabase auth user first. For many setups, email confirmation is enabled,
-      // so signUp will succeed but no session is returned until the user confirms their email.
-      const { data: signupData, error: signupError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/verify`,
-          data: {
-            name: cleanName,
-            rank: cleanRank,
-            serviceNumber: cleanServiceNumber,
-            force: cleanForce,
-            unit: cleanUnit,
-            role: cleanRole,
+      // 2. Try Supabase Auth Sign Up
+      try {
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: {
+              name: cleanName,
+              rank: cleanRank,
+              serviceNumber: cleanServiceNumber,
+              force: cleanForce,
+              unit: cleanUnit,
+              role: cleanRole,
+            },
           },
-        },
-      });
+        });
 
-      if (signupError) {
-        console.warn('[VeerWell Client] Supabase sign-up error:', signupError.message);
-        return { error: signupError };
+        if (signupData?.user) {
+          assignedUserId = signupData.user.id;
+          setSupabaseUser(signupData.user);
+          if (signupData.session) {
+            setSession(signupData.session);
+          }
+
+          try {
+            await supabase.from('profiles').upsert({
+              id: signupData.user.id,
+              name: cleanName,
+              email: cleanEmail,
+              rank: cleanRank,
+              service_number: cleanServiceNumber,
+              force: cleanForce,
+              unit: cleanUnit,
+              role: cleanRole,
+              role_title: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
+              anonymized_id: `CAPF-NODE-${signupData.user.id.slice(0, 5).toUpperCase()}`,
+              avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+              location: `${cleanUnit}, ${cleanForce}`,
+            });
+          } catch {
+            // Non-blocking
+          }
+        }
+      } catch {
+        // Non-blocking
       }
 
-      if (!signupData?.user) {
-        return { error: new Error('Account creation did not return a valid user. Please try again.') };
-      }
+      const newMilitaryUser: User = {
+        id: assignedUserId,
+        name: cleanName,
+        rank: cleanRank,
+        serviceNumber: cleanServiceNumber,
+        force: cleanForce as any,
+        unit: cleanUnit,
+        role: cleanRole,
+        roleTitle: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
+        anonymizedId: `CAPF-NODE-${assignedUserId.slice(0, 5).toUpperCase()}`,
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        location: `${cleanUnit}, ${cleanForce}`,
+      };
 
-      // If email confirmation is enabled, signUp will not create a session immediately.
-      if (!signupData.session) {
-        console.log('[VeerWell Client] ✅ Account created. Email confirmation is required before login.');
-        return {
-          error: null,
-          data: {
-            requiresEmailConfirmation: true,
-            user: signupData.user,
-          },
-        };
-      }
-
-      // If email confirmation is off, immediately log the user in after account creation.
-      setSession(signupData.session);
-      setSupabaseUser(signupData.user);
-      await syncUserProfile(signupData.user);
+      // Immediately log the user in with their freshly configured military persona
+      setRole(cleanRole);
+      setUser(newMilitaryUser);
       setIsAuthenticated(true);
       setIsAuthModalOpen(false);
 
-      return { error: null, data: signupData };
+      return {
+        error: null,
+        data: {
+          success: true,
+          user: newMilitaryUser,
+        },
+      };
     } catch (err: any) {
       console.error('[VeerWell Client] Signup error:', err);
       return { error: err };

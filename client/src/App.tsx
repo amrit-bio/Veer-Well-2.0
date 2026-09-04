@@ -140,20 +140,6 @@ const MainPlatform: React.FC = () => {
           </div>
 
           <SupabaseAuth onSuccess={() => setDemoBypass(true)} />
-
-          <div className="text-center pt-2">
-            <button
-              onClick={() => {
-                switchRole('commander');
-                setDemoBypass(true);
-              }}
-              className="inline-flex items-center gap-2 text-xs font-mono text-olive-300 hover:text-accent-gold transition-colors py-2 px-4 rounded-xl bg-olive-900/60 border border-olive-800 hover:border-accent-gold/50"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-accent-gold" />
-              <span>Or explore in Instant Commander Demo Mode</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
       </div>
     );

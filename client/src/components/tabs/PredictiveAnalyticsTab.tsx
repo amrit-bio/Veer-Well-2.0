@@ -345,19 +345,23 @@ export const PredictiveAnalyticsTab: React.FC = () => {
         {/* 14-Day Trajectory Line Chart */}
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trajectoryData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-              <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11 }} />
-              <YAxis domain={[1, 10]} stroke="#8faa80" tick={{ fontSize: 11 }} />
+            <LineChart data={trajectoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+              <XAxis dataKey="day" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+              <YAxis domain={[1, 10]} stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#192215',
-                  borderColor: '#435a37',
-                  borderRadius: '12px',
+                  backgroundColor: '#0c1a14',
+                  borderColor: '#d4af37',
+                  borderRadius: '16px',
+                  color: '#f8fafc',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                   fontSize: '12px',
+                  fontFamily: 'monospace',
                 }}
+                itemStyle={{ color: '#e2e8f0' }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
               <Line
                 type="monotone"
                 dataKey="baseline"
@@ -365,7 +369,7 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                 stroke="#f43f5e"
                 strokeWidth={2.5}
                 strokeDasharray="4 4"
-                dot={{ r: 3 }}
+                dot={{ r: 4, fill: '#f43f5e' }}
               />
               <Line
                 type="monotone"
@@ -373,13 +377,14 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                 name="Simulated Roster Intervention"
                 stroke="#10b981"
                 strokeWidth={3}
-                dot={{ r: 4 }}
+                dot={{ r: 4, fill: '#10b981' }}
+                activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               />
               <Line
                 type="monotone"
                 dataKey="safetyThreshold"
                 name="Clinical Warning Threshold (6.5)"
-                stroke="#eab308"
+                stroke="#d4af37"
                 strokeWidth={1.5}
                 dot={false}
               />
@@ -399,7 +404,7 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                 <TrendingUp className="w-4 h-4 text-accent-gold" />
                 Workload vs Stress Regression Scatter
               </h2>
-              <span className="text-xs font-mono text-accent-gold">r = 0.81 (Strong)</span>
+              <span className="text-xs font-mono text-accent-gold font-bold">r = 0.81 (Strong)</span>
             </div>
             <p className="text-xs text-olive-300 mb-4">
               X: Weekly Duty Hours | Y: Stress Score (1-10) | Bubble Size: Fatigue Severity Index
@@ -409,28 +414,28 @@ export const PredictiveAnalyticsTab: React.FC = () => {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-                <XAxis type="number" dataKey="x" name="Duty Hours" unit="h" stroke="#8faa80" domain={[30, 65]} tick={{ fontSize: 10 }} />
-                <YAxis type="number" dataKey="y" name="Stress Score" stroke="#8faa80" domain={[1, 10]} tick={{ fontSize: 10 }} />
-                <ZAxis type="number" dataKey="z" range={[50, 350]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+                <XAxis type="number" dataKey="x" name="Duty Hours" unit="h" stroke="#8faa80" domain={[30, 65]} tick={{ fontSize: 10, fill: '#8faa80' }} />
+                <YAxis type="number" dataKey="y" name="Stress Score" stroke="#8faa80" domain={[1, 10]} tick={{ fontSize: 10, fill: '#8faa80' }} />
+                <ZAxis type="number" dataKey="z" range={[60, 380]} />
                 <Tooltip
-                  cursor={{ strokeDasharray: '3 3' }}
+                  cursor={{ strokeDasharray: '3 3', stroke: '#d4af37' }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-olive-950 border border-olive-500 p-2.5 rounded-xl text-xs space-y-1 shadow-xl">
+                        <div className="bg-olive-950 border border-accent-gold/60 p-3 rounded-2xl text-xs space-y-1 shadow-2xl font-mono">
                           <p className="font-bold text-accent-gold">{data.node} ({data.unit})</p>
-                          <p className="text-slate-200">Duty: {data.x} hrs/week</p>
-                          <p className="text-amber-300">Stress: {data.y}/10</p>
-                          <p className="text-olive-300 font-mono">Fatigue: {data.z}%</p>
+                          <p className="text-slate-200">Duty Load: <strong>{data.x} hrs/week</strong></p>
+                          <p className="text-amber-300">Stress Index: <strong>{data.y}/10</strong></p>
+                          <p className="text-emerald-400">Fatigue Amplitude: <strong>{data.z}%</strong></p>
                         </div>
                       );
                     }
                     return null;
                   }}
                 />
-                <Scatter name="Personnel" data={correlationData} fill="#eab308" />
+                <Scatter name="Personnel Nodes" data={correlationData} fill="#d4af37" />
               </ScatterChart>
             </ResponsiveContainer>
           </div>

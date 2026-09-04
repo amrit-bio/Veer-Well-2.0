@@ -259,20 +259,24 @@ export const DatasetsSimulationTab: React.FC = () => {
 
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sampleTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2f3d29" />
-              <XAxis dataKey="metric" stroke="#8faa80" tick={{ fontSize: 10 }} />
-              <YAxis stroke="#8faa80" tick={{ fontSize: 10 }} />
+            <BarChart data={sampleTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" opacity={0.4} />
+              <XAxis dataKey="metric" stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
+              <YAxis stroke="#8faa80" tick={{ fontSize: 11, fill: '#8faa80' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#192215',
-                  borderColor: '#435a37',
-                  borderRadius: '12px',
+                  backgroundColor: '#0c1a14',
+                  borderColor: '#d4af37',
+                  borderRadius: '16px',
+                  color: '#f8fafc',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                   fontSize: '12px',
+                  fontFamily: 'monospace',
                 }}
+                itemStyle={{ color: '#e2e8f0' }}
               />
-              <Bar dataKey="baseline" name="Pre-Pilot Baseline" fill="#71717a" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="current" name="Post-VeerWell Pilot" fill="#eab308" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="baseline" name="Pre-Pilot Baseline" fill="#64748b" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="current" name="Post-VeerWell Pilot" fill="#d4af37" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
