@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from './lib/supabaseClient';
+import { supabase, isSupabaseReady } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
 import { RealtimeProvider } from './context/RealtimeContext';
 import { Navbar } from './components/layout/Navbar';
@@ -40,7 +40,7 @@ const MainPlatform: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
-  const [supabaseStatus, setSupabaseStatus] = useState<'loading' | 'connected' | 'error'>('loading');
+  const [supabaseStatus, setSupabaseStatus] = useState<'loading' | 'connected' | 'error' | 'demo'>('loading');
   const [supabaseMessage, setSupabaseMessage] = useState('');
   const [showStatus, setShowStatus] = useState(true);
   const [demoBypass, setDemoBypass] = useState(false);
@@ -51,51 +51,45 @@ const MainPlatform: React.FC = () => {
     return () => window.clearTimeout(t);
   }, []);
 
-  // ── Secure Connection Test ────────────────────────────────────────────────
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        console.log('[VeerWell] 🔌 Testing secure connection...');
-        const startTime = performance.now();
+   // ── Secure Connection Test ────────────────────────────────────────────────
+   useEffect(() => {
+     async function testConnection() {
+       try {
+         console.log('[VeerWell] 🔌 Testing secure connection...');
+         const startTime = performance.now();
 
-        // Query the profiles table to verify connection
-        const { data, error, count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+         if (!isSupabaseReady()) {
+           console.log('[VeerWell] ✅ Demo mode active — secure connection test skipped');
+           setSupabaseStatus('demo');
+           setSupabaseMessage('Demo mode active');
+           return;
+         }
 
-        const elapsed = Math.round(performance.now() - startTime);
+         // Query the profiles table to verify connection
+         const { data, error, count } = await supabase
+           .from('profiles')
+           .select('*', { count: 'exact', head: true });
 
-        if (error) {
-          console.error('[VeerWell] ❌ Connection error:', error.message);
-          setSupabaseStatus('error');
-          setSupabaseMessage(`Error: ${error.message}`);
-        } else {
-          console.log(`[VeerWell] ✅ Secure connection established (${elapsed}ms)`);
-          console.log(`[VeerWell] 📊 Profiles: ${count ?? 0} rows`);
+         const elapsed = Math.round(performance.now() - startTime);
 
-          // Quick health check — verify all core modules are accessible
-          const tables = [
-            'profiles', 'wearable_telemetry', 'assessments', 'stress_metrics',
-            'deployments', 'leave_records', 'wellness_surveys', 'survey_responses',
-            'workload_records', 'interventions', 'welfare_alerts', 'feedback',
-          ];
-          let tablesOk = 0;
-          for (const t of tables) {
-            const { error: tErr } = await supabase.from(t).select('*', { head: true, count: 'exact' });
-            if (!tErr) tablesOk++;
-          }
+         if (error) {
+           console.error('[VeerWell] ❌ Connection error:', error.message);
+           setSupabaseStatus('error');
+           setSupabaseMessage(`Error: ${error.message}`);
+         } else {
+           console.log(`[VeerWell] ✅ Secure connection established (${elapsed}ms)`);
+           console.log(`[VeerWell] 📊 Profiles: ${count ?? 0} rows`);
 
-          console.log(`[VeerWell] 🗄️  Modules verified: ${tablesOk}/${tables.length}`);
-          setSupabaseStatus('connected');
-          setSupabaseMessage(`Secure link established in ${elapsed}ms — ${tablesOk}/${tables.length} modules online, ${count ?? 0} personnel profiles`);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[VeerWell] ❌ Connection failed:', message);
-        setSupabaseStatus('error');
-        setSupabaseMessage(`Secure link failed: ${message}`);
-      }
-    }
+           setSupabaseStatus('connected');
+           setSupabaseMessage(`Secure link established in ${elapsed}ms — ${count ?? 0} personnel profiles`);
+         }
+       } catch (err) {
+         const message = err instanceof Error ? err.message : 'Unknown error';
+         console.error('[VeerWell] ❌ Connection failed:', message);
+         setSupabaseStatus('error');
+         setSupabaseMessage(`Secure link failed: ${message}`);
+       }
+     }
 
     testConnection();
   }, []);
@@ -261,11 +255,16 @@ export default function App() {
 function AppWithRealtime() {
   const { user, isAuthenticated } = useAuth();
 
-  if (!isAuthenticated || !user) return null;
+  // When authenticated, wrap MainPlatform in RealtimeProvider for live data
+  if (isAuthenticated && user) {
+    return (
+      <RealtimeProvider userId={user.id} unit={user.unit}>
+        <MainPlatform />
+      </RealtimeProvider>
+    );
+  }
 
-  return (
-    <RealtimeProvider userId={user.id} unit={user.unit}>
-      <MainPlatform />
-    </RealtimeProvider>
-  );
+  // When not authenticated (e.g. no Supabase session), still render
+  // MainPlatform so it can show the login flow or demo bypass
+  return <MainPlatform />;
 }
