@@ -108,7 +108,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         }, 1500);
       }
     } catch (err) {
-      setOcrResult('OCR failed. Please try again or enter details manually.');
+      setOcrResult('Scan failed. Please try again or enter details manually.');
     } finally {
       setOcrLoading(false);
     }
@@ -365,7 +365,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
           VeerWell Identity Gateway
         </h2>
         <p className="text-xs text-olive-300 font-mono mt-1">
-          Secure Authentication • Row Level Security Guard
+          Secure Authentication • Military-Grade Access Guard
         </p>
       </div>
 
@@ -741,10 +741,10 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       <div className="mt-6 pt-4 border-t border-olive-800/60 flex items-center justify-between text-[11px] text-olive-400 font-mono">
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>RLS Enforced</span>
+          <span>Security Protocol Active</span>
         </div>
         <div>
-          <span>JWT • Secure Database</span>
+          <span>Secure Session</span>
         </div>
       </div>
 
@@ -766,7 +766,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Camera className="w-5 h-5 text-accent-gold" />
                   Scan Force ID Card
                 </h3>
@@ -801,14 +801,14 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
                 {ocrImage && (
                   <div className="rounded-xl overflow-hidden border border-olive-700">
-                    <img src={ocrImage} alt="Scanned ID" className="w-full h-48 object-cover" />
+                    <img src={ocrImage} alt="Captured Document" className="w-full h-48 object-cover" />
                   </div>
                 )}
 
                 {ocrLoading && (
                   <div className="flex items-center gap-2 text-accent-gold">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm font-mono">{ocrResult || 'Processing OCR...'}</span>
+                    <span className="text-sm font-mono">{ocrResult || 'Scanning document...'}</span>
                   </div>
                 )}
 

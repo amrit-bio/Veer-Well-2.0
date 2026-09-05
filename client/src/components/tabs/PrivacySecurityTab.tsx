@@ -202,7 +202,7 @@ export const PrivacySecurityTab: React.FC = () => {
           </div>
           <h3 className="text-sm font-bold text-white">Differential Anonymization</h3>
           <p className="text-xs text-olive-200 leading-relaxed">
-            All personnel records are hashed into non-reversible tokens (e.g. <code>CAPF-NODE-1042</code>) using K-Anonymity (k=5), preventing identity matching even with database breach.
+            All personnel records are hashed into non-reversible tokens (e.g. <code>CAPF-NODE-1042</code>) using K-Anonymity (k=5), preventing identity matching even with unauthorized data access.
           </p>
         </div>
 

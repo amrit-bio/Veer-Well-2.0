@@ -461,7 +461,7 @@ export const AiWelfareCopilot: React.FC = () => {
               <div className="flex-1 p-4 space-y-4 overflow-y-auto text-xs">
                 <div className="p-3 rounded-2xl bg-olive-900/60 border border-olive-700/60 space-y-1">
                   <div className="flex items-center justify-between font-bold text-white">
-                    <span>Predictive Burnout Risk Engine (XGBoost)</span>
+                    <span>Predictive Burnout Risk Engine</span>
                     <span className="font-mono text-accent-gold">{simResult.score}/100</span>
                   </div>
                   <p className="text-[11px] text-olive-300">

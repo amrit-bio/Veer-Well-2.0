@@ -514,7 +514,7 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
               </h2>
               <p className="text-xs text-olive-300">
                 {role === 'personnel' && 'Real-time physiological balance computed from continuous PPG heart rate variability.'}
-                {role === 'analyst' && 'Cross-sensor machine learning model correlating shift hours, sleep deficit & altitude.'}
+                {role === 'analyst' && 'Cross-sensor predictive model correlating shift hours, sleep deficit & altitude.'}
                 {role === 'welfare_officer' && 'Sympathetic over-arousal vs parasympathetic recovery curves across units.'}
                 {role === 'commander' && 'Visualizing physiological turbulence and sympathetic tone across deployed units.'}
               </p>

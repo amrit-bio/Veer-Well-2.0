@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
+import { RealtimeProvider } from './context/RealtimeContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, TABS } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
@@ -86,13 +87,13 @@ const MainPlatform: React.FC = () => {
 
           console.log(`[VeerWell] 🗄️  Tables verified: ${tablesOk}/${tables.length}`);
           setSupabaseStatus('connected');
-          setSupabaseMessage(`Connected in ${elapsed}ms — ${tablesOk}/${tables.length} tables OK, ${count ?? 0} profiles`);
+          setSupabaseMessage(`Secure link established in ${elapsed}ms — ${tablesOk}/${tables.length} modules online, ${count ?? 0} personnel profiles`);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         console.error('[VeerWell] ❌ Supabase connection failed:', message);
         setSupabaseStatus('error');
-        setSupabaseMessage(`Failed: ${message}`);
+          setSupabaseMessage(`Secure link failed: ${message}`);
       }
     }
 
@@ -128,7 +129,7 @@ const MainPlatform: React.FC = () => {
   }, [activeTab, role, supabaseUser?.id]);
 
   if (bootLoading || authLoading) {
-    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & PostgreSQL session…" />;
+    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & secure session…" />;
   }
 
   // ── Authentication Gate: Unauthenticated users see the Supabase Auth login screen ──
@@ -203,7 +204,7 @@ const MainPlatform: React.FC = () => {
       <AiWelfareCopilot />
       <AuthModal />
 
-      {/* Supabase Connection Status Toast */}
+      {/* Secure Link Status Toast */}
       {showStatus && supabaseStatus !== 'loading' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -252,7 +253,19 @@ const MainPlatform: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainPlatform />
+      <AppWithRealtime />
     </AuthProvider>
+  );
+}
+
+function AppWithRealtime() {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated || !user) return null;
+
+  return (
+    <RealtimeProvider userId={user.id} unit={user.unit}>
+      <MainPlatform />
+    </RealtimeProvider>
   );
 }

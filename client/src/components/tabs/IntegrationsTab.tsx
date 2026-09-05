@@ -30,7 +30,7 @@ export const IntegrationsTab: React.FC = () => {
     {
       id: 'garmin',
       name: 'Garmin Instinct Tactical / Tactix 7',
-      type: 'Military Smartwatch API',
+      type: 'Military Smartwatch Sync',
       status: 'Connected',
       lastSync: 'Real-Time (BLE)',
       details: 'Streaming continuous optical heart rate, SpO2, stress score, and VO2 max.',
@@ -91,7 +91,7 @@ export const IntegrationsTab: React.FC = () => {
             HRMS & Tactical Wearable Integrations
           </h1>
           <p className="text-xs text-olive-200 mt-1 max-w-xl">
-            Unified API gateway connecting Central Armed Forces HRMS, tactical BLE biometrics, and field mesh sensors.
+            Unified data hub connecting Central Armed Forces HRMS, tactical BLE biometrics, and field mesh sensors.
           </p>
           </div>
         </div>

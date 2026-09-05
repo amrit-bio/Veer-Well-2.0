@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Send, Loader2, Volume2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useRealtime } from '../../context/RealtimeContext';
+import { supabase } from '../../lib/supabaseClient';
+import { evaluateVoice } from '../../lib/riskEngine';
+import {
+  Mic,
+  MicOff,
+  Send,
+  Loader2,
+  Volume2,
+} from 'lucide-react';
 
 interface Message {
   sender: 'user' | 'ai';
@@ -9,10 +19,13 @@ interface Message {
 }
 
 export const VoiceAssistantTab: React.FC = () => {
+  const { user } = useAuth();
+  const { acknowledgeRiskAlert } = useRealtime();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [riskDetected, setRiskDetected] = useState<boolean | null>(null);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +81,69 @@ export const VoiceAssistantTab: React.FC = () => {
     setTranscript('');
     setMessages(prev => [...prev, { sender: 'user', text: userMessage, timestamp: new Date() }]);
     setProcessing(true);
+    setRiskDetected(null);
+
+    // Voice NLP risk evaluation
+    const { evaluation, flags } = evaluateVoice(
+      userMessage,
+      user.id,
+      user.unit,
+      user.location
+    );
+
+    // Log voice transcript to Supabase for real-time pipeline
+    try {
+      await supabase.from('voice_logs').insert({
+        user_id: user.id,
+        user_name: user.name,
+        service_number: user.serviceNumber,
+        unit: user.unit,
+        location: user.location,
+        transcript: userMessage,
+        mood_detected: evaluation.riskScore > 0 ? 'stressed' : 'neutral',
+        risk_flags: flags,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (evaluation.isHighRisk) {
+        setRiskDetected(true);
+
+        // Create risk alert in Supabase for real-time pipeline
+        const { riskScore, thresholdsExceeded, riskFactors } = evaluation;
+
+        await supabase.from('risk_alerts').insert({
+          user_id: user.id,
+          user_name: user.name,
+          service_number: user.serviceNumber,
+          anonymized_id: user.anonymizedId,
+          unit: user.unit,
+          location: user.location,
+          risk_type: 'voice_nlp',
+          risk_score: riskScore,
+          threshold_exceed: thresholdsExceeded.join('; '),
+          triggered_at: new Date().toISOString(),
+          acknowledged: false,
+        });
+
+        // Emit telemetry event
+        await supabase.from('system_telemetry').insert({
+          event_type: 'alert_triggered',
+          event_detail: `Voice NLP risk detected for ${user.name} (${user.anonymizedId})`,
+          triggered_by: user.id,
+          threshold_value: evaluation.riskScore >= 60 ? 60 : 40,
+          actual_value: riskScore,
+          timestamp: new Date().toISOString(),
+        });
+
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `⚠️ TACTICAL ALERT: Voice stress markers detected. Medical Officer notified. Please proceed to nearest aid post for confidential assessment.`,
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (err) {
+      console.error('Failed to log voice transcript:', err);
+    }
 
     try {
       const res = await fetch('/api/chat', {
@@ -109,6 +185,15 @@ export const VoiceAssistantTab: React.FC = () => {
         <div className="px-4 py-3 border-b border-olive-800 bg-olive-900/50 flex items-center justify-between">
           <h3 className="text-sm font-bold text-white">Voice Command Log</h3>
           <div className="flex items-center gap-2">
+            {riskDetected === true && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold"
+              >
+                ⚠️ RISK DETECTED — Medical Officer Notified
+              </motion.span>
+            )}
             <button
               onClick={isListening ? stopListening : startListening}
               className={`p-2 rounded-xl border-2 flex items-center gap-2 transition-all ${

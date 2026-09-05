@@ -96,3 +96,56 @@ export interface HackathonFeedback {
   comments: string;
   date: string;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Real-Time Pipeline Types
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface VoiceLog {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceNumber: string;
+  unit: string;
+  location: string;
+  transcript: string;
+  moodDetected: string;
+  riskFlags: string[];
+  timestamp: string;
+}
+
+export interface RiskAlert {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceNumber: string;
+  anonymizedId: string;
+  unit: string;
+  location: string;
+  riskType: 'phq9' | 'voice_nlp' | 'wearable';
+  riskScore: number;
+  thresholdExceed: string;
+  triggeredAt: string;
+  acknowledged: boolean;
+  acknowledgedBy?: string;
+}
+
+export interface UnitHeatmapData {
+  unit: string;
+  location: string;
+  anonymizedCount: number;
+  avgStress: number;
+  fatigueIndex: number;
+  riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
+  lastUpdated: string;
+}
+
+export interface SystemTelemetry {
+  id: string;
+  eventType: 'alert_triggered' | 'alert_acknowledged' | 'risk_override' | 'model_drift';
+  eventDetail: string;
+  triggeredBy?: string;
+  thresholdValue?: number;
+  actualValue?: number;
+  timestamp: string;
+}

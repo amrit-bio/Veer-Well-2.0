@@ -334,7 +334,7 @@ export const SelfAssessmentTab: React.FC = () => {
       <TabPageHeader
         badge="Confidential Personnel Self-Assessment"
         title="Voluntary Wellness & Tactical Stress Check-In"
-        subtitle="22-item welfare screener scored by on-device XGBoost plus Rakshak AI. Responses are cryptographically masked under the CAPF Welfare Doctrine."
+        subtitle="22-item welfare screener scored on-device plus Rakshak AI. Responses are cryptographically masked under the CAPF Welfare Doctrine."
         actions={
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-olive-900/90 border border-olive-400/30 text-xs font-mono text-olive-200">
             <Lock className="w-3.5 h-3.5 text-accent-gold" />
@@ -383,7 +383,7 @@ export const SelfAssessmentTab: React.FC = () => {
               </button>
             </div>
             <p className="text-xs text-olive-300 leading-relaxed">
-              Optical PPG telemetry from tactical watch or chest strap is fused into the XGBoost feature vector.
+              Optical PPG telemetry from tactical watch or chest strap is fused into the predictive stress model.
             </p>
           </div>
 
@@ -426,7 +426,7 @@ export const SelfAssessmentTab: React.FC = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-white">Wearable station</h3>
               <p className="text-sm text-olive-200">
-                Use Sync to refresh PPG, SpO₂ and HRV, then complete Full Check-In so XGBoost can score the fused vector.
+                Use Sync to refresh PPG, SpO₂ and HRV, then complete Full Check-In so the predictive model can score the fused vector.
               </p>
               <button
                 type="button"
@@ -518,7 +518,7 @@ export const SelfAssessmentTab: React.FC = () => {
                     onClick={handleSubmit}
                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent-gold via-amber-400 to-accent-saffron text-navy-950 font-black text-xs flex items-center gap-2"
                   >
-                    Score with XGBoost <Sparkles className="w-4 h-4" />
+                    Score with Predictive Engine <Sparkles className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -526,7 +526,7 @@ export const SelfAssessmentTab: React.FC = () => {
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-5 my-auto">
               {isAnalyzingAI ? (
-                <BrandedLoader label="XGBoost + Rakshak AI synthesizing welfare directive…" />
+                <BrandedLoader label="Predictive Engine + Rakshak AI synthesizing welfare directive…" />
               ) : (
                 <>
                   <div className="flex justify-center">
@@ -541,7 +541,7 @@ export const SelfAssessmentTab: React.FC = () => {
                   {xgb && (
                     <div className="glass-card p-5 rounded-2xl border border-olive-400/30 max-w-lg mx-auto space-y-3 text-left">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-olive-300">XGBoost composite score</span>
+                        <span className="text-olive-300">Predictive composite score</span>
                         <strong className="text-xl font-mono text-accent-gold">{xgb.stressScore} / 100</strong>
                       </div>
                       <div className="flex items-center justify-between text-xs">
