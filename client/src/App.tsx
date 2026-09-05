@@ -51,14 +51,14 @@ const MainPlatform: React.FC = () => {
     return () => window.clearTimeout(t);
   }, []);
 
-  // ── Supabase Connection Test ──────────────────────────────────────
+  // ── Secure Connection Test ────────────────────────────────────────────────
   useEffect(() => {
-    async function testSupabaseConnection() {
+    async function testConnection() {
       try {
-        console.log('[VeerWell] 🔌 Testing Supabase connection...');
+        console.log('[VeerWell] 🔌 Testing secure connection...');
         const startTime = performance.now();
 
-        // Query the real profiles table to verify connection + schema
+        // Query the profiles table to verify connection
         const { data, error, count } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
@@ -66,14 +66,14 @@ const MainPlatform: React.FC = () => {
         const elapsed = Math.round(performance.now() - startTime);
 
         if (error) {
-          console.error('[VeerWell] ❌ Supabase connection error:', error.message);
+          console.error('[VeerWell] ❌ Connection error:', error.message);
           setSupabaseStatus('error');
           setSupabaseMessage(`Error: ${error.message}`);
         } else {
-          console.log(`[VeerWell] ✅ Supabase connected successfully (${elapsed}ms)`);
-          console.log(`[VeerWell] 📊 Profiles table: ${count ?? 0} rows`);
+          console.log(`[VeerWell] ✅ Secure connection established (${elapsed}ms)`);
+          console.log(`[VeerWell] 📊 Profiles: ${count ?? 0} rows`);
 
-          // Quick health check — verify all core tables are accessible
+          // Quick health check — verify all core modules are accessible
           const tables = [
             'profiles', 'wearable_telemetry', 'assessments', 'stress_metrics',
             'deployments', 'leave_records', 'wellness_surveys', 'survey_responses',
@@ -85,19 +85,19 @@ const MainPlatform: React.FC = () => {
             if (!tErr) tablesOk++;
           }
 
-          console.log(`[VeerWell] 🗄️  Tables verified: ${tablesOk}/${tables.length}`);
+          console.log(`[VeerWell] 🗄️  Modules verified: ${tablesOk}/${tables.length}`);
           setSupabaseStatus('connected');
           setSupabaseMessage(`Secure link established in ${elapsed}ms — ${tablesOk}/${tables.length} modules online, ${count ?? 0} personnel profiles`);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[VeerWell] ❌ Supabase connection failed:', message);
+        console.error('[VeerWell] ❌ Connection failed:', message);
         setSupabaseStatus('error');
-          setSupabaseMessage(`Secure link failed: ${message}`);
+        setSupabaseMessage(`Secure link failed: ${message}`);
       }
     }
 
-    testSupabaseConnection();
+    testConnection();
   }, []);
 
 

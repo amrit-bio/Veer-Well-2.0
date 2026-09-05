@@ -153,7 +153,7 @@ export const SupabaseDataTab: React.FC = () => {
   // ── 1. Fetch Data Function (Guarded by Auth State) ───────────────────────────
   const fetchTableData = useCallback(async (tableId: string) => {
     // Only attempt to fetch data after confirming the user is logged in
-    if (!isAuthenticated && !supabaseUser) {
+     if (!isAuthenticated && !supabaseUser) {
       setData([]);
       setError('Authentication required. Please sign in to access this data.');
       return;
@@ -164,7 +164,7 @@ export const SupabaseDataTab: React.FC = () => {
     setInsertMessage(null);
 
     try {
-      console.log(`[SupabaseData] 📡 Fetching from table: "${tableId}"...`);
+      console.log(`[DataExplorer] 📡 Fetching from table: "${tableId}"...`);
       const { data: records, error: fetchError } = await supabase
         .from(tableId)
         .select('*')
@@ -396,7 +396,7 @@ export const SupabaseDataTab: React.FC = () => {
     }
 
     try {
-      console.log(`[SupabaseData] ✍️ Inserting record into "${selectedTable.id}":`, rowData);
+      console.log(`[DataExplorer] ✍️ Inserting record into "${selectedTable.id}":`, rowData);
       const { data: inserted, error: insertError } = await supabase
         .from(selectedTable.id)
         .upsert(rowData)

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useRealtime } from '../../context/RealtimeContext';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase, isSupabaseReady } from '../../lib/supabaseClient';
 import { evaluateVoice } from '../../lib/riskEngine';
 import {
   Mic,
@@ -91,7 +91,10 @@ export const VoiceAssistantTab: React.FC = () => {
       user.location
     );
 
-    // Log voice transcript to Supabase for real-time pipeline
+    // Log voice transcript to secure data stream for real-time pipeline
+    setRiskDetected(evaluation.isHighRisk);
+
+    if (isSupabaseReady()) {
     try {
       await supabase.from('voice_logs').insert({
         user_id: user.id,
@@ -108,7 +111,7 @@ export const VoiceAssistantTab: React.FC = () => {
       if (evaluation.isHighRisk) {
         setRiskDetected(true);
 
-        // Create risk alert in Supabase for real-time pipeline
+        // Create risk alert in secure data stream for real-time pipeline
         const { riskScore, thresholdsExceeded, riskFactors } = evaluation;
 
         await supabase.from('risk_alerts').insert({
@@ -134,15 +137,10 @@ export const VoiceAssistantTab: React.FC = () => {
           actual_value: riskScore,
           timestamp: new Date().toISOString(),
         });
-
-        setMessages(prev => [...prev, {
-          sender: 'ai',
-          text: `⚠️ TACTICAL ALERT: Voice stress markers detected. Medical Officer notified. Please proceed to nearest aid post for confidential assessment.`,
-          timestamp: new Date(),
-        }]);
       }
     } catch (err) {
-      console.error('Failed to log voice transcript:', err);
+      console.error('Failed to log voice data:', err);
+    }
     }
 
     try {

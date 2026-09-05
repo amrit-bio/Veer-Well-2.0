@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseUser, setSupabaseUser] = useState<SupabaseAuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
-  // ── 1. Supabase Auth Listener (Session tracking) ───────────────────────────
+   // ── 1. Session tracking ─────────────────────────────────────────────────
   useEffect(() => {
     // Check the initial session before allowing protected content to render.
     const initializeSession = async () => {
@@ -196,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void initializeSession();
 
     // Listen for auth state changes across the entire app
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
@@ -216,12 +216,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Sync Supabase Auth User data to application military User state
+  // Sync military Auth User data to application military User state
   const syncUserProfile = async (sbUser: SupabaseAuthUser) => {
     try {
       // Try to fetch profile from public.profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: profile } = await supabase.from('profiles')
         .select('*')
         .eq('id', sbUser.id)
         .maybeSingle();
@@ -283,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. If it is an email address, authenticate with Supabase Auth
+      // 2. If it is an email address, authenticate with secure auth
       if (cleanId.includes('@')) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: cleanId.toLowerCase(),
@@ -324,9 +323,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) return { error };
       }
 
-      // 3. If it is a custom military Service ID, query public.profiles for the corresponding account
-      const { data: matchedProfile } = await supabase
-        .from('profiles')
+      // 3. If it is a custom military Service ID, query profiles for the corresponding account
+      const { data: matchedProfile } = await supabase.from('profiles')
         .select('*')
         .ilike('service_number', cleanId)
         .maybeSingle();
@@ -407,7 +405,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. Try Supabase Auth Sign Up
+      // 2. Try secure auth Sign Up
       try {
         const { data: signupData, error: signupError } = await supabase.auth.signUp({
           email: cleanEmail,
@@ -488,7 +486,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ── 4. Supabase Sign Out ───────────────────────────────────────────────────
-  const supabaseSignOut = async (): Promise<void> => {
+   const supabaseSignOut = async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
       setSession(null);
@@ -560,7 +558,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  const supabaseResetPassword = async (email: string): Promise<{ error: Error | null }> => {
+   const supabaseResetPassword = async (email: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -571,7 +569,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const supabaseSignInWithOtp = async (email: string): Promise<{ error: Error | null }> => {
+   const supabaseSignInWithOtp = async (email: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -585,7 +583,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const supabaseVerifyOtp = async (email: string, token: string): Promise<{ error: Error | null }> => {
+   const supabaseVerifyOtp = async (email: string, token: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
