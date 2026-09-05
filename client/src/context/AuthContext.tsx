@@ -202,25 +202,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      };
      void initializeSession();
 
-    // Listen for auth state changes across the entire app
-     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      if (session?.user) {
-        // Hide the previous account while the selected account's profile loads.
-        setIsAuthenticated(false);
-        await syncUserProfile(session.user);
-        setIsAuthenticated(true);
-      } else {
-        // When signed out from auth system
-        setIsAuthenticated(false);
-      }
-      setAuthLoading(false);
-    });
+    // Listen for auth state changes across the entire app (only when Supabase is configured)
+    if (isSupabaseReady()) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        if (session?.user) {
+          // Hide the previous account while the selected account's profile loads.
+          setIsAuthenticated(false);
+          await syncUserProfile(session.user);
+          setIsAuthenticated(true);
+        } else {
+          // When signed out from auth system
+          setIsAuthenticated(false);
+        }
+        setAuthLoading(false);
+      });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+
+    return () => {};
   }, []);
 
   // Sync military Auth User data to application military User state
