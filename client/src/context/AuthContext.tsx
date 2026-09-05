@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, isSupabaseReady } from '../lib/supabaseClient';
 import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 
@@ -179,21 +179,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
    // ── 1. Session tracking ─────────────────────────────────────────────────
-  useEffect(() => {
-    // Check the initial session before allowing protected content to render.
-    const initializeSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      if (session?.user) {
-        await syncUserProfile(session.user);
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
-      setAuthLoading(false);
-    };
-    void initializeSession();
+   useEffect(() => {
+     // Check the initial session before allowing protected content to render.
+     const initializeSession = async () => {
+       if (!isSupabaseReady()) {
+         // Offline mode: keep the preset demo user authenticated
+         setIsAuthenticated(true);
+         setAuthLoading(false);
+         return;
+       }
+
+       const { data: { session } } = await supabase.auth.getSession();
+       setSession(session);
+       setSupabaseUser(session?.user ?? null);
+       if (session?.user) {
+         await syncUserProfile(session.user);
+         setIsAuthenticated(true);
+       } else {
+         setIsAuthenticated(false);
+       }
+       setAuthLoading(false);
+     };
+     void initializeSession();
 
     // Listen for auth state changes across the entire app
      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
