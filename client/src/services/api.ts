@@ -6,13 +6,14 @@ import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
 // NOTE: Vercel deploys use VITE_ prefixed vars client-side.
 // Server-only vars (no VITE_) are NOT exposed to the browser.
-// On Vercel dashboard, set: VITE_GEMINI_API_KEY = your AQ. or AIza. key
+// On Vercel dashboard, set: VITE_GEMINI_API_KEY = your AI key
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
-const RAW_GEMINI_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI || '';
-const GEMINI_API_KEY = RAW_GEMINI_KEY;
+const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI || '';
+const NVIDIA_API_KEY = (import.meta as any).env?.VITE_NVIDIA_API_KEY || (import.meta as any).env?.NVIDIA_API_KEY || '';
 const IS_VERTEX_AI = GEMINI_API_KEY.startsWith('AQ');
 const IS_GOOGLE_AI = GEMINI_API_KEY.startsWith('AIza');
 const GEMINI_KEY_VALID = IS_VERTEX_AI || IS_GOOGLE_AI;
+const NVIDIA_KEY_VALID = NVIDIA_API_KEY.startsWith('nvapi-');
 
 // Helper function to construct API URLs
 export const getApiUrl = (endpoint: string): string => {
@@ -69,51 +70,42 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 // VeerWell AI Engine — Rakshak AI backbone powered by generative AI
-// Supports both Google AI (AIza...) and Vertex AI (AQ...) key formats
+// Supports: Google AI (AIza...), Vertex AI (AQ...), NVIDIA NIM (nvapi-...)
 async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
-  if (!GEMINI_KEY_VALID) {
-    throw new Error('GEMINI_API_KEY_UNAVAILABLE');
+  // Try Google AI / Vertex AI
+  if (GEMINI_KEY_VALID) {
+    const geminiResult = await tryGemini(contents, systemPrompt);
+    if (geminiResult) return geminiResult;
   }
 
-  const models = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-  ];
+  // Try NVIDIA NIM (OpenAI-compatible endpoint)
+  if (NVIDIA_KEY_VALID) {
+    const nvidiaResult = await tryNvidiaNIM(contents, systemPrompt);
+    if (nvidiaResult) return nvidiaResult;
+  }
 
+  throw new Error('All AI providers failed');
+}
+
+async function tryGemini(
+  contents: Array<{ role: string; parts: Array<{ text: string }> }>,
+  systemPrompt: string
+): Promise<string | null> {
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
   for (const model of models) {
     try {
       const isVertex = IS_VERTEX_AI;
       const url = isVertex
         ? `https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models/${model}:generateContent?key=${GEMINI_API_KEY}`
         : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-
       const body = isVertex
-        ? {
-            systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
-            contents,
-            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
-          }
-        : {
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents,
-            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
-          };
-
-      const res = await withTimeout(
-        fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }),
-        8000
-      );
-
+        ? { systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] }, contents, generationConfig: { temperature: 0.2, maxOutputTokens: 512 } }
+        : { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, generationConfig: { temperature: 0.2, maxOutputTokens: 512 } };
+      const res = await withTimeout(fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), 8000);
       if (!res.ok) continue;
-
       const data = await res.json();
       const parts = data?.candidates?.[0]?.content?.parts;
       if (Array.isArray(parts)) {
@@ -128,12 +120,34 @@ async function callRakshakAI(
           if (text) return text;
         }
       }
-    } catch {
-      // try next model
-    }
+    } catch {}
   }
+  return null;
+}
 
-  throw new Error('All AI models failed');
+async function tryNvidiaNIM(
+  contents: Array<{ role: string; parts: Array<{ text: string }> }>,
+  systemPrompt: string
+): Promise<string | null> {
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+    ...contents.map((c) => ({ role: c.role, content: c.parts.map((p) => p.text || '').join('\n') })),
+  ];
+  try {
+    const res = await withTimeout(
+      fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${NVIDIA_API_KEY}` },
+        body: JSON.stringify({ model: 'meta/llama-3.1-8b-instruct', messages, temperature: 0.2, max_tokens: 512 }),
+      }),
+      10000
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content;
+    if (typeof text === 'string' && text.trim()) return text.trim();
+  } catch {}
+  return null;
 }
 
 export const api = {
