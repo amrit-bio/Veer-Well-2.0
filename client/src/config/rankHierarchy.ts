@@ -646,3 +646,27 @@ export const TIER_LABELS: Record<Tier, string> = {
   3: 'Subordinate Officers (Non-Gazetted)',
   4: 'Constabulary (Non-Gazetted)',
 };
+
+export function getRankDisplayName(rankTier: AllRankTier): string {
+  if (rankTier in RANK_TIER_MAP) {
+    return RANK_TIER_MAP[rankTier as RankTier].displayName;
+  }
+  return rankTier.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+export const RANK_SELECT_OPTIONS: { value: RankTier; label: string }[] = [
+  { value: 'dg', label: 'Director General (DG)' },
+  { value: 'adg', label: 'Additional Director General (ADG)' },
+  { value: 'ig', label: 'Inspector General (IG)' },
+  { value: 'dig', label: 'Deputy Inspector General (DIG)' },
+  { value: 'commandant', label: 'Commandant / CO' },
+  { value: '2ic', label: 'Second-in-Command (2IC)' },
+  { value: 'dy_commandant', label: 'Deputy Commandant (Dy Cmdt)' },
+  { value: 'asst_commandant', label: 'Assistant Commandant (AC)' },
+  { value: 'subedar_major', label: 'Subedar Major (Sub Maj)' },
+  { value: 'subedar', label: 'Subedar (Sub)' },
+  { value: 'si', label: 'Sub-Inspector (SI)' },
+  { value: 'asi', label: 'Assistant Sub-Inspector (ASI)' },
+  { value: 'hc', label: 'Head Constable (HC)' },
+  { value: 'constable', label: 'Constable' },
+];

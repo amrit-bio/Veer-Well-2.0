@@ -5,6 +5,7 @@ import { UserRole } from '../../types';
 import { BrandLogo } from '../common/BrandLogo';
 import { BrandedLoader } from '../common/BrandedLoader';
 import { lookupServiceId } from '../../lib/serviceIdLookup';
+import { RankTier, RANK_SELECT_OPTIONS, getRankDisplayName, RANK_TIER_MAP } from '../../config/rankHierarchy';
 import {
   Shield,
   Lock,
@@ -53,7 +54,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [name, setName] = useState('');
-  const [rank, setRank] = useState('Inspector');
+  const [rank, setRank] = useState<RankTier>('si');
   const [serviceNumber, setServiceNumber] = useState('');
   const [force, setForce] = useState('CRPF');
   const [unit, setUnit] = useState('142 Bn (Srinagar Sector HQ)');
@@ -100,7 +101,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
       if (detectedServiceNumber) setServiceNumber(detectedServiceNumber);
       if (detectedName) setName(detectedName);
-      if (detectedRank) setRank(detectedRank);
+      if (detectedRank) setRank(detectedRank as RankTier);
 
       if (detectedServiceNumber || detectedName) {
         setSuccessMsg('ID card scanned successfully. Fields populated. Switching to Secure Signup...');
@@ -159,10 +160,14 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       const result = lookupServiceId(serviceNumber);
       if (result.found && result.force) {
         setForce(result.force || 'CRPF');
-        setRank(result.rank || 'Inspector');
+        if (result.rankTier && result.rankTier in RANK_TIER_MAP) {
+          setRank(result.rankTier as RankTier);
+        }
         if (result.role) setRole(result.role as UserRole);
         setUnit(result.unit || 'Auto-detected Unit');
-        setDetectionMessage(`✓ ${result.force} — ${result.rank} — ${result.location} (${result.sector})`);
+        setDetectionMessage(
+          `✓ ${result.force} — ${result.rank} — ${result.location} (${result.sector})`
+        );
         setServiceIdDetected(true);
         setErrorMsg(null);
       } else {
@@ -243,7 +248,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     setLoading(true);
     const { error, data } = await supabaseSignUp(email.trim(), password, {
       name: name.trim() || email.split('@')[0],
-      rank,
+      rank: getRankDisplayName(rank),
       serviceNumber: serviceNumber.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
       force,
       unit,
@@ -663,16 +668,12 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
               <label className="block text-[11px] font-bold text-olive-300 font-mono mb-1">Rank</label>
               <select
                 value={rank}
-                onChange={(e) => setRank(e.target.value)}
+                onChange={(e) => setRank(e.target.value as RankTier)}
                 className="w-full px-2.5 py-2 rounded-xl bg-olive-900/90 border border-olive-700/80 text-white text-xs outline-none"
               >
-                <option value="Commandant / CO">Commandant / CO</option>
-                <option value="Chief Medical Officer">Chief Medical Officer</option>
-                <option value="Assistant Commandant">Assistant Commandant</option>
-                <option value="Inspector">Inspector</option>
-                <option value="Sub-Inspector">Sub-Inspector</option>
-                <option value="Head Constable">Head Constable</option>
-                <option value="Behavioral Analyst">Behavioral Analyst</option>
+                {RANK_SELECT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
 
