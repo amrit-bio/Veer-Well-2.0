@@ -43,14 +43,14 @@ export const AiWelfareCopilot: React.FC = () => {
     {
       id: 'm-1',
       sender: 'ai',
-      text: `Jai Hind, ${user.rank} ${user.name}. I am Rakshak AI, powered by advanced AI. All communications are confidential under the Armed Forces Welfare Doctrine. How may I support your unit today?`,
+      text: `Jai Hind, ${user.rank} ${user.name}. I am Rakshak AI — ask me anything about high-altitude hypoxia protocols, burnout recovery, post-mission decompression, duty rotation policies, or VeerWell features. Be specific for the best answer.`,
       time: 'Just now',
-      badge: 'AI Active',
+      badge: 'Rakshak AI',
       recommendations: [
-        'Run 7-day burnout risk inference for High Altitude patrols',
-        'Recommend post-mission decompression protocols for CoBRA scouts',
-        'Start 2-minute tactical box-breathing pacer',
-        'How to apply for 3-day Wellness Recharge leave?',
+        'What is the SpO2 threshold for Siachen sentries?',
+        'How does the 3-day wellness recharge leave work?',
+        'Explain the Armed Forces Welfare Doctrine',
+        'Run the 14-day burnout forecast for my unit',
       ],
     },
   ]);
@@ -226,9 +226,9 @@ export const AiWelfareCopilot: React.FC = () => {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         badge: result.model || 'Rakshak AI',
         recommendations: [
-          'What are the 5 core views of VeerWell?',
-          'What are the key symptoms of hypoxia fatigue in Leh?',
-          'How does the Armed Forces Welfare Doctrine protect me?',
+          'What SpO2 level triggers hypoxia evacuation at Siachen?',
+          'How do I apply for a 48-hour base camp rest rotation?',
+          'What is the AMS triad and when is evacuation mandatory?',
         ],
       };
 

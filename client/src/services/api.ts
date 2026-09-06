@@ -33,17 +33,18 @@ if (typeof window !== 'undefined') {
 }
 
 
-const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).
+const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, a clinical and operational intelligence assistant for VeerWell 2.0 — the AI-based predictive personnel stress and welfare monitoring system used by CAPF, CRPF, BSF, ITBP, CISF, SSB, and MHA.
 
-CRITICAL INSTRUCTIONS:
-1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not give generic boilerplate or force breathing instructions unless the user specifically asks for stress relief or breathing techniques.
-2. If the user asks about the VeerWell 2.0 platform or its features:
-   - Explain the 5 Core Views and that burnout risk is inferred by an on-device XGBoost GBDT (36 trees) fused with advanced AI for clinical language.
-   - Predictive Analytics Module (14-day burnout forecast curves, XGBoost what-if simulator, altitude & roster levers)
-   - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
-3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
-4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
-5. Maintain conversational context across follow-up questions.`;
+RULES — follow in order:
+1. ANSWER THE QUESTION DIRECTLY first. Do not greet, do not summarize, do not apologize, do not offer breathing exercises unless explicitly asked.
+2. If asked about VeerWell features, explain: real-time biometric dashboards, PHQ-9/MBI self-assessments, 14-day XGBoost burnout forecasting, automated duty rotation alerts, and Medical Officer clinical routing. Mention the Armed Forces Welfare Doctrine — wellness data is legally and technically barred from disciplinary or appraisal use.
+3. If asked about HIGH ALTITUDE / HYPOXIA (Leh, Siachen, Ladakh): Cover SpO2 thresholds (88% REM, 86% emergency), AMS triad (headache/nausea/vigilance), HRV RMSSD suppression >22%, hydration minimum 4.5L + electrolytes, 48h lowland respite protocol, pressurized thermal sleep at 18-20°C.
+4. If asked about BURNOUT / FATIGUE / SHIFT EXHAUSTION: Cover autonomic strain from >48h duty cycles, N3/REM sleep suppression, 4-4-4-4 box breathing for vagal reset (6-10 bpm reduction in 3 min), 3-day confidential wellness recharge leave.
+5. If asked about TACTICAL OPS (CoBRA, jungle, ambush, patrol, sentry): Cover post-mission cool-down protocol, ORS fluid replacement (1.5-2L), 20-min peer defusing debrief, 24-48h rest rotation authorization for commanders.
+6. If asked about PRIVACY / DOCTRINE / ANONYMITY: Cover DPDP Act 2023 compliance, k-anonymity k≥5, Laplacian noise ε=0.85, PostgreSQL RLS, pseudonymized CAPF-NODE tokens, zero-punitive welfare guarantee.
+7. If you don't know, say exactly "I don't have that specific information" — do not hallucinate ranks, units, or medical protocols.
+8. Keep responses under 200 words unless the user asks for detail.
+9. Use plain text or minimal markdown. No emojis.`;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -68,9 +69,6 @@ async function callRakshakAI(
     'gemini-2.0-flash',
     'gemini-1.5-flash',
     'gemini-1.5-flash-latest',
-    'gemini-1.5-pro',
-    'gemini-1.0-pro',
-    'gemini-pro-vision',
   ];
   let lastErr: any = null;
 
@@ -86,10 +84,10 @@ async function callRakshakAI(
               parts: [{ text: systemPrompt }],
             },
             contents,
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
           }),
         }),
-        8000
+        5000
       );
 
       if (!res.ok) {
@@ -168,27 +166,7 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Try Express Backend first if available
-    try {
-      const res = await withTimeout(
-        fetch(`${API_BASE}/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, messages: conversationHistory, context }),
-        }),
-        15000
-      );
-      if (res.ok) {
-        const json = await res.json();
-        if (json.reply && !json.reply.toLowerCase().includes('telemetry connectivity is limited')) {
-          return json;
-        }
-      }
-    } catch (e) {
-      // Backend not running or proxy not active, fall through
-    }
-
-    // 2. Try Direct Google Gemini if API key is configured
+    // 1. Try Direct Google Gemini (primary — no local proxy needed)
     if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
       try {
         const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
@@ -211,17 +189,17 @@ export const api = {
 
         let dynamicSystem = RAKSHAK_SYSTEM_PROMPT;
         if (context && Object.keys(context).length > 0) {
-          dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
+          dynamicSystem += `\n\nActive Personnel Context:\nForce: ${context.force || 'CRPF'} | Unit: ${context.unit || 'N/A'} | Rank: ${context.userRank || 'Officer'} | Role: ${context.role || 'personnel'} | Altitude Active: ${context.altitudeActive ? 'Yes' : 'No'} | Shift Hours: ${context.shiftHours || 'N/A'}`;
         }
 
         const reply = await callRakshakAI(contents, dynamicSystem);
-        return { success: true, reply, model: 'Rakshak AI (Gemini Core)' };
+        return { success: true, reply, model: 'Rakshak AI (Gemini)' };
       } catch (err) {
-        // Fall through to dedicated local Rakshak intelligence
+        // Fall through to local engine
       }
     }
 
-    // 3. Rakshak Specialized Military & Clinical Intelligence Engine
+    // 2. Rakshak Specialized Military & Clinical Intelligence Engine (always available)
     const intel = generateRakshakIntelligence(message, context, conversationHistory);
     return {
       success: true,
