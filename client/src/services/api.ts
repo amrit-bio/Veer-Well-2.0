@@ -207,15 +207,14 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Local engine handles specific topics instantly (hypoxia, burnout, tactical ops, etc.)
-    const intel = generateRakshakIntelligence(message, context, conversationHistory);
-
-    // 2. For queries that didn't match a specific topic, try NVIDIA NIM for a real AI answer
-    const isGenericDefault = intel.model === 'Rakshak AI Military Intelligence Core';
-    if (isGenericDefault && NVIDIA_KEY_VALID) {
+    // 1. Try NVIDIA NIM first — real AI answer for every query
+    if (NVIDIA_KEY_VALID) {
       try {
+        const contextBlock = context && Object.keys(context).length > 0
+          ? `\n\nPersonnel Context: Force=${context.force || 'CRPF'} | Unit=${context.unit || 'N/A'} | Rank=${context.userRank || 'Officer'} | Role=${context.role || 'personnel'} | Altitude=${context.altitudeActive ? 'Yes' : 'No'} | Shift=${context.shiftHours || 'N/A'}hrs`
+          : '';
         const nvidiaMessages: Array<{ role: string; content: string }> = [
-          { role: 'system', content: RAKSHAK_SYSTEM_PROMPT },
+          { role: 'system', content: RAKSHAK_SYSTEM_PROMPT + contextBlock },
           ...(conversationHistory.length > 0
             ? conversationHistory.filter((m) => m.text?.trim()).map((m) => ({
                 role: m.sender === 'user' ? 'user' : 'assistant',
@@ -227,7 +226,7 @@ export const api = {
           fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${NVIDIA_API_KEY}` },
-            body: JSON.stringify({ model: 'meta/llama-3.1-8b-instruct', messages: nvidiaMessages, temperature: 0.2, max_tokens: 512 }),
+            body: JSON.stringify({ model: 'meta/llama-3.1-8b-instruct', messages: nvidiaMessages, temperature: 0.3, max_tokens: 1024 }),
           }),
           10000
         );
@@ -239,38 +238,12 @@ export const api = {
           }
         }
       } catch {
-        // NVIDIA failed — fall through to local default
+        // NVIDIA failed — fall through to local engine
       }
     }
 
-    // 3. Also try NVIDIA for in-scope queries that the local engine handled
-    //    (gives a richer AI-generated answer on top of the local template)
-    if (!isGenericDefault && NVIDIA_KEY_VALID) {
-      try {
-        const nvidiaMessages: Array<{ role: string; content: string }> = [
-          { role: 'system', content: RAKSHAK_SYSTEM_PROMPT + '\n\nAnswer this military/wellness question directly and factually.' },
-          { role: 'user', content: message },
-        ];
-        const res = await withTimeout(
-          fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${NVIDIA_API_KEY}` },
-            body: JSON.stringify({ model: 'meta/llama-3.1-8b-instruct', messages: nvidiaMessages, temperature: 0.2, max_tokens: 512 }),
-          }),
-          10000
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const text = data?.choices?.[0]?.message?.content;
-          if (typeof text === 'string' && text.trim()) {
-            return { success: true, reply: text.trim(), model: 'Rakshak AI (NVIDIA NIM)' };
-          }
-        }
-      } catch {
-        // NVIDIA failed — return local engine answer
-      }
-    }
-
+    // 2. Local curated engine — instant, always available
+    const intel = generateRakshakIntelligence(message, context, conversationHistory);
     return { success: true, reply: intel.reply, model: intel.model };
   },
 
