@@ -165,25 +165,23 @@ export const SupabaseDataTab: React.FC = () => {
 
     try {
       console.log(`[DataExplorer] 📡 Fetching from table: "${tableId}"...`);
-      const { data: records, error: fetchError } = await supabase
-        .from(tableId)
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      let query = supabase.from(tableId).select('*').limit(50);
+
+      const { data: records, error: fetchError } = await query;
 
       if (fetchError) {
-        // If sorting by created_at fails (e.g. table without created_at), retry plain select
-        const { data: fallbackRecords, error: fallbackError } = await supabase
-          .from(tableId)
-          .select('*')
-          .limit(50);
-
-        if (fallbackError) {
-          setError(fallbackError.message);
-          setData([]);
+        if (
+          fetchError.message.includes('row-level security') ||
+          fetchError.code === '42501' ||
+          fetchError.code === 'PGRST200'
+        ) {
+          setError(
+            'Your rank and role do not permit access to this table. Military data governance restricts visibility based on unit, force, and clearance level.'
+          );
         } else {
-          setData(fallbackRecords || []);
+          setError(`Secure query blocked: ${fetchError.message}`);
         }
+        setData([]);
       } else {
         setData(records || []);
       }

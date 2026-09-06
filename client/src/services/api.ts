@@ -65,12 +65,12 @@ async function callRakshakAI(
   }
 
   const models = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-pro',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro',
+    'gemini-1.0-pro',
+    'gemini-pro-vision',
   ];
   let lastErr: any = null;
 
