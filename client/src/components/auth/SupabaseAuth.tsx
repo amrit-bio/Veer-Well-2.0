@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { BrandLogo } from '../common/BrandLogo';
 import { BrandedLoader } from '../common/BrandedLoader';
+import { lookupServiceId } from '../../lib/serviceIdLookup';
 import {
   Shield,
   Lock,
@@ -22,6 +23,7 @@ import {
   Camera,
   Mic,
   Loader2,
+  Zap,
 } from 'lucide-react';
 
 interface SupabaseAuthProps {
@@ -143,6 +145,34 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
 
     recognitionRef.current = recognition;
   }, []);
+
+  // ── Service ID Auto-Detection ─────────────────────────────────────────────
+  const [serviceIdDetected, setServiceIdDetected] = useState(false);
+  const [detectionMessage, setDetectionMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode !== 'signup' || !serviceNumber || serviceNumber.trim().length < 6) {
+      return;
+    }
+
+    const debounceTimer = setTimeout(() => {
+      const result = lookupServiceId(serviceNumber);
+      if (result.found && result.force) {
+        setForce(result.force || 'CRPF');
+        setRank(result.rank || 'Inspector');
+        if (result.role) setRole(result.role as UserRole);
+        setUnit(result.unit || 'Auto-detected Unit');
+        setDetectionMessage(`✓ ${result.force} — ${result.rank} — ${result.location} (${result.sector})`);
+        setServiceIdDetected(true);
+        setErrorMsg(null);
+      } else {
+        setDetectionMessage(null);
+        setServiceIdDetected(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(debounceTimer);
+  }, [serviceNumber, mode]);
 
   const startVoiceAuth = () => {
     if (!recognitionRef.current) {
@@ -467,7 +497,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. commander.singh@crpf.gov.in or CRPF-CMD-7801"
+                placeholder="e.g. CRPF-CMD-7801, BSF-SI-2241, ITBP-IG-1102"
                 className="w-full px-4 py-3 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold text-white placeholder:text-olive-500 text-sm font-mono transition-all outline-none"
               />
             </div>
@@ -541,14 +571,49 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-olive-300 font-mono mb-1">Service Number / ID</label>
-              <input
-                type="text"
-                value={serviceNumber}
-                onChange={(e) => setServiceNumber(e.target.value)}
-                placeholder="CRPF-984210"
-                className="w-full px-3 py-2 rounded-xl bg-olive-900/90 border border-olive-700/80 focus:border-accent-gold text-white placeholder:text-olive-500 text-xs font-mono outline-none"
-              />
+              <label className="block text-[11px] font-bold text-olive-300 font-mono mb-1">
+                Service Number / ID
+                {serviceIdDetected && (
+                  <span className="ml-2 text-emerald-400 font-normal flex items-center gap-1 inline-flex">
+                    <Zap className="w-3 h-3" />
+                    Auto-detected
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={serviceNumber}
+                  onChange={(e) => {
+                    setServiceNumber(e.target.value.toUpperCase());
+                    setServiceIdDetected(false);
+                    setDetectionMessage(null);
+                  }}
+                  placeholder="e.g. CRPF-SI-2241, BSF-CMD-7801, ITBP-DIG-1102"
+                  className={`w-full px-3 py-2 rounded-xl text-white placeholder:text-olive-500 text-xs font-mono outline-none transition-colors ${
+                    serviceIdDetected
+                      ? 'bg-emerald-950/50 border-emerald-500/50 focus:border-emerald-400'
+                      : 'bg-olive-900/90 border-olive-700/80 focus:border-accent-gold'
+                  }`}
+                />
+                {serviceIdDetected && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                )}
+              </div>
+              {detectionMessage && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/30"
+                >
+                  {detectionMessage}
+                </motion.p>
+              )}
+              {!serviceIdDetected && serviceNumber.length >= 6 && (
+                <p className="mt-1 text-[10px] text-olive-500 font-mono">
+                  Enter 6+ characters — auto-detection will identify force, rank, unit, and location
+                </p>
+              )}
             </div>
           </div>
 
