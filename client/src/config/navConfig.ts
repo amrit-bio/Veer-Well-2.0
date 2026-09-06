@@ -21,7 +21,7 @@ import {
   Users,
 } from 'lucide-react';
 
-export type NavCategory = 'Core Modules' | 'Analytics & Welfare' | 'Operational Command' | 'Platform & Demo';
+export type NavCategory = 'Core Modules' | 'Analytics & Welfare' | 'Operational Command' | 'Platform & Demo' | 'Senior Command' | 'NSG Task Force';
 
 export interface TabItem {
   id: string;
@@ -52,7 +52,7 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Core Modules',
     icon: Home,
     description: 'Dynamic command summary matching active military persona clearance',
-    roles: ['personnel', 'commander', 'welfare_officer', 'analyst'],
+    roles: ['personnel', 'commander', 'welfare_officer', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'],
     operationalScope: 'All Roles (Customized widgets per clearance tier)',
   },
   {
@@ -62,8 +62,8 @@ export const NAV_CONFIG: TabItem[] = [
     icon: LayoutDashboard,
     badge: 'Live',
     description: 'Live PPG, SpO2, sleep architecture, parasympathetic tone & personal readiness',
-    roles: ['personnel'],
-    operationalScope: 'Frontline Jawans (Personal Biometrics & Sovereignty)',
+    roles: ['personnel', 'subordinate_officer'],
+    operationalScope: 'Frontline Jawans & Subordinate Officers (Personal Biometrics & Sovereignty)',
   },
   {
     id: 'commander-dashboard',
@@ -72,8 +72,38 @@ export const NAV_CONFIG: TabItem[] = [
     icon: LayoutDashboard,
     badge: 'Live',
     description: 'Aggregated unit heatmap, deployment logistics & actionable insights',
-    roles: ['commander'],
+    roles: ['commander', 'nsg_taskforce'],
     operationalScope: 'Commanding Officers (Battalion Command & Strategic Readiness)',
+  },
+  {
+    id: 'senior-command-dashboard',
+    label: 'Sector Command',
+    category: 'Senior Command',
+    icon: Shield,
+    badge: 'Sector HQ',
+    description: 'Multi-battalion / sector-wide anonymized aggregate, inter-unit comparison, escalated-case oversight',
+    roles: ['senior_command'],
+    operationalScope: 'Senior Command (IG/DIG/ADG/DG — Sector-wide Anonymized Aggregate)',
+  },
+  {
+    id: 'subordinate-dashboard',
+    label: 'Platoon Overview',
+    category: 'Operational Command',
+    icon: Users,
+    badge: 'Company',
+    description: 'Platoon-level fatigue/readiness view, first-line triage, duty roster management',
+    roles: ['subordinate_officer'],
+    operationalScope: 'Subordinate Officers (SI/ASI/Subedar — Platoon-scoped First-Line Triage)',
+  },
+  {
+    id: 'nsg-taskforce-dashboard',
+    label: 'NSG Task Force',
+    category: 'NSG Task Force',
+    icon: Shield,
+    badge: 'NSG',
+    description: 'NSG-specific operational overlay: counter-terrorism deployment metrics, ops tempo, task-force readiness',
+    roles: ['nsg_taskforce'],
+    operationalScope: 'NSG Deputation Personnel (Parent Force Rank + NSG Operational Layer)',
   },
   {
     id: 'clinical-dashboard',
@@ -106,8 +136,8 @@ export const NAV_CONFIG: TabItem[] = [
     icon: LineChart,
     badge: '14-Day AI',
     description: '14-day multivariate regression curves, What-If simulation, burnout risk',
-    roles: ['commander', 'welfare_officer', 'analyst'],
-    operationalScope: 'Commanding Officers, Medical Specialists & Behavioral Analysts',
+    roles: ['commander', 'welfare_officer', 'analyst', 'senior_command'],
+    operationalScope: 'Commanding Officers, Senior Command, Medical Specialists & Behavioral Analysts',
   },
   {
     id: 'interventions',
@@ -116,7 +146,7 @@ export const NAV_CONFIG: TabItem[] = [
     icon: HeartPulse,
     badge: 'Rest Roster',
     description: 'Battalion rest rotation authorizations, 48h hypoxia respites & counseling scripts',
-    roles: ['commander', 'welfare_officer'],
+    roles: ['commander', 'welfare_officer', 'subordinate_officer'],
     operationalScope: 'Commanding Officers (Authorizations) & Medical Officers (Clinical Prescriptions)',
   },
   {
@@ -126,7 +156,7 @@ export const NAV_CONFIG: TabItem[] = [
     icon: ShieldCheck,
     badge: 'Zero-Trust',
     description: 'Armed Forces Welfare Doctrine compliance, k-anonymity & differential privacy',
-    roles: ['personnel', 'commander', 'analyst'],
+    roles: ['personnel', 'commander', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'],
     operationalScope: 'Jawans (Data Isolation Pledge), Commanders (Doctrine Audit), Analysts (Epsilon Config)',
   },
 
@@ -140,8 +170,8 @@ export const NAV_CONFIG: TabItem[] = [
     icon: MapPin,
     badge: 'Tactical',
     description: 'Post locations mapped against unit readiness, fatigue scores & altitude risk',
-    roles: ['commander'],
-    operationalScope: 'Commanding Officers (Operational Deployment Planning)',
+    roles: ['commander', 'senior_command', 'subordinate_officer', 'nsg_taskforce'],
+    operationalScope: 'Commanding Officers & Senior Command (Operational Deployment Planning)',
   },
   {
     id: 'algorithm-telemetry',
@@ -173,8 +203,8 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Platform & Demo',
     icon: Award,
     description: 'Operational readiness indicators, duty fatigue mitigation & platform ROI',
-    roles: ['commander', 'analyst'],
-    operationalScope: 'Commanders (Strategic Readiness) & Analysts (Platform Metrics)',
+    roles: ['commander', 'analyst', 'senior_command'],
+    operationalScope: 'Commanders & Senior Command (Strategic Readiness) & Analysts (Platform Metrics)',
   },
   {
     id: 'integrations',
@@ -192,7 +222,7 @@ export const NAV_CONFIG: TabItem[] = [
     icon: Mic,
     badge: 'PTT',
     description: 'Push-to-talk voice interface for wellness reporting, leave requests & hands-free navigation',
-    roles: ['personnel'],
+    roles: ['personnel', 'nsg_taskforce'],
     operationalScope: 'Frontline Personnel (Hands-Free Tactical Operations)',
   },
   {
@@ -201,8 +231,8 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Analytics & Welfare',
     icon: Users,
     description: 'Privacy-preserving wellness modules, anonymous counseling channels & unit support',
-    roles: ['personnel'],
-    operationalScope: 'Frontline Personnel (Confidential Peer Support Network)',
+    roles: ['personnel', 'subordinate_officer'],
+    operationalScope: 'Frontline Personnel & Subordinate Officers (Confidential Peer Support Network)',
   },
   {
     id: 'supabase-data',
@@ -240,6 +270,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
   'Analytics & Welfare',
   'Operational Command',
   'Platform & Demo',
+  'Senior Command',
+  'NSG Task Force',
 ];
 
 /**
@@ -279,6 +311,12 @@ export function getDefaultTabForRole(role: UserRole): string {
       return 'clinical-dashboard';
     case 'analyst':
       return 'algorithm-telemetry';
+    case 'senior_command':
+      return 'senior-command-dashboard';
+    case 'subordinate_officer':
+      return 'subordinate-dashboard';
+    case 'nsg_taskforce':
+      return 'nsg-taskforce-dashboard';
     case 'personnel':
     default:
       return 'dashboard';

@@ -51,6 +51,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         return { label: 'Frontline Sentinel (Jawan)', color: 'text-emerald-400', bg: 'bg-emerald-500/20 border-emerald-500/40' };
       case 'analyst':
         return { label: 'Behavioral Data Scientist', color: 'text-cyan-400', bg: 'bg-cyan-500/20 border-cyan-500/40' };
+      case 'senior_command':
+        return { label: 'Sector Command (IG/DIG)', color: 'text-violet-400', bg: 'bg-violet-500/20 border-violet-500/40' };
+      case 'subordinate_officer':
+        return { label: 'Platoon Commander (SI/Sub)', color: 'text-amber-400', bg: 'bg-amber-500/20 border-amber-500/40' };
+      case 'nsg_taskforce':
+        return { label: 'NSG Task Force', color: 'text-red-400', bg: 'bg-red-500/20 border-red-500/40' };
       default:
         return { label: 'Forces Personnel', color: 'text-olive-300', bg: 'bg-olive-800 border-olive-700' };
     }

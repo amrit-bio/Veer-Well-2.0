@@ -95,10 +95,11 @@ export const transformMetricsForRole = (metrics: any, role: UserRole): RoleBased
 
   switch (role) {
     case 'personnel':
-      // Personnel only see their own data
+    case 'subordinate_officer':
+      // Personnel and Subordinate Officers see their own/section data only
       return {
         ...base,
-        personnelCount: 1, // Just themselves
+        personnelCount: role === 'subordinate_officer' ? (metrics.platoonCount || 1) : 1,
         readinessScore: metrics.personalReadiness || metrics.readinessScore,
         stressIndex: metrics.personalStress || metrics.avgStress,
       };
@@ -108,15 +109,25 @@ export const transformMetricsForRole = (metrics: any, role: UserRole): RoleBased
       return {
         ...base,
         warningCount: metrics.clinicalAlerts || metrics.activeAlerts,
-        // Can see detailed stress/fatigue metrics
       };
 
     case 'commander':
-      // Commanders see aggregated battalion data
+    case 'nsg_taskforce':
+      // Commanders and NSG Task Force see aggregated battalion/squad data
       return {
         ...base,
         personnelCount: metrics.totalPersonnel || 0,
         warningCount: metrics.commandLevelAlerts || metrics.activeAlerts,
+      };
+
+    case 'senior_command':
+      // Senior Command sees sector-wide anonymized aggregate from multiple battalions
+      return {
+        ...base,
+        personnelCount: metrics.sectorPersonnel || metrics.totalPersonnel || 0,
+        readinessScore: Math.round(metrics.sectorReadiness || metrics.readinessScore),
+        stressIndex: Math.round((metrics.sectorAvgStress || metrics.avgStress) * 10) / 10,
+        fatigueFlags: metrics.sectorFatigueFlags || metrics.fatigueOutposts || 0,
       };
 
     case 'analyst':
@@ -124,7 +135,7 @@ export const transformMetricsForRole = (metrics: any, role: UserRole): RoleBased
       return {
         ...base,
         personnelCount: metrics.anonymizedPersonnelCount || 0,
-        readinessScore: Math.round(metrics.readinessScore), // Round for privacy
+        readinessScore: Math.round(metrics.readinessScore),
         stressIndex: Math.round(metrics.avgStress * 10) / 10,
       };
 
@@ -160,6 +171,14 @@ export const transformBattalionDataForRole = (
         alerts: 0, // Hidden
       };
 
+    case 'subordinate_officer':
+      // Subordinate officers see their platoon data (anonymized)
+      return {
+        ...base,
+        personnelCount: Math.round((base.personnelCount || 0) / 4) * 4,
+        location: `${base.location} — Platoon`,
+      };
+
     case 'welfare_officer':
       // Can see clinical data and health metrics
       return {
@@ -169,10 +188,20 @@ export const transformBattalionDataForRole = (
       };
 
     case 'commander':
-      // Full access to battalion data with commander notes
+    case 'nsg_taskforce':
+      // Full access to battalion/squad data with commander notes
       return {
         ...base,
         commanderNotes: battalionData.commanderNotes,
+      };
+
+    case 'senior_command':
+      // Sector-wide anonymized view — multiple battalions aggregated
+      return {
+        ...base,
+        name: `Sector-${base.id.substring(0, 3).toUpperCase()}`,
+        location: battalionData.sectorName || 'Multi-Battalion Sector',
+        personnelCount: Math.round((base.personnelCount || 0) / 10) * 10,
       };
 
     case 'analyst':
@@ -196,8 +225,8 @@ export const filterAlertsForRole = (alerts: RoleBasedAlert[], role: UserRole): R
   return alerts
     .filter((alert) => alert.visibleToRoles.includes(role))
     .map((alert) => {
-      if (role === 'analyst' || role === 'personnel') {
-        // Anonymize sensitive information
+      if (role === 'analyst' || role === 'personnel' || role === 'subordinate_officer') {
+        // Anonymize sensitive information for junior roles
         return {
           ...alert,
           affectedEntities: alert.affectedEntities.map(() => 'Unit-[MASKED]'),
@@ -214,8 +243,11 @@ export const filterAlertsForRole = (alerts: RoleBasedAlert[], role: UserRole): R
 export const mergeRoleDatasets = (datasets: Map<UserRole, any>): any => {
   const merged = {
     personnelMetrics: datasets.get('personnel'),
-    welfarMetrics: datasets.get('welfare_officer'),
+    welfareMetrics: datasets.get('welfare_officer'),
     commanderMetrics: datasets.get('commander'),
+    seniorCommandMetrics: datasets.get('senior_command'),
+    subordinateMetrics: datasets.get('subordinate_officer'),
+    nsgTaskForceMetrics: datasets.get('nsg_taskforce'),
     analystMetrics: datasets.get('analyst'),
   };
 

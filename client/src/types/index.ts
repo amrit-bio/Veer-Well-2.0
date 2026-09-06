@@ -1,8 +1,11 @@
-export type UserRole = 
-  | 'commander'          // Commanding Officer / CO (Unit overview, strategic readiness)
-  | 'welfare_officer'    // Welfare Officer / Medical Specialist (Interventions, counseling alerts)
-  | 'personnel'          // Frontline Personnel / Jawan (Personal biometrics, self-assessments, leave)
-  | 'analyst';           // Data & Behavioral Analyst (Predictive modeling, anonymized research)
+export type UserRole =
+  | 'commander'              // Tier 2: Commanding Officer / CO (Unit overview, strategic readiness)
+  | 'welfare_officer'        // Tier 2: Welfare Officer / Medical Specialist (Interventions, counseling alerts)
+  | 'personnel'              // Tier 4: Frontline Personnel / Jawan (Personal biometrics, self-assessments, leave)
+  | 'analyst'                // Tier 2: Data & Behavioral Analyst (Predictive modeling, anonymized research)
+  | 'senior_command'         // Tier 1: Director General / ADG / IG / DIG (Sector-wide anonymized aggregate)
+  | 'subordinate_officer'    // Tier 3: Subedar Major / Subedar / SI / ASI (Platoon-scoped first-line triage)
+  | 'nsg_taskforce';         // NSG: Deputation overlay — parent rank tier + NSG operational layer
 
 export interface User {
   id: string;
@@ -16,6 +19,11 @@ export interface User {
   anonymizedId: string;  // e.g. "CAPF-NODE-1042"
   avatar?: string;
   location: string;
+  tier?: 1 | 2 | 3 | 4;           // CAPF rank tier
+  rankTier?: string;                 // Specific rank tier key for hierarchy lookup
+  scope?: 'sector' | 'battalion' | 'company' | 'platoon' | 'personal';
+  isNSG?: boolean;                  // True if on NSG deputation
+  parentForce?: string;              // Parent force if on NSG deputation
 }
 
 

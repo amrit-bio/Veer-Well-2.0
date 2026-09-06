@@ -619,9 +619,12 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
                 className="w-full px-2.5 py-2 rounded-xl bg-olive-900/90 border border-olive-700/80 text-white text-xs outline-none"
               >
                 <option value="personnel">Personnel (Jawan)</option>
-                <option value="commander">Commander (CO)</option>
-                <option value="welfare_officer">Welfare Officer</option>
-                <option value="analyst">Data Analyst</option>
+                <option value="subordinate_officer">Subordinate Officer (SI/ASI/Sub)</option>
+                <option value="commander">Commander (CO / 2IC / Dy Cmdt)</option>
+                <option value="senior_command">Senior Command (IG/DIG/ADG/DG)</option>
+                <option value="welfare_officer">Medical / Welfare Officer</option>
+                <option value="analyst">Data / Behavioral Analyst</option>
+                <option value="nsg_taskforce">NSG Task Force</option>
               </select>
             </div>
           </div>

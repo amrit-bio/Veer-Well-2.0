@@ -17,9 +17,9 @@ export interface RoleCredentials {
   description: string;
 }
 
-export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
+export const ROLE_PRESETS: Record<string, RoleCredentials> = {
   commander: {
-    role: 'commander',
+    role: 'commander' as UserRole,
     roleLabel: 'Commanding Officer (CO)',
     defaultLoginId: 'CRPF-CMD-7801',
     defaultPassword: 'co-password-2026',
@@ -31,7 +31,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Battalion Readiness, Rest Approvals, Macro Operational Fatigue Heatmaps (Names Masked).',
   },
   welfare_officer: {
-    role: 'welfare_officer',
+    role: 'welfare_officer' as UserRole,
     roleLabel: 'Medical & Welfare Officer',
     defaultLoginId: 'CRPF-MED-8492',
     defaultPassword: 'med-password-2026',
@@ -43,7 +43,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Prescribe 48h Recovery Respite, Clinical Counseling Scripts, Post-Mission Debriefs.',
   },
   personnel: {
-    role: 'personnel',
+    role: 'personnel' as UserRole,
     roleLabel: 'Frontline Sentinel (Jawan / Inspector)',
     defaultLoginId: 'CRPF-COBRA-1042',
     defaultPassword: 'jawan-password-2026',
@@ -55,7 +55,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.',
   },
   analyst: {
-    role: 'analyst',
+    role: 'analyst' as UserRole,
     roleLabel: 'Behavioral Data Scientist',
     defaultLoginId: 'MHA-ANA-9104',
     defaultPassword: 'ana-password-2026',
@@ -66,9 +66,45 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     badge: 'Differential Privacy Analytics',
     description: 'Multi-variate 14-Day Predictive Burnout Regression, Roster What-If Simulation Models.',
   },
+  senior_command: {
+    role: 'senior_command' as UserRole,
+    roleLabel: 'Inspector General (IG) — Sector Command',
+    defaultLoginId: 'ITBP-IG-1102',
+    defaultPassword: 'ig-password-2026',
+    rank: 'Inspector General (IG)',
+    name: 'Lt. Gen. Ananya Krishnan',
+    force: 'ITBP',
+    unit: 'Northern Sector HQ',
+    badge: 'Sector Command (Multi-Battalion)',
+    description: 'Multi-battalion sector-wide aggregate, inter-unit comparison, escalated-case oversight.',
+  },
+  subordinate_officer: {
+    role: 'subordinate_officer' as UserRole,
+    roleLabel: 'Sub-Inspector — Platoon Commander',
+    defaultLoginId: 'BSF-SI-2241',
+    defaultPassword: 'si-password-2026',
+    rank: 'Sub-Inspector (SI)',
+    name: 'SI Manoj Tiwari',
+    force: 'BSF',
+    unit: '142 Bn, C Company',
+    badge: 'Platoon First-Line Triage',
+    description: 'Platoon-level fatigue/readiness view, first-line triage, duty roster management.',
+  },
+  nsg_taskforce: {
+    role: 'nsg_taskforce' as UserRole,
+    roleLabel: 'Commandant — NSG Task Force',
+    defaultLoginId: 'NSG-CMD-8817',
+    defaultPassword: 'nsg-password-2026',
+    rank: 'Commandant — NSG Deputation',
+    name: 'Col. Arjun Raghuvanshi',
+    force: 'NSG',
+    unit: 'NSG Special Action Group (SAG)',
+    badge: 'NSG Task Force (Counter-Terrorism)',
+    description: 'NSG operational overlay: CT deployment metrics, ops tempo, task-force readiness.',
+  },
 };
 
-const INITIAL_USERS: Record<UserRole, User> = {
+const INITIAL_USERS: Record<string, User> = {
   commander: {
     id: 'usr-co-01',
     name: 'Col. Devendra Singh Rathore',
@@ -76,11 +112,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-CMD-7801',
     force: 'CRPF',
     unit: '142 Bn (Srinagar Sector HQ)',
-    role: 'commander',
+    role: 'commander' as UserRole,
     roleTitle: 'Battalion Commanding Officer',
     anonymizedId: 'CAPF-CMD-01',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     location: 'Srinagar Sector Command, J&K',
+    tier: 2,
+    rankTier: 'commandant',
+    scope: 'battalion',
   },
   welfare_officer: {
     id: 'usr-wo-02',
@@ -89,11 +128,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-MED-8492',
     force: 'CRPF',
     unit: 'Central Composite Hospital, Srinagar',
-    role: 'welfare_officer',
+    role: 'welfare_officer' as UserRole,
     roleTitle: 'Unit Welfare & Psychological Specialist',
     anonymizedId: 'CAPF-MED-02',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     location: 'Field Medical Station, Leh-Ladakh Sector',
+    tier: 2,
+    rankTier: 'chief_medical_officer',
+    scope: 'battalion',
   },
   personnel: {
     id: 'usr-jawan-03',
@@ -102,11 +144,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-COBRA-1042',
     force: 'CRPF',
     unit: '209 CoBRA Bn (Special Ops)',
-    role: 'personnel',
+    role: 'personnel' as UserRole,
     roleTitle: 'Tactical Reconnaissance Lead',
     anonymizedId: 'CAPF-NODE-1042',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
     location: 'Forward Post Delta, Siachen Border Area',
+    tier: 4,
+    rankTier: 'constable',
+    scope: 'personal',
   },
   analyst: {
     id: 'usr-ana-04',
@@ -115,11 +160,64 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'MHA-ANA-9104',
     force: 'CAPF Command',
     unit: 'HQ Directorate General (People Intelligence)',
-    role: 'analyst',
+    role: 'analyst' as UserRole,
     roleTitle: 'Workforce Stress & Fatigue Analyst',
     anonymizedId: 'CAPF-ANA-04',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     location: 'MHA CAPF HQ, New Delhi',
+    tier: 2,
+    rankTier: 'analyst',
+    scope: 'sector',
+  },
+  senior_command: {
+    id: 'usr-ig-05',
+    name: 'Lt. Gen. Ananya Krishnan',
+    rank: 'Inspector General (IG)',
+    serviceNumber: 'ITBP-IG-1102',
+    force: 'ITBP',
+    unit: 'Northern Sector HQ',
+    role: 'senior_command' as UserRole,
+    roleTitle: 'Inspector General — Sector Command',
+    anonymizedId: 'CAPF-IG-05',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    location: 'Northern Sector HQ, Shimla',
+    tier: 1,
+    rankTier: 'ig',
+    scope: 'sector',
+  },
+  subordinate_officer: {
+    id: 'usr-si-06',
+    name: 'SI Manoj Tiwari',
+    rank: 'Sub-Inspector (SI)',
+    serviceNumber: 'BSF-SI-2241',
+    force: 'BSF',
+    unit: '142 Bn, C Company',
+    role: 'subordinate_officer' as UserRole,
+    roleTitle: 'Platoon Commander — First-Line Triage',
+    anonymizedId: 'CAPF-SI-06',
+    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=150&auto=format&fit=crop&q=80',
+    location: 'BSF 142 Bn, Punjab Frontier',
+    tier: 3,
+    rankTier: 'si',
+    scope: 'platoon',
+  },
+  nsg_taskforce: {
+    id: 'usr-nsg-07',
+    name: 'Col. Arjun Raghuvanshi',
+    rank: 'Commandant — NSG Deputation',
+    serviceNumber: 'NSG-CMD-8817',
+    force: 'NSG',
+    unit: 'NSG Special Action Group (SAG)',
+    role: 'nsg_taskforce' as UserRole,
+    roleTitle: 'NSG Task Force Commander',
+    anonymizedId: 'CAPF-NSG-07',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+    location: 'NSG HQ, New Delhi',
+    tier: 2,
+    rankTier: 'commandant',
+    scope: 'battalion',
+    isNSG: true,
+    parentForce: 'CRPF',
   },
 };
 
@@ -247,7 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const meta = sbUser.user_metadata || {};
       const userRole = (profile?.role || meta.role || 'personnel') as UserRole;
-      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst'].includes(userRole)
+      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'].includes(userRole)
         ? userRole
         : 'personnel';
 
@@ -264,6 +362,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         anonymizedId: profile?.anonymized_id || `CAPF-NODE-${sbUser.id.slice(0, 5).toUpperCase()}`,
         avatar: profile?.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
         location: profile?.location || `${profile?.unit || 'HQ Sector'}, ${profile?.force || 'CAPF'}`,
+        tier: profile?.tier || meta.tier || (validRole === 'senior_command' ? 1 : validRole === 'commander' || validRole === 'welfare_officer' || validRole === 'analyst' ? 2 : validRole === 'subordinate_officer' ? 3 : 4),
+        rankTier: profile?.rank_tier || meta.rankTier || null,
+        scope: profile?.scope || meta.scope || null,
       });
     } catch (e) {
       console.warn('Could not sync user profile from Supabase table:', e);

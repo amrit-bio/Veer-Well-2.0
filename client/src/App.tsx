@@ -31,6 +31,9 @@ import { PeerSupportTab } from './components/tabs/PeerSupportTab';
 import { SupabaseAuth } from './components/auth/SupabaseAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { getDefaultTabForRole, getVisibleTabsForRole, isTabAccessible } from './config/navConfig';
+import { SeniorCommandDashboardTab } from './components/tabs/SeniorCommandDashboardTab';
+import { SubordinateOfficerDashboardTab } from './components/tabs/SubordinateOfficerDashboardTab';
+import { NSGTaskForceDashboardTab } from './components/tabs/NSGTaskForceDashboardTab';
 import { useAuth } from './context/AuthContext';
 import { BrandLogo } from './components/common/BrandLogo';
 import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
@@ -171,7 +174,10 @@ const MainPlatform: React.FC = () => {
                 >
                   {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
                   {activeTab === 'dashboard' && role !== 'commander' && <DashboardTab onNavigate={handleTabChange} />}
-                  {activeTab === 'commander-dashboard' && role === 'commander' && <CommanderDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'commander-dashboard' && (role === 'commander' || role === 'nsg_taskforce') && <CommanderDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'senior-command-dashboard' && role === 'senior_command' && <SeniorCommandDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'subordinate-dashboard' && role === 'subordinate_officer' && <SubordinateOfficerDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'nsg-taskforce-dashboard' && role === 'nsg_taskforce' && <NSGTaskForceDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'clinical-dashboard' && role === 'welfare_officer' && <ClinicalDashboardTab />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
@@ -183,10 +189,10 @@ const MainPlatform: React.FC = () => {
                   {activeTab === 'integrations' && <IntegrationsTab />}
                   {activeTab === 'supabase-data' && <SupabaseDataTab />}
                   {activeTab === 'feedback' && <FeedbackTab />}
-                  {activeTab === 'deployment-logistics' && role === 'commander' && <DeploymentLogisticsTab />}
+                  {activeTab === 'deployment-logistics' && (role === 'commander' || role === 'senior_command' || role === 'subordinate_officer' || role === 'nsg_taskforce') && <DeploymentLogisticsTab />}
                   {activeTab === 'algorithm-telemetry' && role === 'analyst' && <AlgorithmTelemetryTab />}
-                  {activeTab === 'voice-assistant' && role === 'personnel' && <VoiceAssistantTab />}
-                  {activeTab === 'peer-support' && role === 'personnel' && <PeerSupportTab />}
+                  {activeTab === 'voice-assistant' && (role === 'personnel' || role === 'nsg_taskforce') && <VoiceAssistantTab />}
+                  {activeTab === 'peer-support' && (role === 'personnel' || role === 'subordinate_officer') && <PeerSupportTab />}
                 </motion.div>
               </AnimatePresence>
             </ProtectedRoute>
