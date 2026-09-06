@@ -118,30 +118,4 @@
   background: rgba(234, 179, 8, 0.75);
 }
 
-/* ── Waving Indian Flag Animation ─────────────────────────────────────────── */
-@waveFlag 0% {
-  transform: rotate(0deg) skewY(0deg) skewX(2deg);
-}
-@waveFlag 25% {
-  transform: rotate(1.5deg) skewY(0.5deg) skewX(-1deg);
-}
-@waveFlag 50% {
-  transform: rotate(-1deg) skewY(-0.3deg) skewX(1deg);
-}
-@waveFlag 75% {
-  transform: rotate(0.8deg) skewY(0.4deg) skewX(-1.5deg);
-}
-@waveFlag 100% {
-  transform: rotate(0deg) skewY(0deg) skewX(2deg);
-}
-
-/* Subtle glow pulse on the flag */
-@flagGlow 0%, 100% {
-  opacity: 0.1;
-}
-@flagGlow 50% {
-  opacity: 0.18;
-}
-
-
 

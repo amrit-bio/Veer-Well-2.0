@@ -200,12 +200,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await syncUserProfile(session.user);
             setIsAuthenticated(true);
           } else {
-            // No active session — fall back to the preset demo user so the
-            // dashboard renders instead of a blank page or stuck loader
-            setIsAuthenticated(true);
+            // No active session — show the login screen (SupabaseAuth)
+            setIsAuthenticated(false);
           }
         } catch {
-          // Supabase unreachable — fall back to demo mode
+          // Supabase unreachable — fall back to demo mode so UI is never blank
           setIsAuthenticated(true);
         }
         setAuthLoading(false);

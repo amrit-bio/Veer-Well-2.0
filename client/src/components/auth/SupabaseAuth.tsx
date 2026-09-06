@@ -357,46 +357,6 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent-gold/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Waving Indian National Flag — decorative background accent */}
-      <div className="absolute top-8 left-8 w-40 h-28 pointer-events-none z-0">
-        <div
-          className="w-full h-full rounded shadow-2xl"
-          style={{
-            background: 'linear-gradient(to bottom, #ff9933 33.33%, #ffffff 33.33%, #ffffff 66.66%, #108043 66.66%)',
-            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
-            animation: 'waveFlag 4.5s ease-in-out infinite',
-          }}
-        >
-          {/* Ashoka Chakra — navy blue wheel with 24 spokes */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full"
-            style={{ backgroundColor: '#002266' }}
-          >
-            {/* 24 spokes */}
-            {Array.from({ length: 24 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute top-1/2 left-1/2 w-0.5 h-2.5 -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  backgroundColor: '#002266',
-                  transform: `rotate(${i * 15}deg)`,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Pulsing glow behind flag */}
-      <div
-        className="absolute top-7 left-7 w-40 h-28 rounded-full pointer-events-none z-0"
-        style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-          animation: 'flagGlow 3s ease-in-out infinite',
-          filter: 'blur(12px)',
-        }}
-      />
-
       <div className="text-center pb-6 border-b border-olive-800/80 relative z-10">
         <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-olive-900 to-olive-950 border border-accent-gold/40 shadow-lg mb-3">
           <Shield className="w-8 h-8 text-accent-gold" />
