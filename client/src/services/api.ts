@@ -4,9 +4,9 @@ import {
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
 import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
-// Get API base from environment variable, fallback to relative path for development
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
 const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+const GEMINI_KEY_VALID = GEMINI_API_KEY.startsWith('AIza');
 
 // Helper function to construct API URLs
 export const getApiUrl = (endpoint: string): string => {
@@ -66,7 +66,7 @@ async function callRakshakAI(
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
   // Pre-flight: validate key format before making any network calls
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+  if (!GEMINI_KEY_VALID) {
     throw new Error('GEMINI_API_KEY_UNAVAILABLE');
   }
 
@@ -76,7 +76,6 @@ async function callRakshakAI(
     'gemini-1.5-flash-latest',
   ];
   let lastErr: any = null;
-
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
@@ -171,46 +170,37 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Try Direct Google Gemini (primary — no local proxy needed)
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
-      try {
-        const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+    // 1. Rakshak Curated Intelligence Engine — fast, accurate, always available
+    const intel = generateRakshakIntelligence(message, context, conversationHistory);
 
-        if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-          for (const m of conversationHistory) {
-            if (m.text && m.text.trim()) {
-              contents.push({
+    // 2. If local engine gave a "don't know" answer AND we have a valid Gemini key, try AI
+    const isUnknownAnswer =
+      intel.reply.includes("I don't have that specific information") ||
+      intel.reply.includes("I can only answer questions about") ||
+      intel.model === 'Rakshak AI Military Intelligence Core';
+
+    if (isUnknownAnswer && GEMINI_KEY_VALID) {
+      try {
+        const contents: Array<{ role: string; parts: Array<{ text: string }> }> = conversationHistory.length > 0
+          ? conversationHistory
+              .filter((m) => m.text?.trim())
+              .map((m) => ({
                 role: m.sender === 'user' ? 'user' : 'model',
                 parts: [{ text: m.text }],
-              });
-            }
-          }
-        } else {
-          contents.push({
-            role: 'user',
-            parts: [{ text: message }],
-          });
-        }
+              }))
+          : [{ role: 'user', parts: [{ text: message }] }];
 
-        let dynamicSystem = RAKSHAK_SYSTEM_PROMPT;
-        if (context && Object.keys(context).length > 0) {
-          dynamicSystem += `\n\nActive Personnel Context:\nForce: ${context.force || 'CRPF'} | Unit: ${context.unit || 'N/A'} | Rank: ${context.userRank || 'Officer'} | Role: ${context.role || 'personnel'} | Altitude Active: ${context.altitudeActive ? 'Yes' : 'No'} | Shift Hours: ${context.shiftHours || 'N/A'}`;
-        }
+        const dynamicSystem = RAKSHAK_SYSTEM_PROMPT +
+          `\n\nActive Personnel Context:\nForce: ${context?.force || 'CRPF'} | Unit: ${context?.unit || 'N/A'} | Rank: ${context?.userRank || 'Officer'} | Role: ${context?.role || 'personnel'} | Altitude: ${context?.altitudeActive ? 'Yes' : 'No'} | Shift Hours: ${context?.shiftHours || 'N/A'}`;
 
         const reply = await callRakshakAI(contents, dynamicSystem);
         return { success: true, reply, model: 'Rakshak AI (Gemini)' };
-      } catch (err) {
-        // Fall through to local engine
+      } catch {
+        // Gemini failed — return local engine answer
       }
     }
 
-    // 2. Rakshak Specialized Military & Clinical Intelligence Engine (always available)
-    const intel = generateRakshakIntelligence(message, context, conversationHistory);
-    return {
-      success: true,
-      reply: intel.reply,
-      model: intel.model,
-    };
+    return { success: true, reply: intel.reply, model: intel.model };
   },
 
 
@@ -247,9 +237,10 @@ export const api = {
       // Fallback
     }
 
-    // 2. Direct AI fallback
-    try {
-      const prompt = `You are Rakshak AI, clinical behavioral analytics engine for CAPF and Uniformed Forces.
+    // 2. Direct AI fallback — only attempted if Gemini key is valid format
+    if (GEMINI_KEY_VALID) {
+      try {
+        const prompt = `You are Rakshak AI, clinical behavioral analytics engine for CAPF and Uniformed Forces.
 Assess the personnel stress profile based on this data:
 ${JSON.stringify(intake, null, 2)}
 
@@ -262,37 +253,39 @@ Return ONLY valid JSON:
   "recommendedAction": "string",
   "welfareDirective": "string"
 }`;
-      const text = await callRakshakAI([
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
-        },
-      ]);
-      const cleaned = text
-        .replace(/```json\s*/gi, '')
-        .replace(/```/g, '')
-        .trim();
-      try {
-        return JSON.parse(cleaned);
+        const text = await callRakshakAI([
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ]);
+        const cleaned = text
+          .replace(/```json\s*/gi, '')
+          .replace(/```/g, '')
+          .trim();
+        try {
+          return JSON.parse(cleaned);
+        } catch {
+          const match = cleaned.match(/\{[\s\S]*\}/);
+          if (match) return JSON.parse(match[0]);
+        }
       } catch {
-        const match = cleaned.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]);
-        throw new Error('Invalid JSON from AI');
+        // Gemini failed — fall through to default
       }
-    } catch (err) {
-      return {
-        overallRisk: 'Moderate',
-        stressScore: 52,
-        keyTriggers: ['High operational duty tempo', 'Hypoxia sleep disruption'],
-        copingPlan: [
-          '4-4-4-4 Box Breathing reset',
-          'Prioritize thermal recovery sleep',
-          'Request 48h base camp rest rotation',
-        ],
-        recommendedAction: 'Schedule confidential counseling with Unit Medical Officer.',
-        welfareDirective: 'Expedite 2-day Wellness Recharge respite.',
-      };
     }
+
+    return {
+      overallRisk: 'Moderate',
+      stressScore: 52,
+      keyTriggers: ['High operational duty tempo', 'Hypoxia sleep disruption'],
+      copingPlan: [
+        '4-4-4-4 Box Breathing reset',
+        'Prioritize thermal recovery sleep',
+        'Request 48h base camp rest rotation',
+      ],
+      recommendedAction: 'Schedule confidential counseling with Unit Medical Officer.',
+      welfareDirective: 'Expedite 2-day Wellness Recharge respite.',
+    };
   },
 };
 
