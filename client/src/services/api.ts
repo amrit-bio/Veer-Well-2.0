@@ -4,8 +4,12 @@ import {
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
 import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
+// NOTE: Vercel deploys use VITE_ prefixed vars client-side.
+// Server-only vars (no VITE_) are NOT exposed to the browser.
+// On Vercel dashboard, set: VITE_GEMINI_API_KEY = your AQ. or AIza. key
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
-const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+const RAW_GEMINI_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI || '';
+const GEMINI_API_KEY = RAW_GEMINI_KEY;
 const IS_VERTEX_AI = GEMINI_API_KEY.startsWith('AQ');
 const IS_GOOGLE_AI = GEMINI_API_KEY.startsWith('AIza');
 const GEMINI_KEY_VALID = IS_VERTEX_AI || IS_GOOGLE_AI;
