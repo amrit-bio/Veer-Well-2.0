@@ -6,7 +6,9 @@ import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
 const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
-const GEMINI_KEY_VALID = GEMINI_API_KEY.startsWith('AIza');
+const IS_VERTEX_AI = GEMINI_API_KEY.startsWith('AQ');
+const IS_GOOGLE_AI = GEMINI_API_KEY.startsWith('AIza');
+const GEMINI_KEY_VALID = IS_VERTEX_AI || IS_GOOGLE_AI;
 
 // Helper function to construct API URLs
 export const getApiUrl = (endpoint: string): string => {
@@ -26,7 +28,7 @@ export const getApiUrl = (endpoint: string): string => {
 if (typeof window !== 'undefined') {
   console.log('[API] Base URL:', API_BASE);
   console.log('[API] Environment:', (import.meta as any).env?.MODE || 'production');
-  console.log('[API] Gemini Key configured:', !!GEMINI_API_KEY);
+  console.log('[API] Gemini/Vertex Key configured:', !!GEMINI_API_KEY, IS_VERTEX_AI ? '(Vertex AI — AQ format)' : IS_GOOGLE_AI ? '(Google AI — AIza format)' : '(invalid format)');
   if (!GEMINI_API_KEY) {
     console.warn('[API] ⚠️ VITE_GEMINI_API_KEY is not set. Rakshak AI will use offline fallback mode.');
   }
@@ -60,12 +62,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-// VeerWell AI Engine - Rakshak AI backbone powered by generative AI
+// VeerWell AI Engine — Rakshak AI backbone powered by generative AI
+// Supports both Google AI (AIza...) and Vertex AI (AQ...) key formats
 async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
 ): Promise<string> {
-  // Pre-flight: validate key format before making any network calls
   if (!GEMINI_KEY_VALID) {
     throw new Error('GEMINI_API_KEY_UNAVAILABLE');
   }
@@ -75,29 +77,36 @@ async function callRakshakAI(
     'gemini-1.5-flash',
     'gemini-1.5-flash-latest',
   ];
-  let lastErr: any = null;
+
   for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const isVertex = IS_VERTEX_AI;
+      const url = isVertex
+        ? `https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models/${model}:generateContent?key=${GEMINI_API_KEY}`
+        : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+      const body = isVertex
+        ? {
+            systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+          }
+        : {
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+          };
+
       const res = await withTimeout(
         fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemPrompt }],
-            },
-            contents,
-            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
-          }),
+          body: JSON.stringify(body),
         }),
-        5000
+        8000
       );
 
-      if (!res.ok) {
-        lastErr = new Error(`AI Model ${model} Error: ${res.status}`);
-        continue;
-      }
+      if (!res.ok) continue;
 
       const data = await res.json();
       const parts = data?.candidates?.[0]?.content?.parts;
@@ -105,12 +114,20 @@ async function callRakshakAI(
         const text = parts.map((p: any) => (typeof p.text === 'string' ? p.text : '')).filter(Boolean).join('\n\n').trim();
         if (text) return text;
       }
-    } catch (e) {
-      lastErr = e;
+      const candidates = data?.candidates || data?.responses?.[0]?.candidates;
+      if (Array.isArray(candidates)) {
+        const parts2 = candidates[0]?.content?.parts;
+        if (Array.isArray(parts2)) {
+          const text = parts2.map((p: any) => (typeof p.text === 'string' ? p.text : '')).filter(Boolean).join('\n\n').trim();
+          if (text) return text;
+        }
+      }
+    } catch {
+      // try next model
     }
   }
 
-  throw lastErr || new Error('Empty AI response');
+  throw new Error('All AI models failed');
 }
 
 export const api = {
