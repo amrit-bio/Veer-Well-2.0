@@ -355,6 +355,34 @@ Jai Hind, **${rank} ${name}**. Box breathing is the primary autonomic regulator 
     };
   }
 
+  // Scope guard — refuse anything not about military personnel wellness
+  const scopeKeywords = [
+    'stress', 'fatigue', 'burnout', 'exhaust', 'sleep', 'insomnia', 'shift',
+    'hypoxia', 'altitude', 'siachen', 'leh', 'ladakh', 'ams', 'spo2', 'hrv',
+    'spO2', 'mountain', 'deployment', 'patrol', 'sentry', 'cobra', 'ambush',
+    'mission', 'combat', 'tactical', 'jungle', 'veerwell', 'wellness', 'welfare',
+    'phq', 'mbi', 'assessment', 'self-assessment', 'wellbeing', 'mental',
+    'anxiety', 'panic', 'depression', 'duty', 'rotation', 'rest', 'leave',
+    'respite', 'recharge', 'recovery', ' autonomic', 'vagus', 'breath',
+    'privacy', 'doctrine', 'anonym', 'rls', 'dpdp', 'k-anonym', 'differential',
+    'constabulary', 'jawan', 'officer', 'personnel', 'recruit', 'commander',
+    'command', 'unit', 'battalion', 'sector', 'force', 'crpf', 'bsf', 'itbp',
+    'cisf', 'ssb', 'nsg', 'assam rifles', 'army', ' paramilitary',
+  ];
+
+  const isInScope = scopeKeywords.some((kw) => q.includes(kw));
+  if (!isInScope) {
+    return {
+      reply: `I can only answer questions about military personnel stress, fatigue, wellness protocols, and VeerWell platform features. Please ask something in that scope.`,
+      model: 'Rakshak AI (Scope Guard)',
+      recommendations: [
+        'What are the SpO2 thresholds for high-altitude sentries?',
+        'How does the 3-day wellness recharge leave work?',
+        'Explain the Armed Forces Welfare Doctrine privacy safeguards',
+      ],
+    };
+  }
+
   // 9. Default Comprehensive Military Intelligence Response
   return {
     reply: `### 🎖️ VeerWell Tactical & Welfare Assistance (${force} • ${unit})
@@ -374,10 +402,10 @@ Jai Hind, **${rank} ${name}**. I am **Rakshak AI**, your intelligent operational
 *Please select one of the suggested inquiries below or type your operational or health question directly.*`,
     model: 'Rakshak AI Military Intelligence Core',
     recommendations: [
-      'What are the 5 core views of VeerWell 2.0?',
-      'Run 7-day burnout risk inference for High Altitude patrols',
+      'What is the SpO2 threshold for Siachen sentries?',
+      'How does the 3-day wellness recharge leave work?',
       'Explain the Armed Forces Welfare Doctrine privacy safeguards',
-      'How do I apply for 3-day confidential wellness leave?',
+      'When is AMS evacuation mandatory?',
     ],
     suggestedAction: 'Explore Operational Modules in VeerWell',
   };
