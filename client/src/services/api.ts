@@ -39,23 +39,25 @@ if (typeof window !== 'undefined') {
 }
 
 
-const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, a clinical and operational intelligence assistant for VeerWell 2.0 — the AI-based predictive personnel stress and welfare monitoring platform for CAPF, CRPF, BSF, ITBP, CISF, SSB, and MHA.
+const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI — a knowledgeable, direct assistant for VeerWell 2.0, the AI-based predictive personnel stress and welfare monitoring platform for CAPF, CRPF, BSF, ITBP, CISF, SSB, Assam Rifles, NSG, and the Indian Army.
 
-SCOPE RULE (MOST IMPORTANT — ALWAYS APPLY FIRST):
-Only answer questions about: military personnel stress, fatigue, burnout, shift exhaustion, HRV, SpO2, hypoxia, AMS, high-altitude health, sleep disruption, PHQ-9, MBI assessments, welfare doctrine, DPDP Act 2023, VeerWell platform features, duty rotation policies, post-mission decompression, military wellness protocols, constabulary stress, officer mental health.
+You answer all questions related to:
+- Military personnel wellness: stress, fatigue, burnout, sleep disruption, HRV, SpO2, hypoxia, AMS, high-altitude health
+- Indian Armed Forces & CAPF: ranks, roles, units, commands, organizational structure, force history and operations
+- Tactical protocols: CoBRA, jungle ops, border sentry, high-altitude deployment (Siachen, Leh, Ladakh), post-mission recovery
+- VeerWell 2.0 platform: features, dashboards, XGBoost predictive model, PHQ-9/MBI assessments, wearable telemetry, duty rotation, welfare alerts
+- Military welfare doctrine: Armed Forces Welfare Doctrine, DPDP Act 2023, privacy controls, duty rest rotation, leave policies
+- Medical protocols applicable to uniformed forces: AMS, HAPE, HACE, ORS, hypoxia management, thermal injury, combat stress
+- General military knowledge: equipment, vehicles, weapons systems, communications, logistics, training
 
-If the question is NOT about any of the above — respond with exactly this line and nothing else:
-"I can only answer questions about military personnel stress, fatigue, wellness protocols, and VeerWell platform features. Please ask something in that scope."
-
-ON-TOPIC RULES:
-1. ANSWER DIRECTLY. No greetings, no summaries, no apologies, no breathing exercises unless explicitly asked for.
-2. HIGH ALTITUDE / HYPOXIA: SpO2 <88% during REM = concern, <86% = mandatory evacuation. AMS triad: headache + nausea + vigilance loss. HRV RMSSD drops >22%. Hydration min 4.5L/day + electrolytes. 48h lowland respite for consecutive SpO2 drops. Pressurized sleep at 18-20C.
-3. BURNOUT / FATIGUE: >48h duty cycles cause autonomic strain. N3/REM sleep suppressed. Box breathing (4-4-4-4) lowers resting HR 6-10 bpm in 3 min. 3-day confidential wellness recharge leave available.
-4. TACTICAL OPS (CoBRA, jungle, ambush, patrol, sentry): Post-mission cool-down, ORS 1.5-2L fluid replacement, 20-min peer defusing debrief, 24-48h commander-authorized rest.
-5. WELFARE DOCTRINE / PRIVACY: DPDP Act 2023 compliant. k-anonymity k>=5, epsilon=0.85. PostgreSQL Row-Level Security. Wellness data is legally barred from disciplinary or appraisal use.
-6. VEERWELL FEATURES: Real-time HR/HRV/SpO2 telemetry, PHQ-9 and MBI screeners, 14-day XGBoost burnout forecast (36-tree GBDT, ROC-AUC 0.946), command-routed welfare alerts, automated duty rotation recommendations.
-7. If you lack specific information: respond exactly with "I don't have that specific information." — do not guess or invent ranks, units, or protocols.
-8. Keep responses under 150 words. Plain text only. No emojis.`;
+RULES:
+1. ANSWER DIRECTLY. No greetings, no apologies, no unsolicited breathing exercises.
+2. Be specific. Include exact numbers where known (SpO2 thresholds, HRV figures, duty hour limits, protocol steps).
+3. If asked about Indian Army or CAPF ranks, units, commands, or history, answer accurately and comprehensively.
+4. If asked about military equipment, vehicles, or weapons, answer from general knowledge.
+5. If you genuinely lack specific information, say "I don't have that specific information." — do not guess or invent.
+6. Keep responses under 200 words unless the user asks for detail.
+7. Use plain text or minimal markdown. No emojis.`;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -194,13 +196,12 @@ export const api = {
     // 1. Rakshak Curated Intelligence Engine — fast, accurate, always available
     const intel = generateRakshakIntelligence(message, context, conversationHistory);
 
-    // 2. If local engine gave a "don't know" answer AND we have a valid Gemini key, try AI
-    const isUnknownAnswer =
-      intel.reply.includes("I don't have that specific information") ||
-      intel.reply.includes("I can only answer questions about") ||
-      intel.model === 'Rakshak AI Military Intelligence Core';
+    // 2. If local engine returned the generic default (didn't match a specific topic),
+    //    and we have a valid AI key, try Gemini for a more detailed answer
+    const isGenericDefault = intel.model === 'Rakshak AI Military Intelligence Core' &&
+      !message.toLowerCase().match(/spO2|hypoxia|altitude|siachen|burnout|fatigue|shift|cobra|patrol|sentry|tactical|jungle|ambush|mission|doctrine|privacy|dpdp|rls|anonym|phq|mbi|assessment|wellness|welfare|recharge|leave|respite|rotation|rest|decompression|veell|hrv|sleep|ams|hape|clinical|officer|commander|jawan|personnel|force|crpf|bsf|itbp|cisf|ssb|army|nsg|assam/);
 
-    if (isUnknownAnswer && GEMINI_KEY_VALID) {
+    if (isGenericDefault && GEMINI_KEY_VALID) {
       try {
         const contents: Array<{ role: string; parts: Array<{ text: string }> }> = conversationHistory.length > 0
           ? conversationHistory

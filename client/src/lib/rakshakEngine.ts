@@ -355,58 +355,29 @@ Jai Hind, **${rank} ${name}**. Box breathing is the primary autonomic regulator 
     };
   }
 
-  // Scope guard — refuse anything not about military personnel wellness
-  const scopeKeywords = [
-    'stress', 'fatigue', 'burnout', 'exhaust', 'sleep', 'insomnia', 'shift',
-    'hypoxia', 'altitude', 'siachen', 'leh', 'ladakh', 'ams', 'spo2', 'hrv',
-    'spO2', 'mountain', 'deployment', 'patrol', 'sentry', 'cobra', 'ambush',
-    'mission', 'combat', 'tactical', 'jungle', 'veerwell', 'wellness', 'welfare',
-    'phq', 'mbi', 'assessment', 'self-assessment', 'wellbeing', 'mental',
-    'anxiety', 'panic', 'depression', 'duty', 'rotation', 'rest', 'leave',
-    'respite', 'recharge', 'recovery', ' autonomic', 'vagus', 'breath',
-    'privacy', 'doctrine', 'anonym', 'rls', 'dpdp', 'k-anonym', 'differential',
-    'constabulary', 'jawan', 'officer', 'personnel', 'recruit', 'commander',
-    'command', 'unit', 'battalion', 'sector', 'force', 'crpf', 'bsf', 'itbp',
-    'cisf', 'ssb', 'nsg', 'assam rifles', 'army', ' paramilitary',
-  ];
-
-  const isInScope = scopeKeywords.some((kw) => q.includes(kw));
-  if (!isInScope) {
-    return {
-      reply: `I can only answer questions about military personnel stress, fatigue, wellness protocols, and VeerWell platform features. Please ask something in that scope.`,
-      model: 'Rakshak AI (Scope Guard)',
-      recommendations: [
-        'What are the SpO2 thresholds for high-altitude sentries?',
-        'How does the 3-day wellness recharge leave work?',
-        'Explain the Armed Forces Welfare Doctrine privacy safeguards',
-      ],
-    };
-  }
-
   // 9. Default Comprehensive Military Intelligence Response
   return {
-    reply: `### 🎖️ VeerWell Tactical & Welfare Assistance (${force} • ${unit})
+    reply: `### 🎖️ VeerWell Rakshak AI — Military & Welfare Assistance (${force} • ${unit})
 
-Jai Hind, **${rank} ${name}**. I am **Rakshak AI**, your intelligent operational stress & welfare co-pilot. All communications within this console are strictly confidential and governed by the **Armed Forces Welfare Doctrine (§ 108.4 Privacy Charter)**.
+Jai Hind, **${rank} ${name}**. I am **Rakshak AI**, your operational stress, welfare, and military knowledge assistant.
 
-#### How I Can Support Your Command & Unit:
-1. **Predictive Burnout & Fatigue Modeling**:
-   * Inquire about 14-day predictive fatigue trajectories, sleep deficit recovery, and high-altitude hypoxia mitigation.
-2. **Clinical Directives & Interventions**:
-   * Guidance on prescribing 48-hour base camp respites, post-mission tactical debriefs, and confidential 3-day wellness recharge leave.
-3. **Autonomic Nervous System Regulation**:
-   * Access real-time 4-4-4-4 tactical box-breathing pacers to lower sympathetic heart rate and restore cognitive focus.
-4. **Platform & Doctrine Compliance**:
-   * Inspect the 5 Core Views, XGBoost GBDT architecture, differential privacy budgets ($\epsilon = 0.85$), and Row-Level Security safeguards.
+#### What I Cover:
+1. **Military Personnel Wellness**: burnout, fatigue, sleep disruption, HRV/SpO2 monitoring, PHQ-9/MBI screeners, hypoxia, AMS.
+2. **CAPF & Indian Army**: organizational structure, force commands, ranks and roles, operational doctrines.
+3. **VeerWell 2.0 Platform**: real-time telemetry dashboards, 14-day XGBoost burnout forecasting, duty rotation alerts, clinical routing.
+4. **Tactical Protocols**: post-mission recovery, CoBRA operations, high-altitude health (Siachen/Leh/Ladakh), border sentry welfare.
+5. **Welfare Doctrine**: Armed Forces Welfare Doctrine, DPDP Act 2023, k-anonymity, PostgreSQL RLS, zero-punitive wellness guarantee.
+6. **Equipment & Logistics**: military vehicles, communication systems, weapons platforms, BLE wearable integration.
+7. **Medical Protocols**: AMS/HAPE management, ORS, thermal injury, combat stress, 48h rest rotation, 3-day recharge leave.
 
-*Please select one of the suggested inquiries below or type your operational or health question directly.*`,
+*Ask me anything about military operations, welfare, or VeerWell features.*`,
     model: 'Rakshak AI Military Intelligence Core',
     recommendations: [
-      'What is the SpO2 threshold for Siachen sentries?',
-      'How does the 3-day wellness recharge leave work?',
-      'Explain the Armed Forces Welfare Doctrine privacy safeguards',
-      'When is AMS evacuation mandatory?',
+      'What are the ranks and structure of CRPF?',
+      'Explain the AMS triad and evacuation protocol',
+      'How does the 14-day XGBoost burnout forecast work?',
+      'What is the Armed Forces Welfare Doctrine?',
     ],
-    suggestedAction: 'Explore Operational Modules in VeerWell',
+    suggestedAction: 'Explore Military Knowledge Base',
   };
 }
