@@ -199,7 +199,7 @@ export const api = {
     // 2. If local engine returned the generic default (didn't match a specific topic),
     //    and we have a valid AI key, try Gemini for a more detailed answer
     const isGenericDefault = intel.model === 'Rakshak AI Military Intelligence Core' &&
-      !message.toLowerCase().match(/spO2|hypoxia|altitude|siachen|burnout|fatigue|shift|cobra|patrol|sentry|tactical|jungle|ambush|mission|doctrine|privacy|dpdp|rls|anonym|phq|mbi|assessment|wellness|welfare|recharge|leave|respite|rotation|rest|decompression|veell|hrv|sleep|ams|hape|clinical|officer|commander|jawan|personnel|force|crpf|bsf|itbp|cisf|ssb|army|nsg|assam/);
+      !message.toLowerCase().match(/spO2|hypoxia|altitude|siachen|burnout|fatigue|stress|shift|cobra|patrol|sentry|tactical|jungle|ambush|mission|doctrine|privacy|dpdp|rls|anonym|phq|mbi|assessment|wellness|welfare|recharge|leave|respite|rotation|rest|decompression|veell|hrv|sleep|ams|hape|clinical|officer|commander|jawan|personnel|force|crpf|bsf|itbp|cisf|ssb|army|nsg|assam/);
 
     if (isGenericDefault && GEMINI_KEY_VALID) {
       try {

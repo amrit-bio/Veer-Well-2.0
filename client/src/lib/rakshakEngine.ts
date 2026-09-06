@@ -45,6 +45,7 @@ export function generateRakshakIntelligence(
   // 1. High Altitude / Hypoxia / Siachen / Leh
   if (
     q.includes('altitude') ||
+    q.includes('high altitude') ||
     q.includes('hypoxia') ||
     q.includes('leh') ||
     q.includes('siachen') ||
@@ -167,8 +168,9 @@ Jai Hind, **${rank} ${name}**. In VeerWell 2.0, privacy is not merely an encrypt
     };
   }
 
-  // 4. Burnout / Fatigue / Sleep / Insomnia / Shift Exhaustion
+  // 4. Burnout / Fatigue / Sleep / Insomnia / Stress / Shift Exhaustion
   if (
+    q.includes('stress') ||
     q.includes('burnout') ||
     q.includes('fatigue') ||
     q.includes('sleep') ||
