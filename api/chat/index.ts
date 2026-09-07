@@ -46,33 +46,43 @@ RULES:
       : '';
     nvidiaMessages[0].content += contextBlock;
 
-    const nimRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${NVIDIA_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'meta/llama-3.1-8b-instruct',
-        messages: nvidiaMessages,
-        temperature: 0.3,
-        max_tokens: 1024,
-      }),
-    });
+    const NIM_MODELS = [
+      'meta/llama-3.3-70b-instruct',
+      'meta/llama-3.1-8b-instruct',
+      'meta/llama-3.1-70b-instruct',
+      'deepseek-ai/DeepSeek-R1',
+      'qwen/qwen2.5-72b-instruct',
+    ];
 
-    if (!nimRes.ok) {
-      const errText = await nimRes.text();
-      console.error('[api/chat] NVIDIA NIM error:', nimRes.status, errText);
-      return res.status(500).json({ success: false, error: `NVIDIA NIM error: ${nimRes.status}` });
+    let nimRes: Response;
+    let nimData: any;
+    for (const model of NIM_MODELS) {
+      nimRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${NVIDIA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: nvidiaMessages,
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      });
+      if (nimRes.ok) {
+        nimData = await nimRes.json();
+        const text = nimData?.choices?.[0]?.message?.content;
+        if (typeof text === 'string' && text.trim()) {
+          return res.json({ success: true, reply: text.trim(), model: `Rakshak AI (${model})` });
+        }
+      }
+      console.warn(`[api/chat] NVIDIA model ${model} failed: ${nimRes.status}`);
     }
 
-    const data = await nimRes.json();
-    const text = data?.choices?.[0]?.message?.content;
-    if (typeof text !== 'string' || !text.trim()) {
-      return res.status(500).json({ success: false, error: 'Empty AI response' });
-    }
-
-    return res.json({ success: true, reply: text.trim(), model: 'Rakshak AI (NVIDIA NIM)' });
+    const lastErr = nimRes ? await nimRes.text() : 'No response from any model';
+    console.error('[api/chat] All NVIDIA models failed. Last response:', lastErr);
+    return res.status(500).json({ success: false, error: `All NVIDIA models failed. Check Vercel logs.` });
   } catch (error: any) {
     console.error('[api/chat] Server error:', error);
     return res.status(200).json({
