@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { SeededData, generateSeedData } from './utils/seedData.js';
 import { predictXGBoost, warmXGBoost } from './utils/xgboostEngine.js';
+import { generateRakshakIntelligence } from './utils/rakshakEngine.js';
 
 dotenv.config();
 
@@ -90,6 +91,10 @@ app.use(cors({
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+app.get('/api/health', (req: Request, res: Response) => {
+  return res.json({ status: 'ok', platform: 'VeerWell 2.0 (Rakshak AI)', timestamp: new Date().toISOString() });
+});
 
 // Multer storage for PDF and CSV uploads
 // In production (Railway/Render), use /tmp directory for ephemeral storage
@@ -1088,8 +1093,8 @@ app.get('/api/wearables', (req: Request, res: Response) => {
 // ==========================================
 // 10. RAKSHAK AI ENGINE INTEGRATION
 // ==========================================
-function getAIModelUrl(modelName = 'gemini-3.6-flash') {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+function getAIModelUrl(modelName = 'gemini-2.0-flash', apiKey = GEMINI_API_KEY) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 }
 
 function extractAIResponse(payload: any): string {
@@ -1127,10 +1132,10 @@ function parseJsonLikeText(rawText: string): any {
   }
 }
 
-const RAKSHAK_SYSTEM_INSTRUCTION = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).
+const RAKSHAK_SYSTEM_INSTRUCTION = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, NSG, Assam Rifles, Indian Army, and Ministry of Home Affairs).
 
 CRITICAL INSTRUCTIONS:
-1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not deflect, give unrelated boilerplate, or repeat generic breathing exercises unless the user specifically asks for stress relief, breathing techniques, or acute panic assistance.
+1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. You can answer ALL kinds of questions: military tactics, weaponry, physical conditioning, running, mental resilience, stress biology, medicine/first aid, technology, history, geography, science, math, or general knowledge.
 2. If the user asks about the VeerWell 2.0 platform or its features:
    - Explain the 5 Core Views:
      1. Personnel Wellness Monitoring Dashboard (Battalion readiness, 3D stress orb, 5D radar, fatigue metrics)
@@ -1139,7 +1144,7 @@ CRITICAL INSTRUCTIONS:
      4. Intervention & Alert System (Clinical welfare directives, 48h hypoxia rest rotations, supportive counseling scripts)
      5. Privacy Management Framework (RBAC matrix, cryptographic token anonymization CAPF-NODE-XXXX, zero-trust protocol)
    - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
-3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
+3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration, BPET fitness), give deep, practical, medically sound, and military-appropriate guidance.
 4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
 5. Maintain conversational context across follow-up questions.`;
 
@@ -1154,40 +1159,143 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
-  systemText: string = RAKSHAK_SYSTEM_INSTRUCTION
-): Promise<string> {
-  if (!GEMINI_API_KEY) {
+  systemText: string = RAKSHAK_SYSTEM_INSTRUCTION,
+  customKey?: string
+): Promise<{ text: string; model: string }> {
+  const activeKey = customKey || GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.NVIDIA_API_KEY || '';
+  if (!activeKey) {
     throw new Error('Rakshak AI Engine key is missing in server environment.');
   }
 
-  const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-pro',
-  ];
-  let lastError: any = null;
+  // Check if Groq key
+  if (activeKey.startsWith('gsk_')) {
+    const groqRes = await withTimeout(
+      fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activeKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemText },
+            ...contents.map((c) => ({
+              role: c.role === 'model' ? 'assistant' : c.role,
+              content: c.parts.map((p) => p.text).join('\n'),
+            })),
+          ],
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      }),
+      10000
+    );
+    if (groqRes.ok) {
+      const data = await groqRes.json();
+      const txt = data?.choices?.[0]?.message?.content;
+      if (txt) return { text: txt.trim(), model: 'Rakshak AI (Groq Llama-3.3-70B)' };
+    }
+  }
 
-  for (const model of modelsToTry) {
+  // Check if NVIDIA NIM key
+  if (activeKey.startsWith('nvapi-')) {
+    const nimModels = [
+      'meta/llama-3.3-70b-instruct',
+      'meta/llama-3.1-8b-instruct',
+      'deepseek-ai/deepseek-r1',
+      'nvidia/llama-3.1-nemotron-70b-instruct',
+    ];
+    for (const model of nimModels) {
+      try {
+        const nimRes = await withTimeout(
+          fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemText },
+                ...contents.map((c) => ({
+                  role: c.role === 'model' ? 'assistant' : c.role,
+                  content: c.parts.map((p) => p.text).join('\n'),
+                })),
+              ],
+              temperature: 0.3,
+              max_tokens: 1024,
+            }),
+          }),
+          10000
+        );
+        if (nimRes.ok) {
+          const data = await nimRes.json();
+          const txt = data?.choices?.[0]?.message?.content;
+          if (txt) return { text: txt.trim(), model: `Rakshak AI (NVIDIA ${model.split('/').pop()})` };
+        }
+      } catch {}
+    }
+  }
+
+  // Check if OpenAI key
+  if (activeKey.startsWith('sk-')) {
     try {
-      const response = await withTimeout(
-        fetch(getAIModelUrl(model), {
+      const openAiRes = await withTimeout(
+        fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeKey}`,
           },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemText }],
-            },
-            contents,
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 1024,
-            },
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemText },
+              ...contents.map((c) => ({
+                role: c.role === 'model' ? 'assistant' : c.role,
+                content: c.parts.map((p) => p.text).join('\n'),
+              })),
+            ],
+            temperature: 0.3,
+            max_tokens: 1024,
           }),
+        }),
+        10000
+      );
+      if (openAiRes.ok) {
+        const data = await openAiRes.json();
+        const txt = data?.choices?.[0]?.message?.content;
+        if (txt) return { text: txt.trim(), model: 'Rakshak AI (OpenAI GPT-4o-mini)' };
+      }
+    } catch {}
+  }
+
+  // Try Google Gemini
+  const geminiModels = [
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+  ];
+  let lastError: any = null;
+
+  for (const model of geminiModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+      const body = {
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents,
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+      };
+
+      const response = await withTimeout(
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         }),
         8000
       );
@@ -1201,7 +1309,7 @@ async function callRakshakAI(
       const payload = await response.json();
       const text = extractAIResponse(payload);
       if (text) {
-        return text;
+        return { text, model: `Rakshak AI (Gemini ${model.replace('gemini-', '')})` };
       }
     } catch (e) {
       lastError = e;
@@ -1213,7 +1321,9 @@ async function callRakshakAI(
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
-    const { message, messages = [], context = {} } = req.body || {};
+    const { message, messages = [], context = {}, apiKey = '' } = req.body || {};
+    const clientKey = (req.headers['x-ai-key'] as string) || apiKey || '';
+
     if (!message && (!Array.isArray(messages) || messages.length === 0)) {
       return res.status(400).json({ success: false, error: 'A message is required.' });
     }
@@ -1246,29 +1356,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     let reply = '';
     let modelUsed = 'Gemini 2.0 Flash';
     try {
-      reply = await callRakshakAI(contents, dynamicSystem);
+      const aiRes = await callRakshakAI(contents, dynamicSystem, clientKey);
+      reply = aiRes.text;
+      modelUsed = aiRes.model;
     } catch (aiErr) {
-      console.warn('[VeerWell Server] Direct Gemini call skipped/failed, using Rakshak Military Intelligence Core:', (aiErr as any)?.message);
+      console.warn('[VeerWell Server] Direct AI call skipped/failed, using Rakshak Intelligence Engine:', (aiErr as any)?.message);
       const userText = message || (Array.isArray(messages) && messages.length > 0 ? messages[messages.length - 1].text : '') || '';
-      const q = userText.toLowerCase();
-      const rank = context.userRank || 'Officer';
-      const name = context.userName || 'Personnel';
-      const force = context.force || 'CRPF';
-      const unit = context.unit || '142 Bn';
-
-      if (q.includes('altitude') || q.includes('hypoxia') || q.includes('leh') || q.includes('siachen') || q.includes('mountain') || q.includes('spo2')) {
-        reply = `### 🏔️ High-Altitude & Hypoxia Tactical Protocol (${force} / ${unit})\n\nJai Hind, **${rank} ${name}**. At extreme altitudes (>11,000 ft in Leh, Ladakh, and Siachen sectors), reduced atmospheric partial pressure of oxygen directly induces nocturnal desaturation, elevated sympathetic tone, and sleep fragmentation.\n\n#### Key Physiological Indicators & Safeguards:\n1. **Nocturnal SpO₂ Monitoring**: Sentry telemetry flags SpO₂ dropping below **88%** during REM sleep. Target acclimatization baseline is **92–95%**.\n2. **Autonomic HRV**: Hypoxic strain suppresses parasympathetic vagal tone (RMSSD drop >22%), elevating resting pulse by 8–15 bpm.\n3. **Acute Mountain Sickness (AMS) Triad**: Headaches, shift insomnia, and decreased vigilance.\n\n#### Directives:\n* **Hydration SOP**: Minimum 4.5–5.0 Liters daily with oral electrolytes.\n* **48-Hour Lowland Respite**: Recommended for personnel exhibiting consecutive SpO₂ drops <86%.\n* **Pressurized Thermal Sleep Quarters**: Maintain heated bunk spaces at 18–20°C.`;
-        modelUsed = 'Rakshak Hypoxia Clinical Engine';
-      } else if (q.includes('core view') || q.includes('5 view') || q.includes('feature') || q.includes('platform') || q.includes('what can veerwell do') || q.includes('module')) {
-        reply = `### 🛡️ VeerWell 2.0 — 5 Core Architectural Views & Modules\n\n1. **📊 Personnel Wellness Monitoring Dashboard**: Real-time PPG pulse, SpO₂, HRV parasympathetic recovery, and 3D stress orb.\n2. **📝 Mobile-Responsive Self-Assessment**: Voluntary PHQ-9 and Maslach Burnout Inventory (MBI) screeners.\n3. **📈 Predictive Analytics Module**: 36-tree XGBoost GBDT predicting burnout 7–14 days ahead (ROC-AUC **0.946**).\n4. **🩺 Intervention & Clinical Alert System**: Clinical triage prescriptions, 48h hypoxia respites, and digital CO approval workflow.\n5. **🔒 Zero-Trust Privacy Framework**: Cryptographic token anonymization (\`CAPF-NODE-XXXX\`) and Armed Forces Welfare Doctrine protection.`;
-        modelUsed = 'Rakshak Architecture Engine';
-      } else if (q.includes('doctrine') || q.includes('privacy') || q.includes('security') || q.includes('confidential') || q.includes('appraisal')) {
-        reply = `### 🔒 Armed Forces Welfare Doctrine (§ 108.4 Privacy Charter)\n\nJai Hind, **${rank} ${name}**. In VeerWell 2.0, privacy is an immutable military governance doctrine:\n\n1. **Strict Non-Punitive Guarantee**: Wellness telemetry and PHQ-9 screeners are legally designated Protected Welfare Data and **strictly forbidden** from ACR evaluations, disciplinary actions, or appraisals.\n2. **Differential Privacy & K-Anonymity (k=5)**: Commanders view only aggregate cohort patterns ($\epsilon = 0.85$).\n3. **Cryptographic Identity Masking**: Protected via pseudonymous tokens (\`CAPF-NODE-XXXX\`).`;
-        modelUsed = 'Rakshak Governance Engine';
-      } else {
-        reply = `### 🎖️ VeerWell Tactical & Welfare Assistance (${force} • ${unit})\n\nJai Hind, **${rank} ${name}**. I am **Rakshak AI**, your operational stress & welfare co-pilot. All communications within this console are strictly confidential under the **Armed Forces Welfare Doctrine**.\n\n#### Quick Directives Available:\n* **Predictive Burnout & Fatigue Modeling**: 14-day forecast curves & sleep debt recovery.\n* **Clinical Directives**: 48-hour base camp respites & confidential 3-day recharge leave.\n* **Autonomic Regulation**: Real-time 4-4-4-4 tactical box-breathing pacer to lower sympathetic heart rate.\n* **Platform Guidance**: Inspect the 5 Core Views and XGBoost GBDT architecture.`;
-        modelUsed = 'Rakshak AI Military Intelligence Core';
-      }
+      const intel = generateRakshakIntelligence(userText, context, messages);
+      reply = intel.reply;
+      modelUsed = intel.model;
     }
 
     return res.json({
@@ -1361,8 +1457,8 @@ Use the XGBoost stressScore and riskBand as the primary numeric truth; write cli
 
     let parsed: any = null;
     try {
-      const rawResponse = await callRakshakAI([{ role: 'user', parts: [{ text: prompt }] }]);
-      parsed = parseJsonLikeText(rawResponse);
+      const aiRes = await callRakshakAI([{ role: 'user', parts: [{ text: prompt }] }]);
+      parsed = parseJsonLikeText(aiRes.text);
     } catch {
       parsed = null;
     }

@@ -1,9 +1,6 @@
 /**
  * Rakshak AI — Comprehensive Military Behavioral, Tactical, Weaponry & Human Performance Engine
- * Built for VeerWell 2.0 (Indian Armed Forces, CAPF, CRPF, BSF, ITBP, SSB, CISF, NSG, Assam Rifles & MHA)
- * 
- * Delivers direct, deeply specialized, medically accurate, and operationally rigorous responses
- * across physical conditioning, weapons systems, battlefield protocols, mental resilience, and military doctrine.
+ * Server-side Engine for VeerWell 2.0 (Indian Armed Forces, CAPF, CRPF, BSF, ITBP, SSB, CISF, NSG, Assam Rifles & MHA)
  */
 
 export interface RakshakContext {

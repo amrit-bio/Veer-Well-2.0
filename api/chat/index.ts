@@ -4,20 +4,44 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { message, messages = [], context = {} } = req.body || {};
+    const { message, messages = [], context = {}, apiKey = '' } = req.body || {};
+    const clientKey = (req.headers['x-ai-key'] as string) || apiKey || '';
+
     if (!message && (!Array.isArray(messages) || messages.length === 0)) {
       return res.status(400).json({ success: false, error: 'A message is required.' });
     }
 
     const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    const GEMINI_API_KEY = clientKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    const GROQ_API_KEY = (clientKey.startsWith('gsk_') ? clientKey : '') || process.env.GROQ_API_KEY || '';
     const IS_VERTEX_AI = GEMINI_API_KEY.startsWith('AQ');
     const IS_GOOGLE_AI = GEMINI_API_KEY.startsWith('AIza');
     const GEMINI_KEY_VALID = IS_VERTEX_AI || IS_GOOGLE_AI;
 
-    if (!NVIDIA_API_KEY && !GEMINI_KEY_VALID) {
-      console.error('[api/chat] No AI key configured. Set NVIDIA_API_KEY or GEMINI_API_KEY in Vercel.');
-      return res.status(500).json({ success: false, error: 'No AI API key configured on the server.' });
+    // Check Groq first if key provided
+    if (GROQ_API_KEY) {
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: 'You are Rakshak AI, direct military and human performance assistant for VeerWell 2.0.' },
+              ...(Array.isArray(messages) && messages.length > 0
+                ? messages.map((m: any) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
+                : [{ role: 'user', content: message }]),
+            ],
+            temperature: 0.3,
+            max_tokens: 1024,
+          }),
+        });
+        if (groqRes.ok) {
+          const data = await groqRes.json();
+          const txt = data?.choices?.[0]?.message?.content;
+          if (txt) return res.json({ success: true, reply: txt.trim(), model: 'Rakshak AI (Groq Llama-3.3-70B)' });
+        }
+      } catch {}
     }
 
     const nvidiaMessages: Array<{ role: string; content: string }> = [
@@ -51,25 +75,24 @@ RULES:
       : '';
     nvidiaMessages[0].content += contextBlock;
 
-    // Try Gemini / Vertex AI first
+    // Try Gemini first
     if (GEMINI_KEY_VALID) {
-      const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+      const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       for (const model of GEMINI_MODELS) {
         try {
-          const isVertex = IS_VERTEX_AI;
-          const url = isVertex
-            ? `https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models/${model}:generateContent?key=${GEMINI_API_KEY}`
-            : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-          const body = isVertex
-            ? { systemInstruction: { role: 'system', parts: [{ text: nvidiaMessages[0].content }] }, contents: nvidiaMessages.slice(1), generationConfig: { temperature: 0.3, maxOutputTokens: 1024 } }
-            : { systemInstruction: { parts: [{ text: nvidiaMessages[0].content }] }, contents: nvidiaMessages.slice(1), generationConfig: { temperature: 0.3, maxOutputTokens: 1024 } };
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+          const body = {
+            systemInstruction: { parts: [{ text: nvidiaMessages[0].content }] },
+            contents: nvidiaMessages.slice(1),
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          };
           const gemRes = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
           if (gemRes.ok) {
             const gemData = await gemRes.json();
             const parts = gemData?.candidates?.[0]?.content?.parts;
             if (Array.isArray(parts)) {
               const text = parts.map((p: any) => (typeof p.text === 'string' ? p.text : '')).filter(Boolean).join('\n\n').trim();
-              if (text) return res.json({ success: true, reply: text, model: `Rakshak AI (${isVertex ? 'Vertex ' : ''}${model})` });
+              if (text) return res.json({ success: true, reply: text, model: `Rakshak AI (Gemini ${model.replace('gemini-', '')})` });
             }
           }
           console.warn(`[api/chat] Gemini model ${model} failed: ${gemRes.status}`);
