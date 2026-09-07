@@ -10,9 +10,14 @@ export default async function handler(req: any, res: any) {
     }
 
     const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
-    if (!NVIDIA_API_KEY) {
-      console.error('[api/chat] NVIDIA_API_KEY is missing from Vercel environment variables.');
-      return res.status(500).json({ success: false, error: 'NVIDIA_API_KEY is not configured on the server. Set it in Vercel Dashboard → Settings → Environment Variables.' });
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    const IS_VERTEX_AI = GEMINI_API_KEY.startsWith('AQ');
+    const IS_GOOGLE_AI = GEMINI_API_KEY.startsWith('AIza');
+    const GEMINI_KEY_VALID = IS_VERTEX_AI || IS_GOOGLE_AI;
+
+    if (!NVIDIA_API_KEY && !GEMINI_KEY_VALID) {
+      console.error('[api/chat] No AI key configured. Set NVIDIA_API_KEY or GEMINI_API_KEY in Vercel.');
+      return res.status(500).json({ success: false, error: 'No AI API key configured on the server.' });
     }
 
     const nvidiaMessages: Array<{ role: string; content: string }> = [
@@ -46,6 +51,35 @@ RULES:
       : '';
     nvidiaMessages[0].content += contextBlock;
 
+    // Try Gemini / Vertex AI first
+    if (GEMINI_KEY_VALID) {
+      const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+      for (const model of GEMINI_MODELS) {
+        try {
+          const isVertex = IS_VERTEX_AI;
+          const url = isVertex
+            ? `https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models/${model}:generateContent?key=${GEMINI_API_KEY}`
+            : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+          const body = isVertex
+            ? { systemInstruction: { role: 'system', parts: [{ text: nvidiaMessages[0].content }] }, contents: nvidiaMessages.slice(1), generationConfig: { temperature: 0.3, maxOutputTokens: 1024 } }
+            : { systemInstruction: { parts: [{ text: nvidiaMessages[0].content }] }, contents: nvidiaMessages.slice(1), generationConfig: { temperature: 0.3, maxOutputTokens: 1024 } };
+          const gemRes = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (gemRes.ok) {
+            const gemData = await gemRes.json();
+            const parts = gemData?.candidates?.[0]?.content?.parts;
+            if (Array.isArray(parts)) {
+              const text = parts.map((p: any) => (typeof p.text === 'string' ? p.text : '')).filter(Boolean).join('\n\n').trim();
+              if (text) return res.json({ success: true, reply: text, model: `Rakshak AI (${isVertex ? 'Vertex ' : ''}${model})` });
+            }
+          }
+          console.warn(`[api/chat] Gemini model ${model} failed: ${gemRes.status}`);
+        } catch (err) {
+          console.warn(`[api/chat] Gemini model ${model} error:`, err);
+        }
+      }
+    }
+
+    // Fallback to NVIDIA NIM
     const NIM_MODELS = [
       'meta/llama-3.3-70b-instruct',
       'meta/llama-3.1-8b-instruct',
