@@ -115,8 +115,12 @@ RULES:
     }
 
     const lastErr = nimRes ? await nimRes.text() : 'No response from any model';
-    console.error('[api/chat] All NVIDIA models failed. Last response:', lastErr);
-    return res.status(500).json({ success: false, error: `All NVIDIA models failed. Check Vercel logs.` });
+    const geminiErrors = IS_VERTEX_AI ? 'Vertex AI (AQ. key)' : IS_GOOGLE_AI ? 'Google AI (AIza. key)' : 'No Gemini key';
+    console.error('[api/chat] All models failed. Gemini:', geminiErrors, '| NVIDIA:', lastErr);
+    return res.status(500).json({
+      success: false,
+      error: `All AI models failed. Gemini: ${geminiErrors}. NVIDIA: ${lastErr.slice(0, 200)}. Check Vercel logs.`,
+    });
   } catch (error: any) {
     console.error('[api/chat] Server error:', error);
     return res.status(200).json({

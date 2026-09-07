@@ -247,9 +247,9 @@ export const AiWelfareCopilot: React.FC = () => {
       const fallbackMsg: Message = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: fallbackIntel.reply,
+        text: `⚠️ Rakshak AI server error: ${err?.message || 'Unknown error'}\n\nFalling back to local knowledge base:\n\n${fallbackIntel.reply}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        badge: fallbackIntel.model,
+        badge: 'Rakshak AI (Local Fallback)',
         recommendations: fallbackIntel.recommendations,
       };
       setMessages((prev) => [...prev, fallbackMsg]);

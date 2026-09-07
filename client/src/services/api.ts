@@ -225,6 +225,7 @@ export const api = {
       }
       if (json.error) {
         console.warn('[Rakshak AI] Server error:', json.error);
+        throw new Error(json.error);
       }
     } catch (err) {
       console.warn('[Rakshak AI] /api/chat network error, using local engine:', err);
