@@ -207,39 +207,24 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Try NVIDIA NIM first — real AI answer for every query
-    if (NVIDIA_KEY_VALID) {
-      try {
-        const contextBlock = context && Object.keys(context).length > 0
-          ? `\n\nPersonnel Context: Force=${context.force || 'CRPF'} | Unit=${context.unit || 'N/A'} | Rank=${context.userRank || 'Officer'} | Role=${context.role || 'personnel'} | Altitude=${context.altitudeActive ? 'Yes' : 'No'} | Shift=${context.shiftHours || 'N/A'}hrs`
-          : '';
-        const nvidiaMessages: Array<{ role: string; content: string }> = [
-          { role: 'system', content: RAKSHAK_SYSTEM_PROMPT + contextBlock },
-          ...(conversationHistory.length > 0
-            ? conversationHistory.filter((m) => m.text?.trim()).map((m) => ({
-                role: m.sender === 'user' ? 'user' : 'assistant',
-                content: m.text,
-              }))
-            : [{ role: 'user', content: message }]),
-        ];
-        const res = await withTimeout(
-          fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${NVIDIA_API_KEY}` },
-            body: JSON.stringify({ model: 'meta/llama-3.1-8b-instruct', messages: nvidiaMessages, temperature: 0.3, max_tokens: 1024 }),
-          }),
-          10000
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const text = data?.choices?.[0]?.message?.content;
-          if (typeof text === 'string' && text.trim()) {
-            return { success: true, reply: text.trim(), model: 'Rakshak AI (NVIDIA NIM)' };
-          }
+    // 1. Try Vercel serverless function (avoids CORS, keeps key server-side)
+    try {
+      const res = await withTimeout(
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, messages: conversationHistory, context }),
+        }),
+        15000
+      );
+      if (res.ok) {
+        const json = await res.json();
+        if (json.reply && !json.reply.toLowerCase().includes('temporarily unavailable')) {
+          return { success: true, reply: json.reply, model: json.model || 'Rakshak AI (NVIDIA NIM)' };
         }
-      } catch {
-        // NVIDIA failed — fall through to local engine
       }
+    } catch {
+      // Serverless function not available, fall through
     }
 
     // 2. Local curated engine — instant, always available
