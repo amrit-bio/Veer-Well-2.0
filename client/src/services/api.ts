@@ -373,43 +373,7 @@ export const api = {
       // Fallback
     }
 
-    // 2. Direct AI fallback — only attempted if Gemini key is valid format
-    if (GEMINI_KEY_VALID) {
-      try {
-        const prompt = `You are Rakshak AI, clinical behavioral analytics engine for CAPF and Uniformed Forces.
-Assess the personnel stress profile based on this data:
-${JSON.stringify(intake, null, 2)}
-
-Return ONLY valid JSON:
-{
-  "overallRisk": "Low" | "Moderate" | "High" | "Critical",
-  "stressScore": number (1 to 100),
-  "keyTriggers": ["string", "string"],
-  "copingPlan": ["string", "string", "string"],
-  "recommendedAction": "string",
-  "welfareDirective": "string"
-}`;
-        const text = await callRakshakAI([
-          {
-            role: 'user',
-            parts: [{ text: prompt }],
-          },
-        ]);
-        const cleaned = text
-          .replace(/```json\s*/gi, '')
-          .replace(/```/g, '')
-          .trim();
-        try {
-          return JSON.parse(cleaned);
-        } catch {
-          const match = cleaned.match(/\{[\s\S]*\}/);
-          if (match) return JSON.parse(match[0]);
-        }
-      } catch {
-        // Gemini failed — fall through to default
-      }
-    }
-
+    // 2. AI fallback removed — use local assessment only
     return {
       overallRisk: 'Moderate',
       stressScore: 52,

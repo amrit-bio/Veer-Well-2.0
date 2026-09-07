@@ -149,7 +149,21 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
   });
 
   // Battalion Data (aggregated/anonymized view from real-time heatmap)
-  const [battalionData, setBattalionData] = useState<BattalionData[]>([]);
+  const [battalionData, setBattalionData] = useState<BattalionData[]>([
+    { name: '142 Bn', readiness: 76, stress: 5.2, workload: 48, personnel: 420, alerts: 2, location: 'Srinagar Sector HQ' },
+    { name: '209 CoBRA', readiness: 84, stress: 4.1, workload: 52, personnel: 380, alerts: 1, location: 'Jammu Sector' },
+    { name: '88 Mahila Bn', readiness: 89, stress: 3.8, workload: 42, personnel: 350, alerts: 0, location: 'Central Sector' },
+    { name: 'Leh Sector', readiness: 71, stress: 6.1, workload: 56, personnel: 290, alerts: 3, location: 'Leh-Ladakh' },
+  ]);
+
+  // Battalion Radar Data (dynamic)
+  const [battalionRadarData, setBattalionRadarData] = useState([
+    { dimension: 'Readiness Index', '142Bn': 76, '209CoBRA': 84, '88Mahila': 89, 'LehSector': 71 },
+    { dimension: 'Sleep Quality', '142Bn': 72, '209CoBRA': 80, '88Mahila': 85, 'LehSector': 65 },
+    { dimension: 'Stress Management', '142Bn': 68, '209CoBRA': 78, '88Mahila': 82, 'LehSector': 60 },
+    { dimension: 'Duty Load Balance', '142Bn': 70, '209CoBRA': 82, '88Mahila': 88, 'LehSector': 55 },
+    { dimension: 'Personnel Morale', '142Bn': 75, '209CoBRA': 85, '88Mahila': 90, 'LehSector': 68 },
+  ]);
 
   // Stress Distribution - aggregated from real-time telemetry
   const [stressDistribution, setStressDistribution] = useState([
@@ -178,15 +192,6 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
     { week: 'Week 2', scheduled: 125, onLeave: 18, available: 107, forecast: 115 },
     { week: 'Week 3', scheduled: 130, onLeave: 30, available: 100, forecast: 120 },
     { week: 'Week 4', scheduled: 128, onLeave: 22, available: 106, forecast: 125 },
-  ];
-
-  // Battalion Radar Data
-  const battalionRadarData = [
-    { dimension: 'Readiness Index', '142Bn': 76, '209CoBRA': 84, '88Mahila': 89, 'LehSector': 71 },
-    { dimension: 'Sleep Quality', '142Bn': 72, '209CoBRA': 80, '88Mahila': 85, 'LehSector': 65 },
-    { dimension: 'Stress Management', '142Bn': 68, '209CoBRA': 78, '88Mahila': 82, 'LehSector': 60 },
-    { dimension: 'Duty Load Balance', '142Bn': 70, '209CoBRA': 82, '88Mahila': 88, 'LehSector': 55 },
-    { dimension: 'Personnel Morale', '142Bn': 75, '209CoBRA': 85, '88Mahila': 90, 'LehSector': 68 },
   ];
 
   // Build alerts from real-time risk alert stream (anonymized for commander view)
@@ -361,6 +366,38 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
 
     return () => clearInterval(interval);
   }, []);
+
+  // Simulate live readiness tab data when no real heatmap data
+  useEffect(() => {
+    if (heatmapData.length > 0) return; // Don't simulate if real data exists
+
+    const interval = setInterval(() => {
+      setBattalionData((prev) =>
+        prev.map((b) => ({
+          ...b,
+          readiness: Math.min(96, Math.max(65, b.readiness + Math.round((Math.random() - 0.5) * 6))),
+          stress: Math.max(2.5, Math.min(7.5, Number((b.stress + (Math.random() - 0.5) * 0.4).toFixed(1)))),
+          workload: Math.max(35, Math.min(65, b.workload + Math.round((Math.random() - 0.5) * 4))),
+          personnel: Math.max(250, Math.min(500, b.personnel + Math.round((Math.random() - 0.5) * 20))),
+          alerts: Math.max(0, b.alerts + (Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0)),
+        }))
+      );
+
+      setBattalionRadarData((prev) =>
+        prev.map((d) => {
+          const updated: any = { dimension: d.dimension };
+          Object.keys(d).forEach((key) => {
+            if (key !== 'dimension') {
+              updated[key] = Math.min(96, Math.max(55, d[key as keyof typeof d] as number + Math.round((Math.random() - 0.5) * 8)));
+            }
+          });
+          return updated;
+        })
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [heatmapData.length]);
 
   // Main Tab Content Renderer
   const renderMainTabContent = () => {
