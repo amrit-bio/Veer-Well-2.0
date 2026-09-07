@@ -9,9 +9,10 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ success: false, error: 'A message is required.' });
     }
 
-    const NVIDIA_API_KEY = process.env.VITE_NVIDIA_API_KEY || process.env.NVIDIA_API_KEY || '';
+    const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
     if (!NVIDIA_API_KEY) {
-      return res.status(500).json({ success: false, error: 'NVIDIA_API_KEY is not configured on the server.' });
+      console.error('[api/chat] NVIDIA_API_KEY is missing from Vercel environment variables.');
+      return res.status(500).json({ success: false, error: 'NVIDIA_API_KEY is not configured on the server. Set it in Vercel Dashboard → Settings → Environment Variables.' });
     }
 
     const nvidiaMessages: Array<{ role: string; content: string }> = [

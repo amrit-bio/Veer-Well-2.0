@@ -217,14 +217,17 @@ export const api = {
         }),
         15000
       );
-      if (res.ok) {
-        const json = await res.json();
-        if (json.reply && !json.reply.toLowerCase().includes('temporarily unavailable')) {
-          return { success: true, reply: json.reply, model: json.model || 'Rakshak AI (NVIDIA NIM)' };
-        }
+      console.log('[Rakshak AI] /api/chat status:', res.status, res.statusText);
+      const json = await res.json();
+      console.log('[Rakshak AI] /api/chat response:', json);
+      if (json.reply && !json.reply.toLowerCase().includes('temporarily unavailable') && !json.error) {
+        return { success: true, reply: json.reply, model: json.model || 'Rakshak AI (NVIDIA NIM)' };
       }
-    } catch {
-      // Serverless function not available, fall through
+      if (json.error) {
+        console.warn('[Rakshak AI] Server error:', json.error);
+      }
+    } catch (err) {
+      console.warn('[Rakshak AI] /api/chat network error, using local engine:', err);
     }
 
     // 2. Local curated engine — instant, always available
