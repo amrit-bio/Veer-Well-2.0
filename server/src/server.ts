@@ -1898,7 +1898,12 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
       .single();
 
     if (reviewerError || !reviewer) {
-      return res.status(403).json({ error: 'Unauthorized reviewer' });
+      console.error('[Approve] Reviewer lookup error:', reviewerError);
+      return res.status(403).json({
+        error: 'Unauthorized reviewer',
+        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table.',
+        hint: 'Run: INSERT INTO public.profiles (id, name, email, role, ...) VALUES (<admin-uuid>, \'MHA System Administrator\', \'admin@mha.gov.in\', \'admin\', ...)'
+      });
     }
 
     const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';
@@ -1930,7 +1935,16 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
 
     if (approveError) {
       console.error('[Approve] Database error:', approveError);
-      return res.status(500).json({ error: 'Failed to approve signup request' });
+      const errorMessage = approveError.message || 'Unknown database error';
+      return res.status(500).json({
+        error: 'Failed to approve signup request',
+        details: errorMessage,
+        hint: errorMessage.includes('function')
+          ? 'The approve_signup_request function may not exist. Run supabase/apply_verification_migration.sql in Supabase SQL Editor.'
+          : errorMessage.includes('relation')
+          ? 'A required table is missing. Run supabase/apply_verification_migration.sql in Supabase SQL Editor.'
+          : undefined,
+      });
     }
 
     // Create Supabase Auth user after human approval
