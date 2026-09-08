@@ -6,6 +6,7 @@ import { BrandLogo } from '../common/BrandLogo';
 import { BrandedLoader } from '../common/BrandedLoader';
 import { lookupServiceId } from '../../lib/serviceIdLookup';
 import { RankTier, RANK_SELECT_OPTIONS, getRankDisplayName, RANK_TIER_MAP } from '../../config/rankHierarchy';
+import { LanguageSelector } from '../common/LanguageSelector';
 import {
   Shield,
   Lock,
@@ -254,7 +255,7 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         serviceId: serviceNumber.trim() ? serviceNumber.trim().toUpperCase() : undefined,
         email: email.trim(),
         password,
-        name: name.trim() || email.split('@')[0],
+        full_name: name.trim() || email.split('@')[0],
         rank: getRankDisplayName(rank),
         force,
         unit,
@@ -408,6 +409,9 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         <p className="text-xs text-olive-300 font-mono mt-1">
           Secure Authentication • Military-Grade Access Guard
         </p>
+        <div className="mt-3 flex justify-center">
+          <LanguageSelector />
+        </div>
       </div>
 
       <AnimatePresence>

@@ -293,7 +293,7 @@ interface AuthContextType {
     serviceId?: string;
     email: string;
     password: string;
-    name: string;
+    full_name: string;
     rank: string;
     force: string;
     unit: string;
@@ -766,7 +766,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     serviceId?: string;
     email: string;
     password: string;
-    name: string;
+    full_name: string;
     rank: string;
     force: string;
     unit: string;
@@ -776,7 +776,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }): Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }> => {
     try {
       const result = await submitSignupForVerification({
-        full_name: data.name,
+        full_name: data.full_name,
         email: data.email,
         password: data.password,
         rank: data.rank,
