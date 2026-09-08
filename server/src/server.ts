@@ -1832,7 +1832,10 @@ app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
 
     if (signupError) {
       console.error('[Signup Verify] Failed to insert signup request:', signupError);
-      return res.status(500).json({ error: 'Failed to process signup request' });
+      const message = signupError.message?.includes('relation') || signupError.message?.includes('does not exist')
+        ? 'Database table not found. Please run the migration SQL in supabase/apply_verification_migration.sql'
+        : 'Failed to process signup request';
+      return res.status(500).json({ error: message, details: signupError.message });
     }
 
     await auditLog(

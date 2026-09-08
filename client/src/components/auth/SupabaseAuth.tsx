@@ -409,9 +409,11 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
         <p className="text-xs text-olive-300 font-mono mt-1">
           Secure Authentication • Military-Grade Access Guard
         </p>
-        <div className="mt-3 flex justify-center">
-          <LanguageSelector />
-        </div>
+      </div>
+
+      {/* Language Selector - outside bordered header to avoid overflow clipping */}
+      <div className="relative z-20 mt-4 mb-2 flex justify-center">
+        <LanguageSelector />
       </div>
 
       <AnimatePresence>
