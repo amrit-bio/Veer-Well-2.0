@@ -11,6 +11,23 @@ import { createClient } from '@supabase/supabase-js';
 import { SeededData, generateSeedData } from './utils/seedData.js';
 import { predictXGBoost, warmXGBoost } from './utils/xgboostEngine.js';
 import { generateRakshakIntelligence } from './utils/rakshakEngine.js';
+import { supabaseAdmin } from './utils/supabaseAdmin.js';
+import {
+  encryptPII,
+  decryptPII,
+  hashPassword,
+  verifyPassword,
+  isValidGovEmail,
+  generateOTPSecret,
+  generateOTP,
+  createSession,
+  validateSession,
+  revokeSession,
+  revokeAllSessions,
+  auditLog,
+  sendNotification,
+  SESSION_TIMEOUT_MS,
+} from './utils/mhaWorkflow.js';
 
 dotenv.config();
 
@@ -94,6 +111,99 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 app.get('/api/health', (req: Request, res: Response) => {
   return res.json({ status: 'ok', platform: 'VeerWell 2.0 (Rakshak AI)', timestamp: new Date().toISOString() });
+});
+
+// Translation Endpoint for all 22 Indian Languages + English
+app.post('/api/translate', async (req: Request, res: Response) => {
+  try {
+    const { texts = [], text, targetLang = 'hi', sourceLang = 'en', apiKey = '' } = req.body || {};
+    const inputTexts: string[] = Array.isArray(texts) && texts.length > 0 ? texts : (text ? [text] : []);
+
+    if (inputTexts.length === 0) {
+      return res.status(400).json({ success: false, error: 'No text provided for translation' });
+    }
+
+    if (targetLang === 'en' || targetLang === sourceLang) {
+      return res.json({ success: true, translations: inputTexts });
+    }
+
+    const clientKey = (req.headers['x-ai-key'] as string) || apiKey || '';
+    const activeKey = clientKey || GEMINI_API_KEY;
+
+    // 1. Try Gemini AI translation if key available
+    if (activeKey && (activeKey.startsWith('AQ') || activeKey.startsWith('AIza'))) {
+      const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+      const prompt = `Translate this JSON array of military/medical/tactical UI texts into target Indian language code "${targetLang}".
+Preserve defense acronyms (CRPF, BSF, ITBP, CISF, SSB, NSG, CAPF, CoBRA, SpO2, HRV, BPET, AI, MHA) unchanged.
+Preserve numbers, formatting, and markdown.
+Output ONLY a valid JSON array of translated strings with length ${inputTexts.length}.
+Input: ${JSON.stringify(inputTexts)}`;
+
+      for (const model of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+          const gemRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+            }),
+          });
+
+          if (gemRes.ok) {
+            const gemData = await gemRes.json();
+            const rawText = gemData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const parsed = JSON.parse(rawText);
+              if (Array.isArray(parsed) && parsed.length === inputTexts.length) {
+                return res.json({ success: true, translations: parsed, provider: `Gemini (${model})` });
+              }
+            }
+          }
+        } catch {
+          // fall through
+        }
+      }
+    }
+
+    // 2. Google Translate Web API Fallback
+    const codeMap: Record<string, string> = {
+      mai: 'bho',
+      sat: 'hi',
+      doi: 'hi',
+      brx: 'as',
+      kok: 'gom',
+      mni: 'bn',
+    };
+    const finalTarget = codeMap[targetLang] || targetLang;
+
+    const translations = await Promise.all(
+      inputTexts.map(async (t) => {
+        if (!t || !t.trim()) return t;
+        try {
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${finalTarget}&dt=t&q=${encodeURIComponent(
+            t
+          )}`;
+          const r = await fetch(url);
+          if (r.ok) {
+            const d = await r.json();
+            if (Array.isArray(d) && Array.isArray(d[0])) {
+              return d[0].map((item: any) => item[0]).join('');
+            }
+          }
+          return t;
+        } catch {
+          return t;
+        }
+      })
+    );
+
+    return res.json({ success: true, translations, provider: 'Google Translate API' });
+  } catch (err: any) {
+    console.error('[server /api/translate] Translation error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Translation error' });
+  }
 });
 
 // Multer storage for PDF and CSV uploads

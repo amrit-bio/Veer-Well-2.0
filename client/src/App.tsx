@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase, isSupabaseReady } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
 import { RealtimeProvider } from './context/RealtimeContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, TABS } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
@@ -40,6 +41,7 @@ import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
 
 const MainPlatform: React.FC = () => {
   const { isAuthenticated, session, authLoading, switchRole, role, supabaseUser } = useAuth();
+  const { translationStatus } = useLanguage();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
@@ -227,6 +229,19 @@ const MainPlatform: React.FC = () => {
         </motion.div>
       )}
 
+      {/* Live AI Translation Status Indicator */}
+      {translationStatus && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-18 right-6 z-50 px-3.5 py-2 rounded-xl backdrop-blur-xl border border-accent-gold/40 bg-olive-950/90 shadow-2xl text-xs font-mono flex items-center gap-2.5 text-accent-gold"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-accent-gold animate-spin" />
+          <span>{translationStatus}</span>
+        </motion.div>
+      )}
+
       {/* Dynamic Mobile Bottom Bar Filtered by RBAC Persona */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-olive-950/95 border-t border-olive-700/60 px-2 py-2 flex items-center justify-around backdrop-blur-xl">
         {getVisibleTabsForRole(role).slice(0, 5).map((tab) => {
@@ -253,7 +268,9 @@ const MainPlatform: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppWithRealtime />
+      <LanguageProvider>
+        <AppWithRealtime />
+      </LanguageProvider>
     </AuthProvider>
   );
 }
@@ -274,3 +291,4 @@ function AppWithRealtime() {
   // MainPlatform so it can show the login flow or demo bypass
   return <MainPlatform />;
 }
+
