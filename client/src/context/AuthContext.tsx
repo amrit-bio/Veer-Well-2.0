@@ -3,6 +3,7 @@ import { User, UserRole } from '../types';
 import { supabase, isSupabaseReady } from '../lib/supabaseClient';
 import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
+import { submitSignupForVerification } from '../lib/verification/api';
 
 export interface RoleCredentials {
   role: UserRole;
@@ -260,6 +261,18 @@ interface AuthContextType {
       role?: UserRole;
     }
   ) => Promise<{ error: Error | null; data?: any }>;
+  signupWithVerification: (data: {
+    serviceId: string;
+    email: string;
+    password: string;
+    name: string;
+    rank: string;
+    force: string;
+    unit: string;
+    role: UserRole;
+    department?: string;
+    designation?: string;
+  }) => Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }>;
   supabaseSignOut: () => Promise<void>;
   logout: () => void;
 }
@@ -721,6 +734,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabaseSignOut();
   };
 
+  const signupWithVerification = async (data: {
+    serviceId: string;
+    email: string;
+    password: string;
+    name: string;
+    rank: string;
+    force: string;
+    unit: string;
+    role: UserRole;
+    department?: string;
+    designation?: string;
+  }): Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }> => {
+    try {
+      const result = await submitSignupForVerification(data.serviceId, data.email);
+
+      if (result.error) {
+        return { error: new Error(result.error) };
+      }
+
+      if (result.status === 'awaiting_review') {
+        return {
+          error: null,
+          data: {
+            status: 'awaiting_review',
+            message: 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.',
+            requestId: result.request_id,
+          },
+        };
+      }
+
+      return { error: new Error(result.error || 'Signup verification failed') };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
   const toggleAnonymization = () => {
     setIsAnonymized((prev) => !prev);
   };
@@ -747,6 +796,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         supabaseSignIn,
         supabaseSignUp,
+        signupWithVerification,
         supabaseSignOut,
         supabaseResetPassword,
         supabaseSignInWithOtp,

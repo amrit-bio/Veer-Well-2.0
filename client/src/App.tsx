@@ -25,6 +25,7 @@ import { IntegrationsTab } from './components/tabs/IntegrationsTab';
 import { FeedbackTab } from './components/tabs/FeedbackTab';
 import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
 import { ClinicalDashboardTab } from './components/tabs/ClinicalDashboardTab';
+import { ReviewDashboardTab } from './components/tabs/ReviewDashboardTab';
 import { DeploymentLogisticsTab } from './components/tabs/DeploymentLogisticsTab';
 import { AlgorithmTelemetryTab } from './components/tabs/AlgorithmTelemetryTab';
 import { VoiceAssistantTab } from './components/tabs/VoiceAssistantTab';
@@ -181,6 +182,7 @@ const MainPlatform: React.FC = () => {
                   {activeTab === 'subordinate-dashboard' && role === 'subordinate_officer' && <SubordinateOfficerDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'nsg-taskforce-dashboard' && role === 'nsg_taskforce' && <NSGTaskForceDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'clinical-dashboard' && role === 'welfare_officer' && <ClinicalDashboardTab />}
+                  {activeTab === 'review-dashboard' && (role === 'welfare_officer' || role === 'commander' || role === 'senior_command') && <ReviewDashboardTab />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
                   {activeTab === 'interventions' && <InterventionsTab />}

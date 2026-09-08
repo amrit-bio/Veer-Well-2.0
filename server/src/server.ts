@@ -28,6 +28,7 @@ import {
   sendNotification,
   SESSION_TIMEOUT_MS,
 } from './utils/mhaWorkflow.js';
+import { screenEmailWithGemini, heuristicEmailScreen } from './utils/geminiEmailScreener.js';
 
 dotenv.config();
 
@@ -1770,6 +1771,373 @@ async function initializeDatabase() {
     console.warn('[VeerWell Server] Database check notice:', err.message);
   }
 }
+
+// ============================================================================
+// SIGNUP VERIFICATION PIPELINE ROUTES
+// ============================================================================
+
+// Step 1-3: Submit signup for verification (AI Gate)
+app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
+  try {
+    const {
+      service_id,
+      email,
+      name,
+      rank,
+      force = 'CRPF',
+      unit,
+      role = 'personnel',
+      department,
+      designation,
+    } = req.body;
+
+    if (!service_id || !email) {
+      return res.status(400).json({ error: 'service_id and email are required' });
+    }
+
+    const cleanServiceId = service_id.trim().toUpperCase();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Step 2: Credential match
+    const { data: credential, error: credentialError } = await supabaseAdmin
+      .from('mha_credentials')
+      .select('*')
+      .eq('service_id', cleanServiceId)
+      .eq('is_active', true)
+      .single();
+
+    if (credentialError || !credential) {
+      // No match - reject immediately
+      const { error: insertError } = await supabaseAdmin.from('signup_requests').insert({
+        service_id: cleanServiceId,
+        email: cleanEmail,
+        full_name: name?.trim(),
+        rank: rank?.trim(),
+        force: force?.trim(),
+        unit: unit?.trim(),
+        role: role?.trim(),
+        department: department?.trim(),
+        designation: designation?.trim(),
+        ai_status: 'rejected',
+        ai_reason: 'Service ID not recognized or inactive',
+        ai_confidence: 1.0,
+        review_status: 'rejected',
+      });
+
+      if (insertError) {
+        console.error('[Signup Verify] Failed to insert rejected request:', insertError);
+      }
+
+      return res.status(403).json({
+        error: 'Service ID not recognized',
+        message: 'The provided Service ID does not match any active MHA credential. Please contact your administrator.',
+      });
+    }
+
+    // Step 3: AI email screening
+    let aiResult: Awaited<ReturnType<typeof screenEmailWithGemini>>;
+
+    try {
+      aiResult = await screenEmailWithGemini(cleanEmail, cleanServiceId, credential.department);
+    } catch (aiError) {
+      console.error('[Signup Verify] Gemini screening failed, using heuristic:', aiError);
+      aiResult = heuristicEmailScreen(cleanEmail);
+    }
+
+    // Determine final status
+    const isRejected = aiResult.status === 'rejected' || aiResult.status === 'flagged';
+    const finalAiStatus = aiResult.status;
+    const finalReviewStatus = isRejected ? 'rejected' : 'awaiting_review';
+
+    // Insert signup request
+    const { data: signupRequest, error: signupError } = await supabaseAdmin
+      .from('signup_requests')
+      .insert({
+        service_id: cleanServiceId,
+        email: cleanEmail,
+        full_name: name?.trim(),
+        rank: rank?.trim(),
+        force: force?.trim(),
+        unit: unit?.trim(),
+        role: role?.trim(),
+        department: department?.trim(),
+        designation: designation?.trim(),
+        ai_status: finalAiStatus,
+        ai_reason: aiResult.reason,
+        ai_confidence: aiResult.confidence,
+        review_status: finalReviewStatus,
+      })
+      .select()
+      .single();
+
+    if (signupError) {
+      console.error('[Signup Verify] Failed to insert signup request:', signupError);
+      return res.status(500).json({ error: 'Failed to process signup request' });
+    }
+
+    // Audit log
+    await auditLog(
+      'signup_verify',
+      `Signup verification: ${cleanServiceId} / ${cleanEmail} → AI=${finalAiStatus}, Review=${finalReviewStatus}`,
+      null,
+      null,
+      req,
+      {
+        service_id: cleanServiceId,
+        email: cleanEmail,
+        ai_status: finalAiStatus,
+        ai_reason: aiResult.reason,
+        ai_confidence: aiResult.confidence,
+        review_status: finalReviewStatus,
+        model_used: aiResult.modelUsed,
+      }
+    );
+
+    if (isRejected) {
+      return res.status(403).json({
+        error: 'Signup rejected by AI screening',
+        message: aiResult.reason,
+        ai_status: finalAiStatus,
+      });
+    }
+
+    // AI clean - queued for human review
+    return res.status(202).json({
+      message: 'Signup request submitted for review',
+      status: 'awaiting_review',
+      request_id: signupRequest.id,
+      credential: {
+        service_id: credential.service_id,
+        full_name: credential.full_name,
+        designation: credential.designation,
+        department: credential.department,
+      },
+    });
+
+  } catch (error: any) {
+    console.error('[Signup Verify] Error:', error);
+    return res.status(500).json({ error: 'Internal server error during signup verification' });
+  }
+});
+
+// Get review queue for MHA reviewers
+app.get('/api/admin/review-queue', async (req: Request, res: Response) => {
+  try {
+    const { status = 'awaiting_review' } = req.query;
+
+    const { data: requests, error } = await supabaseAdmin
+      .from('signup_requests')
+      .select(`
+        *,
+        mha_credentials (*)
+      `)
+      .eq('review_status', status as string)
+      .eq('ai_status', 'clean')
+      .order('submitted_at', { ascending: true });
+
+    if (error) {
+      console.error('[Review Queue] Query error:', error);
+      return res.status(500).json({ error: 'Failed to fetch review queue' });
+    }
+
+    return res.json({ requests: requests || [] });
+  } catch (error: any) {
+    console.error('[Review Queue] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Approve signup request (Human Gate)
+app.post('/api/admin/approve', async (req: Request, res: Response) => {
+  try {
+    const { request_id, reviewer_id, review_notes } = req.body;
+
+    if (!request_id || !reviewer_id) {
+      return res.status(400).json({ error: 'request_id and reviewer_id are required' });
+    }
+
+    // Verify reviewer is authorized
+    const { data: reviewer, error: reviewerError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', reviewer_id)
+      .single();
+
+    if (reviewerError || !reviewer) {
+      return res.status(403).json({ error: 'Unauthorized reviewer' });
+    }
+
+    const authorizedRoles = ['welfare_officer', 'commander', 'senior_command', 'admin'];
+    if (!authorizedRoles.includes(reviewer.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    // Get the signup request
+    const { data: signupRequest, error: requestError } = await supabaseAdmin
+      .from('signup_requests')
+      .select('*, mha_credentials (*)')
+      .eq('id', request_id)
+      .single();
+
+    if (requestError || !signupRequest) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+
+    if (signupRequest.review_status !== 'awaiting_review') {
+      return res.status(400).json({ error: 'Request is not awaiting review' });
+    }
+
+    // Call database function to approve
+    const { error: approveError } = await supabaseAdmin.rpc('approve_signup_request', {
+      p_request_id: request_id,
+      p_reviewer_id: reviewer_id,
+      p_review_notes: review_notes || null,
+    });
+
+    if (approveError) {
+      console.error('[Approve] Database error:', approveError);
+      return res.status(500).json({ error: 'Failed to approve signup request' });
+    }
+
+    // Step 5: Create Supabase Auth user after human approval
+    let newUserId: string | null = null;
+    try {
+      const cleanPassword = `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: signupRequest.email,
+        password: cleanPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: signupRequest.full_name || signupRequest.email.split('@')[0],
+          rank: signupRequest.rank || 'Officer',
+          serviceNumber: signupRequest.service_id,
+          force: signupRequest.force || 'CRPF',
+          unit: signupRequest.unit || 'HQ',
+          role: signupRequest.role || 'personnel',
+        },
+      });
+
+      if (authData?.user) {
+        newUserId = authData.user.id;
+
+        // Upsert profile
+        await supabaseAdmin.from('profiles').upsert({
+          id: newUserId,
+          name: signupRequest.full_name || signupRequest.email.split('@')[0],
+          email: signupRequest.email,
+          rank: signupRequest.rank || 'Officer',
+          service_number: signupRequest.service_id,
+          force: signupRequest.force || 'CRPF',
+          unit: signupRequest.unit || 'HQ',
+          role: signupRequest.role || 'personnel',
+          role_title: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+          department: signupRequest.department || 'Operations',
+          designation: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+          anonymized_id: `CAPF-NODE-${newUserId.slice(0, 5).toUpperCase()}`,
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+          location: `${signupRequest.unit || 'HQ'}, ${signupRequest.force || 'CRPF'}`,
+          updated_at: new Date().toISOString(),
+        });
+
+        console.log(`[Approve] ✅ Created Supabase Auth user: ${signupRequest.email} (ID: ${newUserId})`);
+      } else if (authError) {
+        console.error('[Approve] Supabase Auth creation failed:', authError);
+      }
+    } catch (userCreationError: any) {
+      console.error('[Approve] User creation error:', userCreationError);
+    }
+
+    // Audit log
+    await auditLog(
+      'signup_approved',
+      `Signup approved: ${signupRequest.service_id} / ${signupRequest.email}${newUserId ? ` → Auth user ${newUserId}` : ''}`,
+      null,
+      reviewer_id,
+      req,
+      { request_id, review_notes, new_user_id: newUserId }
+    );
+
+    return res.json({
+      message: 'Signup request approved',
+      request_id,
+      approved: true,
+    });
+
+  } catch (error: any) {
+    console.error('[Approve] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reject signup request
+app.post('/api/admin/reject', async (req: Request, res: Response) => {
+  try {
+    const { request_id, reviewer_id, review_notes } = req.body;
+
+    if (!request_id || !reviewer_id) {
+      return res.status(400).json({ error: 'request_id and reviewer_id are required' });
+    }
+
+    // Verify reviewer is authorized
+    const { data: reviewer, error: reviewerError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', reviewer_id)
+      .single();
+
+    if (reviewerError || !reviewer) {
+      return res.status(403).json({ error: 'Unauthorized reviewer' });
+    }
+
+    const authorizedRoles = ['welfare_officer', 'commander', 'senior_command', 'admin'];
+    if (!authorizedRoles.includes(reviewer.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    // Get the signup request
+    const { data: signupRequest, error: requestError } = await supabaseAdmin
+      .from('signup_requests')
+      .select('*')
+      .eq('id', request_id)
+      .single();
+
+    if (requestError || !signupRequest) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+
+    // Call database function to reject
+    const { error: rejectError } = await supabaseAdmin.rpc('reject_signup_request', {
+      p_request_id: request_id,
+      p_reviewer_id: reviewer_id,
+      p_review_notes: review_notes || 'Rejected by reviewer',
+    });
+
+    if (rejectError) {
+      console.error('[Reject] Database error:', rejectError);
+      return res.status(500).json({ error: 'Failed to reject signup request' });
+    }
+
+    // Audit log
+    await auditLog(
+      'signup_rejected',
+      `Signup rejected: ${signupRequest.service_id} / ${signupRequest.email}`,
+      null,
+      reviewer_id,
+      req,
+      { request_id, review_notes }
+    );
+
+    return res.json({
+      message: 'Signup request rejected',
+      request_id,
+      rejected: true,
+    });
+
+  } catch (error: any) {
+    console.error('[Reject] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Initialize before starting server
 initializeDatabase().then(() => {

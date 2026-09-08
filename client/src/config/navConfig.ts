@@ -116,6 +116,16 @@ export const NAV_CONFIG: TabItem[] = [
     operationalScope: 'Medical & Welfare Officers (Doctor-Patient Privilege)',
   },
   {
+    id: 'review-dashboard',
+    label: 'Review Queue',
+    category: 'Operational Command',
+    icon: ClipboardCheck,
+    badge: 'MHA',
+    description: 'MHA signup verification queue — review and approve new personnel access requests',
+    roles: ['welfare_officer', 'commander', 'senior_command'],
+    operationalScope: 'Authorized MHA Reviewers (Human Gate for Signup Pipeline)',
+  },
+  {
     id: 'assessment',
     label: 'Self-Assessment',
     category: 'Core Modules',
