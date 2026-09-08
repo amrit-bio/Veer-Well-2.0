@@ -1,5 +1,10 @@
 /**
  * वीरWell (Rakshak AI) — Signup Verification API Service
+ * 
+ * Simple public signup flow:
+ * 1. User submits signup form -> stored as awaiting_review
+ * 2. Single MHA admin reviews queue -> approves/rejects
+ * 3. On approve -> Supabase Auth user is created
  */
 
 import type { SignupVerificationResponse, ReviewQueueResponse, ReviewActionResponse } from './types';
@@ -13,28 +18,37 @@ function getApiUrl(path: string): string {
   return `http://localhost:5000${path}`;
 }
 
+export interface SubmitSignupData {
+  full_name: string;
+  email: string;
+  password: string;
+  rank?: string;
+  service_id?: string;
+  force?: string;
+  unit?: string;
+  role?: string;
+  department?: string;
+  designation?: string;
+}
+
 /**
- * Submit signup for verification (AI Gate)
+ * Submit signup for admin review
  */
 export async function submitSignupForVerification(
-  serviceId: string,
-  email: string
+  data: SubmitSignupData
 ): Promise<SignupVerificationResponse> {
   const response = await fetch(getApiUrl('/api/auth/signup/verify'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      service_id: serviceId,
-      email,
-    }),
+    body: JSON.stringify(data),
   });
 
-  const data = await response.json();
-  return data;
+  const result = await response.json();
+  return result;
 }
 
 /**
- * Get review queue for MHA reviewers (Human Gate)
+ * Get review queue for MHA admin
  */
 export async function getReviewQueue(): Promise<ReviewQueueResponse> {
   const response = await fetch(getApiUrl('/api/admin/review-queue'), {

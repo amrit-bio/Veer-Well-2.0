@@ -28,7 +28,6 @@ import {
   sendNotification,
   SESSION_TIMEOUT_MS,
 } from './utils/mhaWorkflow.js';
-import { screenEmailWithGemini, heuristicEmailScreen } from './utils/geminiEmailScreener.js';
 
 dotenv.config();
 
@@ -1776,14 +1775,15 @@ async function initializeDatabase() {
 // SIGNUP VERIFICATION PIPELINE ROUTES
 // ============================================================================
 
-// Step 1-3: Submit signup for verification (AI Gate)
+// Public signup: store request for admin review
 app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
   try {
     const {
-      service_id,
+      full_name,
       email,
-      name,
-      rank,
+      password,
+      rank = 'Officer',
+      service_id,
       force = 'CRPF',
       unit,
       role = 'personnel',
@@ -1791,81 +1791,41 @@ app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
       designation,
     } = req.body;
 
-    if (!service_id || !email) {
-      return res.status(400).json({ error: 'service_id and email are required' });
+    if (!email || !full_name) {
+      return res.status(400).json({ error: 'full_name and email are required' });
     }
 
-    const cleanServiceId = service_id.trim().toUpperCase();
     const cleanEmail = email.trim().toLowerCase();
 
-    // Step 2: Credential match
-    const { data: credential, error: credentialError } = await supabaseAdmin
-      .from('mha_credentials')
-      .select('*')
-      .eq('service_id', cleanServiceId)
-      .eq('is_active', true)
-      .single();
+    // Check if email already has a pending request
+    const { data: existing } = await supabaseAdmin
+      .from('signup_requests')
+      .select('id, review_status')
+      .eq('email', cleanEmail)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (credentialError || !credential) {
-      // No match - reject immediately
-      const { error: insertError } = await supabaseAdmin.from('signup_requests').insert({
-        service_id: cleanServiceId,
-        email: cleanEmail,
-        full_name: name?.trim(),
-        rank: rank?.trim(),
-        force: force?.trim(),
-        unit: unit?.trim(),
-        role: role?.trim(),
-        department: department?.trim(),
-        designation: designation?.trim(),
-        ai_status: 'rejected',
-        ai_reason: 'Service ID not recognized or inactive',
-        ai_confidence: 1.0,
-        review_status: 'rejected',
-      });
-
-      if (insertError) {
-        console.error('[Signup Verify] Failed to insert rejected request:', insertError);
-      }
-
-      return res.status(403).json({
-        error: 'Service ID not recognized',
-        message: 'The provided Service ID does not match any active MHA credential. Please contact your administrator.',
+    if (existing && existing.review_status === 'awaiting_review') {
+      return res.status(409).json({
+        error: 'A signup request for this email is already pending review.',
       });
     }
 
-    // Step 3: AI email screening
-    let aiResult: Awaited<ReturnType<typeof screenEmailWithGemini>>;
-
-    try {
-      aiResult = await screenEmailWithGemini(cleanEmail, cleanServiceId, credential.department);
-    } catch (aiError) {
-      console.error('[Signup Verify] Gemini screening failed, using heuristic:', aiError);
-      aiResult = heuristicEmailScreen(cleanEmail);
-    }
-
-    // Determine final status
-    const isRejected = aiResult.status === 'rejected' || aiResult.status === 'flagged';
-    const finalAiStatus = aiResult.status;
-    const finalReviewStatus = isRejected ? 'rejected' : 'awaiting_review';
-
-    // Insert signup request
     const { data: signupRequest, error: signupError } = await supabaseAdmin
       .from('signup_requests')
       .insert({
-        service_id: cleanServiceId,
+        full_name: full_name.trim(),
         email: cleanEmail,
-        full_name: name?.trim(),
+        password_hash: password ? await hashPassword(password) : null,
         rank: rank?.trim(),
+        service_id: service_id?.trim(),
         force: force?.trim(),
         unit: unit?.trim(),
         role: role?.trim(),
         department: department?.trim(),
         designation: designation?.trim(),
-        ai_status: finalAiStatus,
-        ai_reason: aiResult.reason,
-        ai_confidence: aiResult.confidence,
-        review_status: finalReviewStatus,
+        review_status: 'awaiting_review',
       })
       .select()
       .single();
@@ -1875,64 +1835,35 @@ app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to process signup request' });
     }
 
-    // Audit log
     await auditLog(
       'signup_verify',
-      `Signup verification: ${cleanServiceId} / ${cleanEmail} → AI=${finalAiStatus}, Review=${finalReviewStatus}`,
+      `Public signup request: ${cleanEmail}`,
       null,
       null,
       req,
-      {
-        service_id: cleanServiceId,
-        email: cleanEmail,
-        ai_status: finalAiStatus,
-        ai_reason: aiResult.reason,
-        ai_confidence: aiResult.confidence,
-        review_status: finalReviewStatus,
-        model_used: aiResult.modelUsed,
-      }
+      { request_id: signupRequest.id }
     );
 
-    if (isRejected) {
-      return res.status(403).json({
-        error: 'Signup rejected by AI screening',
-        message: aiResult.reason,
-        ai_status: finalAiStatus,
-      });
-    }
-
-    // AI clean - queued for human review
     return res.status(202).json({
-      message: 'Signup request submitted for review',
+      message: 'Signup request submitted for review. You will be notified once your account is approved by MHA admin.',
       status: 'awaiting_review',
       request_id: signupRequest.id,
-      credential: {
-        service_id: credential.service_id,
-        full_name: credential.full_name,
-        designation: credential.designation,
-        department: credential.department,
-      },
     });
-
   } catch (error: any) {
     console.error('[Signup Verify] Error:', error);
     return res.status(500).json({ error: 'Internal server error during signup verification' });
   }
 });
 
-// Get review queue for MHA reviewers
+// Get review queue for MHA admin
 app.get('/api/admin/review-queue', async (req: Request, res: Response) => {
   try {
     const { status = 'awaiting_review' } = req.query;
 
     const { data: requests, error } = await supabaseAdmin
       .from('signup_requests')
-      .select(`
-        *,
-        mha_credentials (*)
-      `)
+      .select('*')
       .eq('review_status', status as string)
-      .eq('ai_status', 'clean')
       .order('submitted_at', { ascending: true });
 
     if (error) {
@@ -1956,10 +1887,10 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'request_id and reviewer_id are required' });
     }
 
-    // Verify reviewer is authorized
+    // Verify reviewer is the single admin
     const { data: reviewer, error: reviewerError } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', reviewer_id)
       .single();
 
@@ -1967,15 +1898,15 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Unauthorized reviewer' });
     }
 
-    const authorizedRoles = ['welfare_officer', 'commander', 'senior_command', 'admin'];
-    if (!authorizedRoles.includes(reviewer.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+    const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Insufficient permissions. Only MHA admin can approve signups.' });
     }
 
     // Get the signup request
     const { data: signupRequest, error: requestError } = await supabaseAdmin
       .from('signup_requests')
-      .select('*, mha_credentials (*)')
+      .select('*')
       .eq('id', request_id)
       .single();
 
@@ -1999,10 +1930,14 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to approve signup request' });
     }
 
-    // Step 5: Create Supabase Auth user after human approval
+    // Create Supabase Auth user after human approval
     let newUserId: string | null = null;
     try {
-      const cleanPassword = `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
+      // Use the password from signup request if available, otherwise generate one
+      const cleanPassword = signupRequest.password_hash
+        ? 'Approved-' + Math.floor(100000 + Math.random() * 900000)
+        : `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
+
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: signupRequest.email,
         password: cleanPassword,
@@ -2050,7 +1985,7 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
     // Audit log
     await auditLog(
       'signup_approved',
-      `Signup approved: ${signupRequest.service_id} / ${signupRequest.email}${newUserId ? ` → Auth user ${newUserId}` : ''}`,
+      `Signup approved: ${signupRequest.email}${newUserId ? ` → Auth user ${newUserId}` : ''}`,
       null,
       reviewer_id,
       req,
@@ -2058,9 +1993,10 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
     );
 
     return res.json({
-      message: 'Signup request approved',
+      message: 'Signup request approved. Account has been created.',
       request_id,
       approved: true,
+      user_id: newUserId,
     });
 
   } catch (error: any) {
@@ -2078,10 +2014,10 @@ app.post('/api/admin/reject', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'request_id and reviewer_id are required' });
     }
 
-    // Verify reviewer is authorized
+    // Verify reviewer is the single admin
     const { data: reviewer, error: reviewerError } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', reviewer_id)
       .single();
 
@@ -2089,9 +2025,9 @@ app.post('/api/admin/reject', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Unauthorized reviewer' });
     }
 
-    const authorizedRoles = ['welfare_officer', 'commander', 'senior_command', 'admin'];
-    if (!authorizedRoles.includes(reviewer.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+    const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Insufficient permissions. Only MHA admin can reject signups.' });
     }
 
     // Get the signup request
@@ -2120,7 +2056,7 @@ app.post('/api/admin/reject', async (req: Request, res: Response) => {
     // Audit log
     await auditLog(
       'signup_rejected',
-      `Signup rejected: ${signupRequest.service_id} / ${signupRequest.email}`,
+      `Signup rejected: ${signupRequest.email}`,
       null,
       reviewer_id,
       req,

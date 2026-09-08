@@ -249,55 +249,27 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     setLoading(true);
 
     try {
-      // If service number is provided, use the MHA verification pipeline
-      if (serviceNumber.trim().length >= 6) {
-        const { error, data } = await signupWithVerification({
-          serviceId: serviceNumber.trim().toUpperCase(),
-          email: email.trim(),
-          password,
-          name: name.trim() || email.split('@')[0],
-          rank: getRankDisplayName(rank),
-          force,
-          unit,
-          role,
-          department: 'Operations',
-          designation: `${getRankDisplayName(rank)} (${role})`,
-        });
-
-        if (error) {
-          setErrorMsg(error.message || 'Signup verification failed. Please try again.');
-        } else if (data?.status === 'awaiting_review') {
-          setSuccessMsg(data.message || 'Your signup request has been submitted for review by MHA authorities.');
-          setMode('entry');
-        } else {
-          setErrorMsg('Unexpected response from verification system. Please try again.');
-        }
-        return;
-      }
-
-      // Fallback to standard Supabase signup for non-service-ID signups
-      const { error, data } = await supabaseSignUp(email.trim(), password, {
+      // All signups go through MHA admin review
+      const { error, data } = await signupWithVerification({
+        serviceId: serviceNumber.trim() ? serviceNumber.trim().toUpperCase() : undefined,
+        email: email.trim(),
+        password,
         name: name.trim() || email.split('@')[0],
         rank: getRankDisplayName(rank),
-        serviceNumber: serviceNumber.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
         force,
         unit,
         role,
+        department: 'Operations',
+        designation: `${getRankDisplayName(rank)} (${role})`,
       });
 
       if (error) {
-        setErrorMsg(error.message || 'Failed to register account. Please try again.');
-      } else if (data?.requiresEmailConfirmation) {
-        setSuccessMsg('Account created successfully! Please check your email and confirm your address before logging in.');
-        setTimeout(() => {
-          setMode('login');
-          setSuccessMsg(null);
-        }, 2500);
+        setErrorMsg(error.message || 'Signup verification failed. Please try again.');
+      } else if (data?.status === 'awaiting_review') {
+        setSuccessMsg(data.message || 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.');
+        setMode('entry');
       } else {
-        setSuccessMsg('Account created and verified! Loading your profile...');
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 1000);
+        setErrorMsg('Unexpected response from verification system. Please try again.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred. Please try again.');

@@ -121,9 +121,9 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Operational Command',
     icon: ClipboardCheck,
     badge: 'MHA',
-    description: 'MHA signup verification queue — review and approve new personnel access requests',
-    roles: ['welfare_officer', 'commander', 'senior_command'],
-    operationalScope: 'Authorized MHA Reviewers (Human Gate for Signup Pipeline)',
+    description: 'MHA admin dashboard — review and approve public signup requests',
+    roles: ['admin'],
+    operationalScope: 'Single MHA Administrator (Human Gate for All Signups)',
   },
   {
     id: 'assessment',
@@ -327,6 +327,8 @@ export function getDefaultTabForRole(role: UserRole): string {
       return 'subordinate-dashboard';
     case 'nsg_taskforce':
       return 'nsg-taskforce-dashboard';
+    case 'admin':
+      return 'review-dashboard';
     case 'personnel':
     default:
       return 'dashboard';

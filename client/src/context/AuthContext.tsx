@@ -103,6 +103,18 @@ export const ROLE_PRESETS: Record<string, RoleCredentials> = {
     badge: 'NSG Task Force (Counter-Terrorism)',
     description: 'NSG operational overlay: CT deployment metrics, ops tempo, task-force readiness.',
   },
+  admin: {
+    role: 'admin' as UserRole,
+    roleLabel: 'MHA System Administrator',
+    defaultLoginId: 'admin@mha.gov.in',
+    defaultPassword: 'admin-password-2026',
+    rank: 'Administrator',
+    name: 'MHA System Administrator',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    badge: 'Single Admin Access',
+    description: 'Single MHA administrator — review queue, approve/reject signups, system configuration.',
+  },
 };
 
 const INITIAL_USERS: Record<string, User> = {
@@ -220,6 +232,22 @@ const INITIAL_USERS: Record<string, User> = {
     isNSG: true,
     parentForce: 'CRPF',
   },
+  admin: {
+    id: 'usr-admin-00',
+    name: 'MHA System Administrator',
+    rank: 'Administrator',
+    serviceNumber: 'ADMIN-MHA-001',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    role: 'admin' as UserRole,
+    roleTitle: 'MHA System Administrator',
+    anonymizedId: 'CAPF-ADMIN-00',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    location: 'MHA HQ, New Delhi',
+    tier: 1,
+    rankTier: 'administrator',
+    scope: 'national',
+  },
 };
 
 interface AuthContextType {
@@ -262,7 +290,7 @@ interface AuthContextType {
     }
   ) => Promise<{ error: Error | null; data?: any }>;
   signupWithVerification: (data: {
-    serviceId: string;
+    serviceId?: string;
     email: string;
     password: string;
     name: string;
@@ -735,7 +763,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signupWithVerification = async (data: {
-    serviceId: string;
+    serviceId?: string;
     email: string;
     password: string;
     name: string;
@@ -747,7 +775,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     designation?: string;
   }): Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }> => {
     try {
-      const result = await submitSignupForVerification(data.serviceId, data.email);
+      const result = await submitSignupForVerification({
+        full_name: data.name,
+        email: data.email,
+        password: data.password,
+        rank: data.rank,
+        service_id: data.serviceId,
+        force: data.force,
+        unit: data.unit,
+        role: data.role,
+        department: data.department,
+        designation: data.designation,
+      });
 
       if (result.error) {
         return { error: new Error(result.error) };
@@ -758,7 +797,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           error: null,
           data: {
             status: 'awaiting_review',
-            message: 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.',
+            message: result.message || 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.',
             requestId: result.request_id,
           },
         };

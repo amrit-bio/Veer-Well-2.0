@@ -1,8 +1,8 @@
 /**
  * वीरWell (Rakshak AI) — MHA Review Dashboard
  * 
- * Human Gate for the signup verification pipeline.
- * Authorized MHA reviewers can approve or reject signup requests.
+ * Single admin dashboard to review and approve public signup requests.
+ * Only the MHA admin can access this dashboard.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import {
   ClipboardCheck, UserCheck, UserX, AlertTriangle, CheckCircle,
-  Clock, Mail, Shield, FileText, RefreshCw,
+  Clock, Mail, Shield, FileText, RefreshCw, User,
 } from 'lucide-react';
 import {
   getReviewQueue,
@@ -52,7 +52,7 @@ export const ReviewDashboardTab: React.FC = () => {
     try {
       const result = await approveSignupRequest(requestId, user.id, reviewNotes[requestId]);
       if (result.approved) {
-        setSuccess(`Signup request ${requestId.slice(0, 8)}... approved successfully`);
+        setSuccess(`Signup request approved. Account created successfully.`);
         setQueue((prev) => prev.filter((r) => r.id !== requestId));
       } else {
         setError(result.message || 'Failed to approve request');
@@ -75,7 +75,7 @@ export const ReviewDashboardTab: React.FC = () => {
     try {
       const result = await rejectSignupRequest(requestId, user.id, reviewNotes[requestId]);
       if (result.rejected) {
-        setSuccess(`Signup request ${requestId.slice(0, 8)}... rejected`);
+        setSuccess(`Signup request rejected`);
         setQueue((prev) => prev.filter((r) => r.id !== requestId));
       } else {
         setError(result.message || 'Failed to reject request');
@@ -87,18 +87,12 @@ export const ReviewDashboardTab: React.FC = () => {
     }
   };
 
-  const getConfidenceColor = (confidence: number | null) => {
-    if (!confidence) return 'text-olive-400';
-    if (confidence >= 0.8) return 'text-emerald-400';
-    if (confidence >= 0.5) return 'text-amber-400';
-    return 'text-rose-400';
-  };
-
-  const getAIStatusColor = (status: string) => {
-    switch (status) {
-      case 'clean': return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40';
-      case 'flagged': return 'text-amber-400 bg-amber-500/20 border-amber-500/40';
-      case 'rejected': return 'text-rose-400 bg-rose-500/20 border-rose-500/40';
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'text-red-400 bg-red-500/20 border-red-500/40';
+      case 'commander': return 'text-blue-400 bg-blue-500/20 border-blue-500/40';
+      case 'welfare_officer': return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40';
+      case 'senior_command': return 'text-violet-400 bg-violet-500/20 border-violet-500/40';
       default: return 'text-olive-400 bg-olive-500/20 border-olive-500/40';
     }
   };
@@ -115,7 +109,7 @@ export const ReviewDashboardTab: React.FC = () => {
             <div>
               <h2 className="text-2xl font-black text-white tracking-tight">MHA Review Queue</h2>
               <p className="text-xs text-olive-400 font-mono ml-8">
-                Human Gate — Signup Verification Pipeline
+                Single Admin Dashboard — Review and approve public signup requests
               </p>
             </div>
           </div>
@@ -163,7 +157,7 @@ export const ReviewDashboardTab: React.FC = () => {
       </AnimatePresence>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-gradient-to-br from-amber-900/80 to-olive-950 border border-amber-500/40 p-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-mono text-amber-400 uppercase">Pending Review</span>
@@ -173,33 +167,17 @@ export const ReviewDashboardTab: React.FC = () => {
         </div>
         <div className="rounded-2xl bg-gradient-to-br from-olive-900 to-olive-950 border border-olive-700/60 p-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-mono text-olive-400 uppercase">AI Clean</span>
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] font-mono text-olive-400 uppercase">Total Requests</span>
+            <Mail className="w-4 h-4 text-olive-400" />
           </div>
-          <div className="text-3xl font-black text-emerald-400">
-            {queue.filter((r) => r.ai_status === 'clean').length}
-          </div>
+          <div className="text-3xl font-black text-white">{queue.length}</div>
         </div>
         <div className="rounded-2xl bg-gradient-to-br from-olive-900 to-olive-950 border border-olive-700/60 p-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-mono text-olive-400 uppercase">AI Flagged</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-3xl font-black text-amber-400">
-            {queue.filter((r) => r.ai_status === 'flagged').length}
-          </div>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-olive-900 to-olive-950 border border-olive-700/60 p-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-mono text-olive-400 uppercase">Avg Confidence</span>
+            <span className="text-[10px] font-mono text-olive-400 uppercase">Admin Status</span>
             <Shield className="w-4 h-4 text-accent-gold" />
           </div>
-          <div className="text-3xl font-black text-white">
-            {queue.length > 0
-              ? Math.round(queue.reduce((sum, r) => sum + (r.ai_confidence || 0), 0) / queue.length * 100)
-              : 0}
-            <span className="text-sm text-olive-400">%</span>
-          </div>
+          <div className="text-lg font-black text-emerald-400">ACTIVE</div>
         </div>
       </div>
 
@@ -234,63 +212,52 @@ export const ReviewDashboardTab: React.FC = () => {
                   <div>
                     <p className="text-sm font-bold text-white">{request.email}</p>
                     <p className="text-[10px] text-olive-500 font-mono">
-                      {request.service_id} • {request.full_name || 'No name provided'}
+                      {request.full_name || 'No name provided'} • {request.rank || 'Officer'} • {request.force || 'CRPF'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded-lg border ${getAIStatusColor(request.ai_status)}`}>
-                    {request.ai_status.toUpperCase()}
-                  </span>
-                  {request.ai_confidence && (
-                    <span className={`text-[10px] font-mono font-bold ${getConfidenceColor(request.ai_confidence)}`}>
-                      {(request.ai_confidence * 100).toFixed(0)}%
-                    </span>
-                  )}
-                </div>
+                <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded-lg border ${getRoleBadgeColor(request.role || 'personnel')}`}>
+                  {(request.role || 'personnel').toUpperCase()}
+                </span>
               </div>
 
-              {/* MHA Credential Details */}
-              {request.mha_credentials && (
-                <div className="p-4 rounded-xl bg-olive-950 border border-olive-700/40 mb-4">
-                  <h4 className="text-xs font-mono text-olive-400 uppercase tracking-wider mb-2">
-                    MHA Credential Details
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] text-olive-500 font-mono">Full Name</p>
-                      <p className="text-xs font-bold text-white">{request.mha_credentials.full_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-olive-500 font-mono">Designation</p>
-                      <p className="text-xs font-bold text-white">{request.mha_credentials.designation}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-olive-500 font-mono">Department</p>
-                      <p className="text-xs font-bold text-white">{request.mha_credentials.department}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-olive-500 font-mono">Issued At</p>
-                      <p className="text-xs font-bold text-white">{request.mha_credentials.issued_at}</p>
-                    </div>
+              {/* Request Details */}
+              <div className="p-4 rounded-xl bg-olive-950 border border-olive-700/40 mb-4">
+                <h4 className="text-xs font-mono text-olive-400 uppercase tracking-wider mb-2">
+                  Signup Details
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Full Name</p>
+                    <p className="text-xs font-bold text-white">{request.full_name || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Rank</p>
+                    <p className="text-xs font-bold text-white">{request.rank || 'Officer'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Force</p>
+                    <p className="text-xs font-bold text-white">{request.force || 'CRPF'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Unit</p>
+                    <p className="text-xs font-bold text-white">{request.unit || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Service ID</p>
+                    <p className="text-xs font-bold text-white">{request.service_id || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Department</p>
+                    <p className="text-xs font-bold text-white">{request.department || 'Not provided'}</p>
                   </div>
                 </div>
-              )}
-
-              {/* AI Screening Details */}
-              {request.ai_reason && (
-                <div className="p-4 rounded-xl bg-olive-950 border border-olive-700/40 mb-4">
-                  <h4 className="text-xs font-mono text-olive-400 uppercase tracking-wider mb-2">
-                    AI Screening Result
-                  </h4>
-                  <p className="text-xs text-olive-300">{request.ai_reason}</p>
-                </div>
-              )}
+              </div>
 
               {/* Review Notes Input */}
               <div className="mb-4">
                 <label className="block text-xs font-mono text-olive-400 mb-2">
-                  Review Notes {request.ai_status === 'flagged' && <span className="text-rose-400">(required for rejection)</span>}
+                  Review Notes <span className="text-rose-400">(required for rejection)</span>
                 </label>
                 <textarea
                   value={reviewNotes[request.id] || ''}
