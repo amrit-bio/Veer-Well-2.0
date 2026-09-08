@@ -53,6 +53,12 @@ CREATE INDEX IF NOT EXISTS idx_approved_users_email ON public.approved_users(ema
 ALTER TABLE public.signup_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.approved_users ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (idempotent migration)
+DROP POLICY IF EXISTS "Anyone can insert signup requests" ON public.signup_requests;
+DROP POLICY IF EXISTS "Admin can read signup requests" ON public.signup_requests;
+DROP POLICY IF EXISTS "Admin can update signup requests" ON public.signup_requests;
+DROP POLICY IF EXISTS "Admin can read approved_users" ON public.approved_users;
+
 -- Anyone can insert a signup request (public signup)
 CREATE POLICY "Anyone can insert signup requests" ON public.signup_requests
   FOR INSERT WITH CHECK (true);
