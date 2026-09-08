@@ -51,12 +51,8 @@ export const ReviewDashboardTab: React.FC = () => {
     setProcessing(requestId);
     try {
       const result = await approveSignupRequest(requestId, user.id, reviewNotes[requestId]);
-      if (result.approved) {
-        setSuccess(`Signup request approved. Account created successfully.`);
-        setQueue((prev) => prev.filter((r) => r.id !== requestId));
-      } else {
-        setError(result.message || 'Failed to approve request');
-      }
+      setSuccess(`Signup request approved. Account created successfully.`);
+      setQueue((prev) => prev.filter((r) => r.id !== requestId));
     } catch (err: any) {
       setError(err.message || 'Failed to approve request');
     } finally {
@@ -74,12 +70,8 @@ export const ReviewDashboardTab: React.FC = () => {
     setProcessing(requestId);
     try {
       const result = await rejectSignupRequest(requestId, user.id, reviewNotes[requestId]);
-      if (result.rejected) {
-        setSuccess(`Signup request rejected`);
-        setQueue((prev) => prev.filter((r) => r.id !== requestId));
-      } else {
-        setError(result.message || 'Failed to reject request');
-      }
+      setSuccess(`Signup request rejected`);
+      setQueue((prev) => prev.filter((r) => r.id !== requestId));
     } catch (err: any) {
       setError(err.message || 'Failed to reject request');
     } finally {

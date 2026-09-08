@@ -1891,17 +1891,43 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
     }
 
     // Verify reviewer is the single admin
-    const { data: reviewer, error: reviewerError } = await supabaseAdmin
+    let reviewer = null;
+    let reviewerError = null;
+
+    // Try to find reviewer by ID first
+    const resultById = await supabaseAdmin
       .from('profiles')
       .select('role, email')
       .eq('id', reviewer_id)
       .single();
 
+    if (resultById.data && !resultById.error) {
+      reviewer = resultById.data;
+    } else {
+      // Fallback: if reviewer not found by ID, check if this is the preset admin ID
+      // and look up by email instead
+      if (reviewer_id === 'usr-admin-00' || reviewer_id === 'admin@mha.gov.in') {
+        const resultByEmail = await supabaseAdmin
+          .from('profiles')
+          .select('role, email, id')
+          .eq('email', 'admin@mha.gov.in')
+          .single();
+
+        if (resultByEmail.data && !resultByEmail.error) {
+          reviewer = resultByEmail.data;
+        } else {
+          reviewerError = resultByEmail.error;
+        }
+      } else {
+        reviewerError = resultById.error;
+      }
+    }
+
     if (reviewerError || !reviewer) {
       console.error('[Approve] Reviewer lookup error:', reviewerError);
       return res.status(403).json({
         error: 'Unauthorized reviewer',
-        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table.',
+        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table with email admin@mha.gov.in',
         hint: 'Run: INSERT INTO public.profiles (id, name, email, role, ...) VALUES (<admin-uuid>, \'MHA System Administrator\', \'admin@mha.gov.in\', \'admin\', ...)'
       });
     }
@@ -2032,14 +2058,42 @@ app.post('/api/admin/reject', async (req: Request, res: Response) => {
     }
 
     // Verify reviewer is the single admin
-    const { data: reviewer, error: reviewerError } = await supabaseAdmin
+    let reviewer = null;
+    let reviewerError = null;
+
+    const resultById = await supabaseAdmin
       .from('profiles')
       .select('role, email')
       .eq('id', reviewer_id)
       .single();
 
+    if (resultById.data && !resultById.error) {
+      reviewer = resultById.data;
+    } else {
+      if (reviewer_id === 'usr-admin-00' || reviewer_id === 'admin@mha.gov.in') {
+        const resultByEmail = await supabaseAdmin
+          .from('profiles')
+          .select('role, email, id')
+          .eq('email', 'admin@mha.gov.in')
+          .single();
+
+        if (resultByEmail.data && !resultByEmail.error) {
+          reviewer = resultByEmail.data;
+        } else {
+          reviewerError = resultByEmail.error;
+        }
+      } else {
+        reviewerError = resultById.error;
+      }
+    }
+
     if (reviewerError || !reviewer) {
-      return res.status(403).json({ error: 'Unauthorized reviewer' });
+      console.error('[Reject] Reviewer lookup error:', reviewerError);
+      return res.status(403).json({
+        error: 'Unauthorized reviewer',
+        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table with email admin@mha.gov.in',
+        hint: 'Run: INSERT INTO public.profiles (id, name, email, role, ...) VALUES (<admin-uuid>, \'MHA System Administrator\', \'admin@mha.gov.in\', \'admin\', ...)'
+      });
     }
 
     const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';

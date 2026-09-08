@@ -82,6 +82,13 @@ export async function approveSignupRequest(
   });
 
   const data = await response.json();
+
+  if (!response.ok) {
+    const message = data?.error || data?.message || `HTTP ${response.status}`;
+    const details = data?.details || data?.hint ? `\n${data.details || ''}${data.hint ? '\nHint: ' + data.hint : ''}` : '';
+    throw new Error(`${message}${details}`);
+  }
+
   return data;
 }
 
@@ -104,5 +111,12 @@ export async function rejectSignupRequest(
   });
 
   const data = await response.json();
+
+  if (!response.ok) {
+    const message = data?.error || data?.message || `HTTP ${response.status}`;
+    const details = data?.details || data?.hint ? `\n${data.details || ''}${data.hint ? '\nHint: ' + data.hint : ''}` : '';
+    throw new Error(`${message}${details}`);
+  }
+
   return data;
 }
