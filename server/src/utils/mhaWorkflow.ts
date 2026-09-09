@@ -75,7 +75,7 @@ function generateOTPSecret(): string {
 function generateOTP(secret: string): string {
   const counter = Math.floor(Date.now() / 30000);
   const counterBuffer = Buffer.alloc(8);
-  counterBuffer.writeBigUInt64BE(counter, 0);
+  counterBuffer.writeBigUInt64BE(BigInt(counter), 0);
   const hmac = crypto.createHmac('sha1', Buffer.from(secret, 'base64'));
   hmac.update(counterBuffer);
   const hash = hmac.digest();

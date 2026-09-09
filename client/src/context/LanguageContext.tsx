@@ -27,6 +27,8 @@ const IGNORE_TAGS = new Set([
   'STYLE',
   'TEXTAREA',
   'INPUT',
+  'SELECT',
+  'OPTION',
   'CODE',
   'PRE',
   'NOSCRIPT',

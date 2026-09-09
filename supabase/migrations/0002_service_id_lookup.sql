@@ -159,7 +159,8 @@ VALUES
   ('ITBP', 'CMD', 7001, 7999, 'commander', 'Commandant / CO', '5 ITBn (Leh Sector)', 'Leh-Ladakh Sector, J&K', 'ITBP', 'Battalion Commanding Officer', 'Strategic Battalion Command', 'Battalion Readiness, Rest Approvals, High-Altitude Fatigue Management.'),
   ('CISF', 'CMD', 7001, 7999, 'commander', 'Commandant / CO', 'CISF HQ (Delhi)', 'New Delhi, Delhi', 'CISF', 'Battalion Commanding Officer', 'Strategic Battalion Command', 'Battalion Readiness, Rest Approvals, Airport & Asset Protection.'),
   ('SSB', 'CMD', 7001, 7999, 'commander', 'Commandant / CO', '26 SSBn (Sikkim Sector)', 'Sikkim Border Sector, Gangtok', 'SSB', 'Battalion Commanding Officer', 'Strategic Battalion Command', 'Battalion Readiness, Rest Approvals, Jungle Warfare Ops.'),
-  ('MHA', 'CMD', 7001, 7999, 'commander', 'Commandant / CO', 'MHA CAPF HQ', 'New Delhi, Delhi', 'MHA', 'Senior CAPF Commanding Officer', 'Ministry of Home Affairs', 'CAPF Policy, Strategic Oversight, Cross-Force Coordination.');
+  ('MHA', 'CMD', 7001, 7999, 'commander', 'Commandant / CO', 'MHA CAPF HQ', 'New Delhi, Delhi', 'MHA', 'Senior CAPF Commanding Officer', 'Ministry of Home Affairs', 'CAPF Policy, Strategic Oversight, Cross-Force Coordination.')
+ON CONFLICT (service_prefix, role_code, number_min, number_max) DO NOTHING;
 
 -- MEDICAL / WELFARE OFFICERS
 INSERT INTO public.service_id_lookup
@@ -169,7 +170,8 @@ VALUES
   ('BSF', 'MED', 8001, 8999, 'welfare_officer', 'Chief Medical Officer', 'BSF Composite Hospital, Jalandhar', 'Punjab Border Sector, Amritsar', 'BSF Medical Directorate', 'Unit Welfare & Psychological Specialist', 'Clinical Welfare & Directives', 'Prescribe 48h Recovery Respite, Clinical Counseling Scripts, Border Post Medical Camps.'),
   ('ITBP', 'MED', 8001, 8999, 'welfare_officer', 'Chief Medical Officer', 'ITBP Composite Hospital, Delhi', 'Delhi HQ, India', 'ITBP Medical Directorate', 'Unit Welfare & Psychological Specialist', 'Clinical Welfare & Directives', 'Prescribe 48h Recovery Respite, High-Altitude Medical Protocols.'),
   ('CISF', 'MED', 8001, 8999, 'welfare_officer', 'Chief Medical Officer', 'CISF Composite Hospital, Delhi', 'New Delhi, Delhi', 'CISF Medical Directorate', 'Unit Welfare & Psychological Specialist', 'Clinical Welfare & Directives', 'Prescribe 48h Recovery Respite, Airport Medical Posts.'),
-  ('SSB', 'MED', 8001, 8999, 'welfare_officer', 'Chief Medical Officer', 'SSB Composite Hospital, Siliguri', 'Siliguri, West Bengal', 'SSB Medical Directorate', 'Unit Welfare & Psychological Specialist', 'Clinical Welfare & Directives', 'Prescribe 48h Recovery Respite, Jungle Warfare Medical Support.');
+  ('SSB', 'MED', 8001, 8999, 'welfare_officer', 'Chief Medical Officer', 'SSB Composite Hospital, Siliguri', 'Siliguri, West Bengal', 'SSB Medical Directorate', 'Unit Welfare & Psychological Specialist', 'Clinical Welfare & Directives', 'Prescribe 48h Recovery Respite, Jungle Warfare Medical Support.')
+ON CONFLICT (service_prefix, role_code, number_min, number_max) DO NOTHING;
 
 -- PERSONNEL / JAWAN (Frontline)
 INSERT INTO public.service_id_lookup
@@ -183,7 +185,8 @@ VALUES
   ('CISF', 'JWN', 1001, 1999, 'personnel', 'Inspector (Security Ops)', 'CISF Unit (Airport)', 'Indira Gandhi International Airport, Delhi', 'CISF', 'Airport Sentinel', 'Personal Biometrics & Sovereignty', 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.'),
   ('SSB', 'JWN', 1001, 1999, 'personnel', 'Inspector (Jungle Ops)', '26 SSBn (Sikkim Sector)', 'Sikkim Border Sector, Gangtok', 'SSB', 'Border Sentinel', 'Personal Biometrics & Sovereignty', 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.'),
   ('AR', 'JWN', 1001, 1999, 'personnel', 'Rifleman (Mountain Ops)', '12 Assam Rifles Bn', 'Dimapur, Nagaland', 'Assam Rifles', 'Mountain Sentinel', 'Personal Biometrics & Sovereignty', 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.'),
-  ('NSG', 'JWN', 1001, 1999, 'personnel', 'Commando (Special Ops)', 'NSG Hub (Manesar)', 'Manesar, Haryana', 'NSG', 'Special Operations', 'Personal Biometrics & Sovereignty', 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.');
+  ('NSG', 'JWN', 1001, 1999, 'personnel', 'Commando (Special Ops)', 'NSG Hub (Manesar)', 'Manesar, Haryana', 'NSG', 'Special Operations', 'Personal Biometrics & Sovereignty', 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.')
+ON CONFLICT (service_prefix, role_code, number_min, number_max) DO NOTHING;
 
 -- BEHAVIORAL ANALYSTS
 INSERT INTO public.service_id_lookup
@@ -192,7 +195,8 @@ VALUES
   ('MHA', 'ANA', 9001, 9999, 'analyst', 'Lead Behavioral Data Scientist', 'HQ Directorate General (People Intelligence)', 'MHA CAPF HQ, New Delhi', 'MHA CAPF HQ', 'Workforce Stress & Fatigue Analyst', 'Differential Privacy Analytics', 'Multi-variate 14-Day Predictive Burnout Regression, Roster What-If Simulation Models.'),
   ('CRPF', 'RES', 5001, 5999, 'analyst', 'Research Officer (Statistics)', 'Directorate of Personnel & Welfare', 'CRPF HQ, New Delhi', 'CRPF', 'Behavioral Research Analyst', 'Research & Analytics', 'Statistical analysis of stress patterns, ROC-AUC validation, SHAP feature attribution.'),
   ('BSF', 'RES', 5001, 5999, 'analyst', 'Research Officer (Statistics)', 'BSF HQ Directorate', 'BSF HQ, New Delhi', 'BSF', 'Behavioral Research Analyst', 'Research & Analytics', 'Statistical analysis of stress patterns, ROC-AUC validation, SHAP feature attribution.'),
-  ('ITBP', 'RES', 5001, 5999, 'analyst', 'Research Officer (Statistics)', 'ITBP HQ Directorate', 'ITBP HQ, New Delhi', 'ITBP', 'Behavioral Research Analyst', 'Research & Analytics', 'Statistical analysis of stress patterns, ROC-AUC validation, SHAP feature attribution.');
+  ('ITBP', 'RES', 5001, 5999, 'analyst', 'Research Officer (Statistics)', 'ITBP HQ Directorate', 'ITBP HQ, New Delhi', 'ITBP', 'Behavioral Research Analyst', 'Research & Analytics', 'Statistical analysis of stress patterns, ROC-AUC validation, SHAP feature attribution.')
+ON CONFLICT (service_prefix, role_code, number_min, number_max) DO NOTHING;
 
 -- HR ADMIN & MANAGEMENT ROLES
 INSERT INTO public.service_id_lookup
@@ -200,7 +204,8 @@ INSERT INTO public.service_id_lookup
 VALUES
   ('CRPF', 'HR', 6001, 6999, 'hr_admin', 'Deputy Commandant (Personnel)', 'Directorate of Personnel & Welfare', 'CRPF HQ, New Delhi', 'CRPF', 'HR Administrator', 'HR & Workforce Analytics', 'Org-wide wellness surveys, leave policy, ACR compliance, workforce planning.'),
   ('BSF', 'HR', 6001, 6999, 'hr_admin', 'Deputy Commandant (Personnel)', 'BSF HQ Directorate', 'BSF HQ, New Delhi', 'BSF', 'HR Administrator', 'HR & Workforce Analytics', 'Org-wide wellness surveys, leave policy, ACR compliance, workforce planning.'),
-  ('MHA', 'ADM', 4001, 4999, 'hr_admin', 'Under Secretary (CAPF Welfare)', 'MHA CAPF Welfare Division', 'New Delhi, Delhi', 'MHA', 'CAPF Welfare Administrator', 'Ministry Level Oversight', 'Cross-force welfare policy, budget allocation, strategic impact assessment.');
+  ('MHA', 'ADM', 4001, 4999, 'hr_admin', 'Under Secretary (CAPF Welfare)', 'MHA CAPF Welfare Division', 'New Delhi, Delhi', 'MHA', 'CAPF Welfare Administrator', 'Ministry Level Oversight', 'Cross-force welfare policy, budget allocation, strategic impact assessment.')
+ON CONFLICT (service_prefix, role_code, number_min, number_max) DO NOTHING;
 
 -- ============================================================================
 -- 7. TRIGGER: Auto-populate profile from service number on insert/update

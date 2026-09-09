@@ -48,20 +48,6 @@ if (!GEMINI_API_KEY) {
   console.warn('[VeerWell Server] ⚠️  GEMINI_API_KEY is not set. Local Rakshak AI fallback will be used.');
 }
 
-// Supabase Admin Client (Bypasses RLS, can create pre-confirmed auth users)
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
-
-export const supabaseAdmin = SUPABASE_URL && SUPABASE_SECRET_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
-
-if (supabaseAdmin) {
-  console.log(`[VeerWell Server] ✅ Supabase Admin initialized: ${SUPABASE_URL}`);
-}
-
 // Configure CORS to allow requests from Vercel, Railway, and development
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGINS_STR = process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001';
@@ -2160,5 +2146,4 @@ if (typeof window === 'undefined' && !process.env.VERCEL) {
   });
 }
 
-export { app };
 
