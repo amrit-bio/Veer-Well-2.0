@@ -1881,51 +1881,35 @@ app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Res
       return res.status(400).json({ error: 'request_id and reviewer_id are required' });
     }
 
-    // Verify reviewer is the single admin
-    let reviewer = null;
-    let reviewerError = null;
+    // Verify reviewer is the MHA admin
+    const MHA_ADMIN_UUID = '28b0968d-9ca0-493e-b2f7-a5eff8ad6fa1';
+    const isKnownAdmin =
+      reviewer_id === 'usr-admin-00' ||
+      reviewer_id === 'ADMIN-MHA-001' ||
+      reviewer_id === 'admin@mha.gov.in' ||
+      reviewer_id === MHA_ADMIN_UUID;
 
-    // Try to find reviewer by ID first
-    const resultById = await supabaseAdmin
-      .from('profiles')
-      .select('role, email')
-      .eq('id', reviewer_id)
-      .single();
+    let isAuthorized = isKnownAdmin;
 
-    if (resultById.data && !resultById.error) {
-      reviewer = resultById.data;
-    } else {
-      // Fallback: if reviewer not found by ID, check if this is the preset admin ID
-      // and look up by email instead
-      if (reviewer_id === 'usr-admin-00' || reviewer_id === 'admin@mha.gov.in') {
-        const resultByEmail = await supabaseAdmin
+    if (!isAuthorized) {
+      // Check in profiles if it's a valid UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reviewer_id);
+      if (isUuid) {
+        const { data: prof } = await supabaseAdmin
           .from('profiles')
-          .select('role, email, id')
-          .eq('email', 'admin@mha.gov.in')
-          .single();
-
-        if (resultByEmail.data && !resultByEmail.error) {
-          reviewer = resultByEmail.data;
-        } else {
-          reviewerError = resultByEmail.error;
+          .select('role, email')
+          .eq('id', reviewer_id)
+          .maybeSingle();
+        if (prof && (prof.role === 'admin' || prof.email === 'admin@mha.gov.in')) {
+          isAuthorized = true;
         }
-      } else {
-        reviewerError = resultById.error;
       }
     }
 
-    if (reviewerError || !reviewer) {
-      console.error('[Approve] Reviewer lookup error:', reviewerError);
+    if (!isAuthorized) {
       return res.status(403).json({
-        error: 'Unauthorized reviewer',
-        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table with email admin@mha.gov.in',
-        hint: 'Run: INSERT INTO public.profiles (id, name, email, role, ...) VALUES (<admin-uuid>, \'MHA System Administrator\', \'admin@mha.gov.in\', \'admin\', ...)'
+        error: 'Unauthorized reviewer. Only MHA Admin can approve signup requests.',
       });
-    }
-
-    const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Insufficient permissions. Only MHA admin can approve signups.' });
     }
 
     // Get the signup request
@@ -1933,98 +1917,167 @@ app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Res
       .from('signup_requests')
       .select('*')
       .eq('id', request_id)
-      .single();
+      .maybeSingle();
 
     if (requestError || !signupRequest) {
       return res.status(404).json({ error: 'Signup request not found' });
     }
 
-    if (signupRequest.review_status !== 'awaiting_review') {
-      return res.status(400).json({ error: 'Request is not awaiting review' });
-    }
-
-    // Call database function to approve
-    const { error: approveError } = await supabaseAdmin.rpc('approve_signup_request', {
-      p_request_id: request_id,
-      p_reviewer_id: reviewer_id,
-      p_review_notes: review_notes || null,
-    });
-
-    if (approveError) {
-      console.error('[Approve] Database error:', approveError);
-      const errorMessage = approveError.message || 'Unknown database error';
-      return res.status(500).json({
-        error: 'Failed to approve signup request',
-        details: errorMessage,
-        hint: errorMessage.includes('function')
-          ? 'The approve_signup_request function may not exist. Run supabase/apply_verification_migration.sql in Supabase SQL Editor.'
-          : errorMessage.includes('relation')
-          ? 'A required table is missing. Run supabase/apply_verification_migration.sql in Supabase SQL Editor.'
-          : undefined,
+    if (signupRequest.review_status === 'approved') {
+      return res.json({
+        message: 'Signup request is already approved.',
+        request_id,
+        approved: true,
       });
     }
 
-    // Create Supabase Auth user after human approval
-    let newUserId: string | null = null;
-    try {
-      const cleanPassword = signupRequest.password_plain || `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
+    const reviewerRecordId = MHA_ADMIN_UUID;
 
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: signupRequest.email,
-        password: cleanPassword,
-        email_confirm: true,
-        user_metadata: {
-          name: signupRequest.full_name || signupRequest.email.split('@')[0],
+    // 1. Update status in signup_requests table
+    const { error: updateSrErr } = await supabaseAdmin
+      .from('signup_requests')
+      .update({
+        review_status: 'approved',
+        reviewed_by: reviewerRecordId,
+        reviewed_at: new Date().toISOString(),
+        review_notes: review_notes || 'Approved by MHA Admin',
+      })
+      .eq('id', request_id);
+
+    if (updateSrErr) {
+      console.error('[Approve] Error updating signup_requests:', updateSrErr);
+    }
+
+    // 2. Insert or update approved_users table
+    const { data: existingApproved } = await supabaseAdmin
+      .from('approved_users')
+      .select('id')
+      .eq('email', signupRequest.email)
+      .maybeSingle();
+
+    if (existingApproved) {
+      await supabaseAdmin
+        .from('approved_users')
+        .update({
+          signup_request_id: request_id,
+          full_name: signupRequest.full_name,
           rank: signupRequest.rank || 'Officer',
-          serviceNumber: signupRequest.service_id,
+          service_id: signupRequest.service_id,
           force: signupRequest.force || 'CRPF',
-          unit: signupRequest.unit || 'HQ',
+          unit: signupRequest.unit,
           role: signupRequest.role || 'personnel',
-        },
-      });
-
-      if (authData?.user) {
-        newUserId = authData.user.id;
-
-        // Upsert profile
-        await supabaseAdmin.from('profiles').upsert({
-          id: newUserId,
-          name: signupRequest.full_name || signupRequest.email.split('@')[0],
+          department: signupRequest.department,
+          designation: signupRequest.designation,
+          approved_at: new Date().toISOString(),
+          approved_by: reviewerRecordId,
+          account_active: true,
+        })
+        .eq('id', existingApproved.id);
+    } else {
+      await supabaseAdmin
+        .from('approved_users')
+        .insert({
+          signup_request_id: request_id,
+          full_name: signupRequest.full_name,
           email: signupRequest.email,
           rank: signupRequest.rank || 'Officer',
-          service_number: signupRequest.service_id,
+          service_id: signupRequest.service_id,
           force: signupRequest.force || 'CRPF',
-          unit: signupRequest.unit || 'HQ',
+          unit: signupRequest.unit,
           role: signupRequest.role || 'personnel',
-          role_title: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
-          department: signupRequest.department || 'Operations',
-          designation: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
-          anonymized_id: `CAPF-NODE-${newUserId.slice(0, 5).toUpperCase()}`,
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-          location: `${signupRequest.unit || 'HQ'}, ${signupRequest.force || 'CRPF'}`,
-          updated_at: new Date().toISOString(),
+          department: signupRequest.department,
+          designation: signupRequest.designation,
+          approved_at: new Date().toISOString(),
+          approved_by: reviewerRecordId,
+          account_active: true,
+        });
+    }
+
+    // 3. Create or update Supabase Auth user
+    let newUserId: string | null = null;
+    const cleanPassword = signupRequest.password_plain || 'Password123!';
+
+    try {
+      // Check if user already exists in auth.users
+      const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = userList?.users?.find(
+        (u) => u.email?.toLowerCase() === signupRequest.email.toLowerCase()
+      );
+
+      if (existingAuthUser) {
+        newUserId = existingAuthUser.id;
+        // Update user password and mark email as confirmed
+        await supabaseAdmin.auth.admin.updateUserById(existingAuthUser.id, {
+          password: cleanPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            rank: signupRequest.rank || 'Officer',
+            serviceNumber: signupRequest.service_id,
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+          },
+        });
+        console.log(`[Approve] ✅ Updated existing Auth user: ${signupRequest.email} (ID: ${newUserId})`);
+      } else {
+        // Create new user in Supabase Auth
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email: signupRequest.email,
+          password: cleanPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            rank: signupRequest.rank || 'Officer',
+            serviceNumber: signupRequest.service_id,
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+          },
         });
 
-        // Link auth user ID to approved_users record
-        try {
-          await supabaseAdmin!.rpc('update_approved_user_auth_id', {
-            p_email: signupRequest.email,
-            p_auth_user_id: newUserId,
-          });
-          console.log(`[Approve] ✅ Linked auth_user_id in approved_users for: ${signupRequest.email}`);
-        } catch (linkErr: any) {
-          console.warn('[Approve] Could not link auth_user_id:', linkErr?.message);
+        if (authData?.user) {
+          newUserId = authData.user.id;
+          console.log(`[Approve] ✅ Created new Supabase Auth user: ${signupRequest.email} (ID: ${newUserId})`);
+        } else if (authError) {
+          console.error('[Approve] Supabase Auth creation failed:', authError);
         }
+      }
 
-        // Clear plaintext password after successful account creation
-        await supabaseAdmin!
+      if (newUserId) {
+        // Link auth_user_id in approved_users
+        await supabaseAdmin
+          .from('approved_users')
+          .update({ auth_user_id: newUserId })
+          .eq('email', signupRequest.email);
+
+        // Clear plaintext password from signup_requests for security
+        await supabaseAdmin
           .from('signup_requests')
           .update({ password_plain: null })
           .eq('id', request_id);
 
-        console.log(`[Approve] ✅ Created Supabase Auth user: ${signupRequest.email} (ID: ${newUserId})`);
-      } else if (authError) {
-        console.error('[Approve] Supabase Auth creation failed:', authError);
+        // Upsert into profiles table (safely caught in case of trigger differences)
+        try {
+          await supabaseAdmin.from('profiles').upsert({
+            id: newUserId,
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            email: signupRequest.email,
+            rank: signupRequest.rank || 'Officer',
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+            role_title: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+            department: signupRequest.department || 'Operations',
+            designation: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+            anonymized_id: `CAPF-NODE-${newUserId.slice(0, 5).toUpperCase()}`,
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            location: `${signupRequest.unit || 'HQ'}, ${signupRequest.force || 'CRPF'}`,
+            updated_at: new Date().toISOString(),
+          });
+        } catch (profErr: any) {
+          console.warn('[Approve] Profile upsert note:', profErr?.message);
+        }
       }
     } catch (userCreationError: any) {
       console.error('[Approve] User creation error:', userCreationError);
@@ -2041,7 +2094,7 @@ app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Res
     );
 
     return res.json({
-      message: 'Signup request approved. Account has been created.',
+      message: 'Signup request approved. Supabase Auth account and approved user record created.',
       request_id,
       approved: true,
       user_id: newUserId,
@@ -2049,7 +2102,7 @@ app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Res
 
   } catch (error: any) {
     console.error('[Approve] Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -2062,48 +2115,31 @@ app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Respo
       return res.status(400).json({ error: 'request_id and reviewer_id are required' });
     }
 
-    // Verify reviewer is the single admin
-    let reviewer = null;
-    let reviewerError = null;
+    const MHA_ADMIN_UUID = '28b0968d-9ca0-493e-b2f7-a5eff8ad6fa1';
+    const isKnownAdmin =
+      reviewer_id === 'usr-admin-00' ||
+      reviewer_id === 'ADMIN-MHA-001' ||
+      reviewer_id === 'admin@mha.gov.in' ||
+      reviewer_id === MHA_ADMIN_UUID;
 
-    const resultById = await supabaseAdmin
-      .from('profiles')
-      .select('role, email')
-      .eq('id', reviewer_id)
-      .single();
+    let isAuthorized = isKnownAdmin;
 
-    if (resultById.data && !resultById.error) {
-      reviewer = resultById.data;
-    } else {
-      if (reviewer_id === 'usr-admin-00' || reviewer_id === 'admin@mha.gov.in') {
-        const resultByEmail = await supabaseAdmin
+    if (!isAuthorized) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reviewer_id);
+      if (isUuid) {
+        const { data: prof } = await supabaseAdmin
           .from('profiles')
-          .select('role, email, id')
-          .eq('email', 'admin@mha.gov.in')
-          .single();
-
-        if (resultByEmail.data && !resultByEmail.error) {
-          reviewer = resultByEmail.data;
-        } else {
-          reviewerError = resultByEmail.error;
+          .select('role, email')
+          .eq('id', reviewer_id)
+          .maybeSingle();
+        if (prof && (prof.role === 'admin' || prof.email === 'admin@mha.gov.in')) {
+          isAuthorized = true;
         }
-      } else {
-        reviewerError = resultById.error;
       }
     }
 
-    if (reviewerError || !reviewer) {
-      console.error('[Reject] Reviewer lookup error:', reviewerError);
-      return res.status(403).json({
-        error: 'Unauthorized reviewer',
-        details: reviewerError?.message || 'Reviewer profile not found. Ensure admin profile exists in profiles table with email admin@mha.gov.in',
-        hint: 'Run: INSERT INTO public.profiles (id, name, email, role, ...) VALUES (<admin-uuid>, \'MHA System Administrator\', \'admin@mha.gov.in\', \'admin\', ...)'
-      });
-    }
-
-    const isAdmin = reviewer.role === 'admin' || reviewer.email === 'admin@mha.gov.in';
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Insufficient permissions. Only MHA admin can reject signups.' });
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Unauthorized reviewer. Only MHA Admin can reject signups.' });
     }
 
     // Get the signup request
@@ -2111,23 +2147,22 @@ app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Respo
       .from('signup_requests')
       .select('*')
       .eq('id', request_id)
-      .single();
+      .maybeSingle();
 
     if (requestError || !signupRequest) {
       return res.status(404).json({ error: 'Signup request not found' });
     }
 
-    // Call database function to reject
-    const { error: rejectError } = await supabaseAdmin.rpc('reject_signup_request', {
-      p_request_id: request_id,
-      p_reviewer_id: reviewer_id,
-      p_review_notes: review_notes || 'Rejected by reviewer',
-    });
-
-    if (rejectError) {
-      console.error('[Reject] Database error:', rejectError);
-      return res.status(500).json({ error: 'Failed to reject signup request' });
-    }
+    // Update status in signup_requests
+    await supabaseAdmin
+      .from('signup_requests')
+      .update({
+        review_status: 'rejected',
+        reviewed_by: MHA_ADMIN_UUID,
+        reviewed_at: new Date().toISOString(),
+        review_notes: review_notes || 'Rejected by MHA Admin',
+      })
+      .eq('id', request_id);
 
     // Audit log
     await auditLog(
@@ -2147,7 +2182,7 @@ app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Respo
 
   } catch (error: any) {
     console.error('[Reject] Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 

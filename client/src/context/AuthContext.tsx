@@ -481,6 +481,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (!error && data?.session) {
+          // Verify clearance for non-admin accounts
+          if (cleanId.toLowerCase() !== 'admin@mha.gov.in') {
+            const approvedCheck = await checkApprovedUser(cleanId.toLowerCase());
+            if (approvedCheck.found && !approvedCheck.approved) {
+              await supabase.auth.signOut();
+              return {
+                error: new Error(
+                  '⛔ Access Suspended: Your account has been deactivated by MHA authorities. Please contact your welfare officer.'
+                ),
+              };
+            }
+          }
+
           setSession(data.session);
           setSupabaseUser(data.user);
           await syncUserProfile(data.user);
@@ -512,8 +525,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fall through to error
         }
 
-        // Check if this email has a pending or rejected signup request in Supabase
+        // Check if this email has a pending or rejected signup request
         try {
+          const approvedStatus = await checkApprovedUser(cleanId.toLowerCase());
+          if (approvedStatus.found && approvedStatus.approved) {
+            return {
+              error: new Error(
+                'Invalid password. Your account is approved by MHA, but the password entered did not match. Please re-enter the password you set during signup.'
+              ),
+            };
+          }
+
           const { data: pendingReq } = await supabase
             .from('signup_requests')
             .select('review_status, email, full_name')

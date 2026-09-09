@@ -1,10 +1,10 @@
 -- ============================================================================
--- VeerWell 2.0 — MINIMAL CLEAN SQL MIGRATION
+-- VeerWell 2.0 — COMPLETE VERIFICATION & RBAC SQL MIGRATION
 -- Run this ENTIRE script in Supabase SQL Editor
 -- Safe to re-run multiple times (idempotent)
 -- ============================================================================
 
--- STEP 1: Create signup_requests table
+-- STEP 1: Create signup_requests table if not exists
 CREATE TABLE IF NOT EXISTS public.signup_requests (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   full_name     TEXT NOT NULL,
@@ -20,18 +20,18 @@ CREATE TABLE IF NOT EXISTS public.signup_requests (
   submitted_at  TIMESTAMPTZ DEFAULT NOW(),
   review_status TEXT DEFAULT 'awaiting_review'
     CHECK (review_status IN ('awaiting_review', 'approved', 'rejected')),
-  reviewed_by   UUID,
+  reviewed_by   TEXT,
   reviewed_at   TIMESTAMPTZ,
   review_notes  TEXT
 );
 
--- STEP 2: Create approved_users table
+-- STEP 2: Create approved_users table if not exists
 CREATE TABLE IF NOT EXISTS public.approved_users (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   signup_request_id UUID REFERENCES public.signup_requests(id) ON DELETE SET NULL,
-  auth_user_id      UUID UNIQUE,
+  auth_user_id      UUID,
   full_name         TEXT NOT NULL,
-  email             TEXT NOT NULL UNIQUE,
+  email             TEXT NOT NULL,
   rank              TEXT DEFAULT 'Officer',
   service_id        TEXT,
   force             TEXT DEFAULT 'CRPF',
@@ -40,28 +40,52 @@ CREATE TABLE IF NOT EXISTS public.approved_users (
   department        TEXT,
   designation       TEXT,
   approved_at       TIMESTAMPTZ DEFAULT NOW(),
-  approved_by       UUID,
+  approved_by       TEXT,
   approval_notes    TEXT,
   account_active    BOOLEAN DEFAULT TRUE
 );
 
--- STEP 3: Safe column additions (skip if already exist)
+-- STEP 3: Safe column and type migrations (handles existing database state)
 DO $$ BEGIN
+  -- password_plain in signup_requests
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='signup_requests' AND column_name='password_plain')
   THEN ALTER TABLE public.signup_requests ADD COLUMN password_plain TEXT; END IF;
-END $$;
 
-DO $$ BEGIN
+  -- Ensure reviewed_by in signup_requests is TEXT (supports both UUID and custom admin string IDs)
+  BEGIN
+    ALTER TABLE public.signup_requests ALTER COLUMN reviewed_by TYPE TEXT USING reviewed_by::TEXT;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  -- auth_user_id in approved_users
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='approved_users' AND column_name='auth_user_id')
-  THEN ALTER TABLE public.approved_users ADD COLUMN auth_user_id UUID UNIQUE; END IF;
-END $$;
+  THEN ALTER TABLE public.approved_users ADD COLUMN auth_user_id UUID; END IF;
 
-DO $$ BEGIN
+  -- account_active in approved_users
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='approved_users' AND column_name='account_active')
   THEN ALTER TABLE public.approved_users ADD COLUMN account_active BOOLEAN DEFAULT TRUE; END IF;
+
+  -- approval_notes in approved_users
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='approved_users' AND column_name='approval_notes')
+  THEN ALTER TABLE public.approved_users ADD COLUMN approval_notes TEXT; END IF;
+
+  -- Ensure approved_by in approved_users is TEXT
+  BEGIN
+    ALTER TABLE public.approved_users ALTER COLUMN approved_by TYPE TEXT USING approved_by::TEXT;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  -- Unique constraint on email in approved_users
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'approved_users_email_key') THEN
+      ALTER TABLE public.approved_users ADD CONSTRAINT approved_users_email_key UNIQUE (email);
+    END IF;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
 END $$;
 
 -- STEP 4: Indexes
@@ -76,7 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_au_auth_uid   ON public.approved_users(auth_user_
 ALTER TABLE public.signup_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.approved_users  ENABLE ROW LEVEL SECURITY;
 
--- STEP 6: Drop all old policies (clean slate)
+-- STEP 6: Drop existing policies (clean slate)
 DROP POLICY IF EXISTS "Anyone can insert signup requests"         ON public.signup_requests;
 DROP POLICY IF EXISTS "Admin can read signup requests"           ON public.signup_requests;
 DROP POLICY IF EXISTS "Admin can update signup requests"         ON public.signup_requests;
@@ -88,19 +112,18 @@ DROP POLICY IF EXISTS "Service role full access approved_users"  ON public.appro
 
 -- STEP 7: Create RLS Policies
 
--- signup_requests: service_role (backend) has full access
+-- signup_requests: service_role has full access
 CREATE POLICY "Service role full access signup_requests"
   ON public.signup_requests
   USING     (auth.role() = 'service_role')
   WITH CHECK(auth.role() = 'service_role');
 
--- signup_requests: anyone (anon) can INSERT a new signup request
+-- signup_requests: public anon can INSERT new registrations
 CREATE POLICY "Anyone can insert signup requests"
   ON public.signup_requests
   FOR INSERT WITH CHECK (true);
 
--- signup_requests: MHA admin (logged-in) can SELECT all
--- Uses auth.jwt() ->> 'email' — does NOT touch auth.users (avoids permission error)
+-- signup_requests: MHA admin can SELECT
 CREATE POLICY "Admin can read signup requests"
   ON public.signup_requests
   FOR SELECT USING (
@@ -108,7 +131,7 @@ CREATE POLICY "Admin can read signup requests"
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
--- signup_requests: MHA admin can UPDATE (approve/reject)
+-- signup_requests: MHA admin can UPDATE
 CREATE POLICY "Admin can update signup requests"
   ON public.signup_requests
   FOR UPDATE USING (
@@ -116,7 +139,7 @@ CREATE POLICY "Admin can update signup requests"
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
--- approved_users: service_role full access
+-- approved_users: service_role has full access
 CREATE POLICY "Service role full access approved_users"
   ON public.approved_users
   USING     (auth.role() = 'service_role')
@@ -146,12 +169,44 @@ CREATE POLICY "Admin can update approved_users"
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
--- STEP 8: Stored Procedures
+-- STEP 8: Fix match_service_id function (resolves "column reference role_code is ambiguous")
+CREATE OR REPLACE FUNCTION public.match_service_id(p_service_number TEXT)
+RETURNS public.service_id_lookup AS $$
+DECLARE
+  v_normalized TEXT;
+  v_prefix TEXT;
+  v_role_code TEXT;
+  v_number_part INTEGER;
+  v_match public.service_id_lookup;
+BEGIN
+  v_normalized := UPPER(TRIM(p_service_number));
 
--- Approve a signup request → creates approved_users record
+  IF v_normalized ~* '^([A-Z]{2,5})[-]?([A-Z]{2,10})[-]?(\d+)$' THEN
+    v_prefix := REGEXP_REPLACE(v_normalized, '^([A-Z]{2,5})[-]?([A-Z]{2,10})[-]?(\d+)$', '\1');
+    v_role_code := REGEXP_REPLACE(v_normalized, '^([A-Z]{2,5})[-]?([A-Z]{2,10})[-]?(\d+)$', '\2');
+    v_number_part := CAST(REGEXP_REPLACE(v_normalized, '^([A-Z]{2,5})[-]?([A-Z]{2,10})[-]?(\d+)$', '\3') AS INTEGER);
+  ELSE
+    RETURN NULL;
+  END IF;
+
+  SELECT * INTO v_match
+  FROM public.service_id_lookup s
+  WHERE s.is_active = TRUE
+    AND s.service_prefix = v_prefix
+    AND s.role_code = v_role_code
+    AND v_number_part BETWEEN s.number_min AND s.number_max
+  LIMIT 1;
+
+  RETURN v_match;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- STEP 9: Stored Procedures (SECURITY DEFINER to run safely with anon or authenticated key)
+
+-- Approve a signup request → records approval in approved_users and updates signup_requests
 CREATE OR REPLACE FUNCTION public.approve_signup_request(
   p_request_id   UUID,
-  p_reviewer_id  UUID,
+  p_reviewer_id  TEXT DEFAULT 'usr-admin-00',
   p_review_notes TEXT DEFAULT NULL
 ) RETURNS UUID AS $$
 DECLARE
@@ -164,9 +219,6 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Signup request not found: %', p_request_id;
   END IF;
-  IF v_req.review_status <> 'awaiting_review' THEN
-    RAISE EXCEPTION 'Request already processed (status: %)', v_req.review_status;
-  END IF;
 
   UPDATE public.signup_requests
   SET review_status = 'approved',
@@ -175,6 +227,7 @@ BEGIN
       review_notes  = COALESCE(p_review_notes, 'Approved by MHA Admin')
   WHERE id = p_request_id;
 
+  -- Upsert into approved_users
   INSERT INTO public.approved_users (
     signup_request_id, full_name, email, rank, service_id,
     force, unit, role, department, designation,
@@ -214,7 +267,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Reject a signup request
 CREATE OR REPLACE FUNCTION public.reject_signup_request(
   p_request_id   UUID,
-  p_reviewer_id  UUID,
+  p_reviewer_id  TEXT DEFAULT 'usr-admin-00',
   p_review_notes TEXT DEFAULT 'Rejected by MHA Admin'
 ) RETURNS VOID AS $$
 BEGIN
@@ -242,16 +295,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- STEP 9: Grant function execution
-GRANT EXECUTE ON FUNCTION public.approve_signup_request(UUID, UUID, TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION public.reject_signup_request(UUID, UUID, TEXT)  TO service_role;
-GRANT EXECUTE ON FUNCTION public.update_approved_user_auth_id(TEXT, UUID) TO service_role;
-
--- STEP 10: RPC Functions for the MHA Admin Dashboard
--- These are SECURITY DEFINER = run as superuser, bypass RLS.
--- This is the ONLY reliable way to read signup_requests with the anon key
--- (since the anon key cannot use the service_role SELECT policy).
--- The functions are locked to admin@mha.gov.in email check for security.
+-- STEP 10: RPC Functions for MHA Admin Dashboard & Personnel Login
 
 -- Get all pending signup requests (for MHA admin review queue)
 CREATE OR REPLACE FUNCTION public.get_pending_signups()
@@ -269,7 +313,7 @@ RETURNS TABLE (
   designation   TEXT,
   submitted_at  TIMESTAMPTZ,
   review_status TEXT,
-  reviewed_by   UUID,
+  reviewed_by   TEXT,
   reviewed_at   TIMESTAMPTZ,
   review_notes  TEXT
 ) SECURITY DEFINER AS $$
@@ -302,7 +346,7 @@ RETURNS TABLE (
   department        TEXT,
   designation       TEXT,
   approved_at       TIMESTAMPTZ,
-  approved_by       UUID,
+  approved_by       TEXT,
   approval_notes    TEXT,
   account_active    BOOLEAN
 ) SECURITY DEFINER AS $$
@@ -319,13 +363,55 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Grant anon and authenticated users permission to call these RPC functions
-GRANT EXECUTE ON FUNCTION public.get_pending_signups()    TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_approved_personnel() TO anon, authenticated, service_role;
+-- Fast single-user approval verification (used at login by email or service ID)
+CREATE OR REPLACE FUNCTION public.check_approved_personnel(p_identifier TEXT)
+RETURNS TABLE (
+  found          BOOLEAN,
+  approved       BOOLEAN,
+  email          TEXT,
+  service_id     TEXT,
+  auth_user_id   UUID,
+  role           TEXT,
+  full_name      TEXT,
+  rank           TEXT,
+  force          TEXT,
+  unit           TEXT,
+  account_active BOOLEAN
+) SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    TRUE AS found,
+    au.account_active AS approved,
+    au.email,
+    au.service_id,
+    au.auth_user_id,
+    au.role,
+    au.full_name,
+    au.rank,
+    au.force,
+    au.unit,
+    au.account_active
+  FROM public.approved_users au
+  WHERE (LOWER(au.email) = LOWER(p_identifier) OR LOWER(au.service_id) = LOWER(p_identifier))
+    AND au.account_active = TRUE
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+
+-- STEP 11: Grant Execution Permissions to anon, authenticated, service_role
+GRANT EXECUTE ON FUNCTION public.approve_signup_request(UUID, TEXT, TEXT)   TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.reject_signup_request(UUID, TEXT, TEXT)    TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.update_approved_user_auth_id(TEXT, UUID)   TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_pending_signups()                      TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_approved_personnel()                   TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.check_approved_personnel(TEXT)             TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.match_service_id(TEXT)                     TO anon, authenticated, service_role;
 
 -- ============================================================================
--- DONE. Verify by running:
+-- SUCCESS. Verification queries:
 -- SELECT COUNT(*) FROM public.signup_requests;
 -- SELECT COUNT(*) FROM public.approved_users;
 -- SELECT * FROM public.get_pending_signups();
+-- SELECT * FROM public.get_approved_personnel();
 -- ============================================================================

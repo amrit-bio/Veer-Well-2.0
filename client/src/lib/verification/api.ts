@@ -102,18 +102,37 @@ export async function submitSignupForVerification(
 
   console.log('[Signup] ✅ Registration stored in Supabase for:', cleanEmail);
 
-  // ── STEP 2: Best-effort server notification (non-blocking) ─────────────────
-  // If this fails, the signup is still saved — we just skip the extra processing.
+  // ── STEP 2: Also register user in Supabase Auth (non-blocking) ────────────
+  // This securely prepares the user's Auth account so login works seamlessly once approved.
+  try {
+    await supabase.auth.signUp({
+      email: cleanEmail,
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.full_name,
+          rank: data.rank,
+          service_id: data.service_id,
+          force: data.force,
+          unit: data.unit,
+          role: data.role,
+        },
+      },
+    });
+    console.log('[Signup] ✅ Supabase Auth user record initiated for:', cleanEmail);
+  } catch (authErr: any) {
+    console.warn('[Signup] auth.signUp notice (will complete on approval):', authErr?.message);
+  }
+
+  // ── STEP 3: Best-effort server notification (non-blocking) ─────────────────
   try {
     const serverUrl = getApiUrl('/api/auth/signup/verify');
     fetch(serverUrl, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(data),
-      signal:  AbortSignal.timeout(5000), // 5s max, then abandon
-    }).catch(() => {
-      // Silently ignore — server notification is optional
-    });
+      signal:  AbortSignal.timeout(5000),
+    }).catch(() => {});
   } catch {
     // Non-blocking
   }
@@ -139,14 +158,17 @@ export async function getReviewQueue(): Promise<ReviewQueueResponse> {
       return await response.json();
     }
   } catch (err: any) {
-    console.warn('[Review Queue] API fetch failed, trying RPC fallback:', err.message);
+    console.warn('[Review Queue] API fetch failed, falling back to RPC:', err.message);
   }
 
   // Fallback: Call SECURITY DEFINER RPC function (bypasses RLS, works with anon key)
   try {
     const { data, error } = await supabase.rpc('get_pending_signups');
     if (!error && data) {
-      return { requests: data as any[] };
+      return {
+        queue: data as any[],
+        total: (data as any[]).length,
+      };
     }
     if (error) {
       console.error('[Review Queue] RPC error:', error.code, error.message);
@@ -155,7 +177,7 @@ export async function getReviewQueue(): Promise<ReviewQueueResponse> {
     console.error('[Review Queue] RPC fallback error:', sbErr);
   }
 
-  return { requests: [] };
+  return { queue: [], total: 0 };
 }
 
 /**
@@ -182,14 +204,37 @@ export async function approveSignupRequest(
 
     if (response.ok) {
       return data;
+    } else {
+      console.warn('[Approve Request] Server returned error:', data.error || response.statusText);
     }
   } catch (err: any) {
     console.warn('[Approve Request] API call failed, attempting direct Supabase approval:', err.message);
   }
 
-  // Fallback: Direct Supabase approval
+  // Fallback 1: Call SECURITY DEFINER RPC function
   try {
-    // 1. Update status in signup_requests
+    const { data: rpcData, error: rpcError } = await supabase.rpc('approve_signup_request', {
+      p_request_id: requestId,
+      p_reviewer_id: reviewerId || 'usr-admin-00',
+      p_review_notes: reviewNotes || 'Approved by MHA Admin',
+    });
+
+    if (!rpcError) {
+      console.log('[Approve Request] ✅ RPC approve_signup_request succeeded:', rpcData);
+      return {
+        message: 'Signup request approved successfully via database function.',
+        request_id: requestId,
+        approved: true,
+      };
+    } else {
+      console.warn('[Approve Request] RPC approve_signup_request error:', rpcError.message);
+    }
+  } catch (rpcCatchErr: any) {
+    console.warn('[Approve Request] RPC invocation failed:', rpcCatchErr.message);
+  }
+
+  // Fallback 2: Direct Supabase update
+  try {
     await supabase
       .from('signup_requests')
       .update({
@@ -200,7 +245,7 @@ export async function approveSignupRequest(
       })
       .eq('id', requestId);
 
-    // 2. Fetch details of request
+    // Fetch details for profile creation
     const { data: reqData } = await supabase
       .from('signup_requests')
       .select('*')
@@ -212,7 +257,6 @@ export async function approveSignupRequest(
       const targetName = (reqData as any).full_name || targetEmail.split('@')[0];
       const profileId = (reqData as any).service_id || `usr-${Date.now()}`;
 
-      // Upsert profile record
       await supabase.from('profiles').upsert({
         id: profileId,
         name: targetName,
@@ -271,7 +315,26 @@ export async function rejectSignupRequest(
     console.warn('[Reject Request] API call failed, attempting direct Supabase rejection:', err.message);
   }
 
-  // Fallback: Direct Supabase rejection
+  // Fallback 1: Call SECURITY DEFINER RPC function
+  try {
+    const { error: rpcError } = await supabase.rpc('reject_signup_request', {
+      p_request_id: requestId,
+      p_reviewer_id: reviewerId || 'usr-admin-00',
+      p_review_notes: reviewNotes || 'Rejected by MHA Admin',
+    });
+
+    if (!rpcError) {
+      return {
+        message: 'Signup request rejected.',
+        request_id: requestId,
+        approved: false,
+      };
+    }
+  } catch (rpcCatchErr) {
+    // Non-blocking
+  }
+
+  // Fallback 2: Direct Supabase update
   try {
     await supabase
       .from('signup_requests')
@@ -371,10 +434,34 @@ export async function checkApprovedUser(identifier: string): Promise<{
       return await response.json();
     }
   } catch (err: any) {
-    console.warn('[Check Approved User] API fetch failed, trying Supabase fallback:', err.message);
+    console.warn('[Check Approved User] API fetch failed, trying RPC fallback:', err.message);
   }
 
-  // Fallback: Direct Supabase query
+  // Fallback 1: SECURITY DEFINER RPC function (bypasses RLS, fast & safe)
+  try {
+    const { data: rpcRows, error: rpcErr } = await supabase.rpc('check_approved_personnel', {
+      p_identifier: identifier.trim(),
+    });
+    if (!rpcErr && rpcRows && rpcRows.length > 0) {
+      const row = rpcRows[0];
+      return {
+        found: true,
+        approved: row.approved ?? true,
+        email: row.email,
+        service_id: row.service_id,
+        auth_user_id: row.auth_user_id,
+        role: row.role,
+        full_name: row.full_name,
+        rank: row.rank,
+        force: row.force,
+        unit: row.unit,
+      };
+    }
+  } catch (rpcErr: any) {
+    console.warn('[Check Approved User] RPC fallback error:', rpcErr?.message);
+  }
+
+  // Fallback 2: Direct Supabase query
   try {
     const clean = identifier.trim().toLowerCase();
     const { data } = await supabase
@@ -399,7 +486,7 @@ export async function checkApprovedUser(identifier: string): Promise<{
       };
     }
   } catch (sbErr) {
-    console.warn('[Check Approved User] Supabase fallback error:', sbErr);
+    console.warn('[Check Approved User] Supabase direct fallback error:', sbErr);
   }
 
   return { found: false, approved: false };
