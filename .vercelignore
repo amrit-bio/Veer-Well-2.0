@@ -21,7 +21,8 @@ build/
 # Cache
 .cache/
 .parcel-cache/
-server/dist/
+
+# Build artifacts
 client/dist/
 *.tsbuildinfo
 
