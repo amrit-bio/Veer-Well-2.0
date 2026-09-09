@@ -122,6 +122,12 @@ $$ LANGUAGE plpgsql STABLE;
 -- ============================================================================
 ALTER TABLE public.service_id_lookup ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (idempotent migration)
+DROP POLICY IF EXISTS "Authenticated users can read service ID lookup" ON public.service_id_lookup;
+DROP POLICY IF EXISTS "Admins can insert lookup entries" ON public.service_id_lookup;
+DROP POLICY IF EXISTS "Admins can update lookup entries" ON public.service_id_lookup;
+DROP POLICY IF EXISTS "Admins can delete lookup entries" ON public.service_id_lookup;
+
 -- Lookup table is readable by all authenticated users (read-only reference data)
 CREATE POLICY "Authenticated users can read service ID lookup"
   ON public.service_id_lookup FOR SELECT
