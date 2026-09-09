@@ -52,7 +52,7 @@ export const NAV_CONFIG: TabItem[] = [
     category: 'Core Modules',
     icon: Home,
     description: 'Dynamic command summary matching active military persona clearance',
-    roles: ['personnel', 'commander', 'welfare_officer', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'],
+    roles: ['personnel', 'commander', 'welfare_officer', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce', 'mha_admin', 'admin'],
     operationalScope: 'All Roles (Customized widgets per clearance tier)',
   },
   {
@@ -156,7 +156,7 @@ export const NAV_CONFIG: TabItem[] = [
     icon: ShieldCheck,
     badge: 'Zero-Trust',
     description: 'Armed Forces Welfare Doctrine compliance, k-anonymity & differential privacy',
-    roles: ['personnel', 'commander', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'],
+    roles: ['personnel', 'commander', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce', 'mha_admin', 'admin'],
     operationalScope: 'Jawans (Data Isolation Pledge), Commanders (Doctrine Audit), Analysts (Epsilon Config)',
   },
 
@@ -241,7 +241,7 @@ export const NAV_CONFIG: TabItem[] = [
     icon: Database,
     badge: 'Security',
     description: 'Live multi-table data inspector & security policy auditor',
-    roles: ['analyst'],
+    roles: ['analyst', 'mha_admin', 'admin'],
     operationalScope: 'Behavioral Data Analysts & System Administrators',
   },
   {
