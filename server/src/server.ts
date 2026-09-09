@@ -2005,8 +2005,19 @@ app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Res
           updated_at: new Date().toISOString(),
         });
 
+        // Link auth user ID to approved_users record
+        try {
+          await supabaseAdmin!.rpc('update_approved_user_auth_id', {
+            p_email: signupRequest.email,
+            p_auth_user_id: newUserId,
+          });
+          console.log(`[Approve] ✅ Linked auth_user_id in approved_users for: ${signupRequest.email}`);
+        } catch (linkErr: any) {
+          console.warn('[Approve] Could not link auth_user_id:', linkErr?.message);
+        }
+
         // Clear plaintext password after successful account creation
-        await supabaseAdmin
+        await supabaseAdmin!
           .from('signup_requests')
           .update({ password_plain: null })
           .eq('id', request_id);
@@ -2136,6 +2147,71 @@ app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Respo
 
   } catch (error: any) {
     console.error('[Reject] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get list of approved users (for MHA admin dashboard)
+app.get(['/api/admin/approved-users', '/admin/approved-users'], async (req: Request, res: Response) => {
+  try {
+    const { data: approvedUsers, error } = await supabaseAdmin!
+      .from('approved_users')
+      .select('*')
+      .eq('account_active', true)
+      .order('approved_at', { ascending: false });
+
+    if (error) {
+      console.error('[Approved Users] Query error:', error);
+      return res.status(500).json({ error: 'Failed to fetch approved users' });
+    }
+
+    return res.json({ approved_users: approvedUsers || [] });
+  } catch (error: any) {
+    console.error('[Approved Users] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Check if an email or service_id belongs to an approved user (for login flow)
+app.get(['/api/admin/check-approved-user', '/admin/check-approved-user'], async (req: Request, res: Response) => {
+  try {
+    const { identifier } = req.query;
+    if (!identifier || typeof identifier !== 'string') {
+      return res.status(400).json({ error: 'identifier is required' });
+    }
+
+    const clean = identifier.trim().toLowerCase();
+
+    // Check by email or service_id
+    const { data, error } = await supabaseAdmin!
+      .from('approved_users')
+      .select('id, email, service_id, auth_user_id, role, full_name, rank, force, unit, account_active')
+      .or(`email.ilike.${clean},service_id.ilike.${clean}`)
+      .eq('account_active', true)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!data) {
+      return res.json({ found: false, approved: false });
+    }
+
+    return res.json({
+      found: true,
+      approved: true,
+      email: data.email,
+      service_id: data.service_id,
+      auth_user_id: data.auth_user_id,
+      role: data.role,
+      full_name: data.full_name,
+      rank: data.rank,
+      force: data.force,
+      unit: data.unit,
+    });
+  } catch (error: any) {
+    console.error('[Check Approved User] Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -311,3 +311,117 @@ export async function rejectSignupRequest(
     throw new Error(`Failed to reject request: ${fallbackErr.message || 'Unknown error'}`);
   }
 }
+
+export interface ApprovedUser {
+  id: string;
+  signup_request_id?: string;
+  auth_user_id?: string;
+  full_name: string;
+  email: string;
+  rank: string;
+  service_id?: string;
+  force: string;
+  unit?: string;
+  role: string;
+  department?: string;
+  designation?: string;
+  approved_at: string;
+  approved_by?: string;
+  approval_notes?: string;
+  account_active: boolean;
+}
+
+/**
+ * Get the list of all approved users (admin dashboard)
+ */
+export async function getApprovedUsers(): Promise<{ approved_users: ApprovedUser[] }> {
+  // Primary: HTTP API endpoint
+  try {
+    const response = await fetch(getApiUrl('/api/admin/approved-users'), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err: any) {
+    console.warn('[Approved Users] API fetch failed, trying direct Supabase query:', err.message);
+  }
+
+  // Fallback: Direct Supabase query
+  try {
+    const { data, error } = await supabase
+      .from('approved_users')
+      .select('*')
+      .eq('account_active', true)
+      .order('approved_at', { ascending: false });
+
+    if (!error && data) {
+      return { approved_users: data as ApprovedUser[] };
+    }
+  } catch (sbErr) {
+    console.error('[Approved Users] Supabase fallback error:', sbErr);
+  }
+
+  return { approved_users: [] };
+}
+
+/**
+ * Check if a given email or service ID has been approved by MHA admin.
+ * Used by the login flow to resolve service IDs to email accounts.
+ */
+export async function checkApprovedUser(identifier: string): Promise<{
+  found: boolean;
+  approved: boolean;
+  email?: string;
+  service_id?: string;
+  auth_user_id?: string;
+  role?: string;
+  full_name?: string;
+  rank?: string;
+  force?: string;
+  unit?: string;
+}> {
+  // Primary: HTTP API endpoint
+  try {
+    const response = await fetch(getApiUrl(`/api/admin/check-approved-user?identifier=${encodeURIComponent(identifier)}`), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err: any) {
+    console.warn('[Check Approved User] API fetch failed, trying Supabase fallback:', err.message);
+  }
+
+  // Fallback: Direct Supabase query
+  try {
+    const clean = identifier.trim().toLowerCase();
+    const { data } = await supabase
+      .from('approved_users')
+      .select('id, email, service_id, auth_user_id, role, full_name, rank, force, unit, account_active')
+      .or(`email.ilike.${clean},service_id.ilike.${clean}`)
+      .eq('account_active', true)
+      .maybeSingle();
+
+    if (data) {
+      return {
+        found: true,
+        approved: true,
+        email: (data as any).email,
+        service_id: (data as any).service_id,
+        auth_user_id: (data as any).auth_user_id,
+        role: (data as any).role,
+        full_name: (data as any).full_name,
+        rank: (data as any).rank,
+        force: (data as any).force,
+        unit: (data as any).unit,
+      };
+    }
+  } catch (sbErr) {
+    console.warn('[Check Approved User] Supabase fallback error:', sbErr);
+  }
+
+  return { found: false, approved: false };
+}

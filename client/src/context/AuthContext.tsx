@@ -3,7 +3,7 @@ import { User, UserRole } from '../types';
 import { supabase, isSupabaseReady } from '../lib/supabaseClient';
 import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
-import { submitSignupForVerification } from '../lib/verification/api';
+import { submitSignupForVerification, checkApprovedUser } from '../lib/verification/api';
 
 export interface RoleCredentials {
   role: UserRole;
@@ -545,7 +545,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) return { error };
       }
 
-      // 3. If it is a custom military Service ID, query profiles for the corresponding account
+      // 3. Service ID lookup: first check approved_users table, then fall back to profiles
+      // Try approved_users first (approved by MHA admin)
+      try {
+        const approvedResult = await checkApprovedUser(cleanId);
+        if (approvedResult.found && approvedResult.approved) {
+          // Found in approved_users — try to sign in with their email
+          const approvedEmail = approvedResult.email!;
+          const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
+            email: approvedEmail,
+            password: cleanPass,
+          });
+
+          if (!sbErr && sbData?.session) {
+            setSession(sbData.session);
+            setSupabaseUser(sbData.user);
+            await syncUserProfile(sbData.user);
+            setIsAuthenticated(true);
+            setIsAuthModalOpen(false);
+            return { error: null };
+          }
+
+          if (sbErr) {
+            // Auth account exists but wrong password
+            return { error: new Error('Invalid password. Please use the password you set during signup.') };
+          }
+
+          // Auth account may not exist yet (pending creation)
+          return {
+            error: new Error(
+              '🔒 Your account has been approved by MHA Admin. However, it may take a few minutes to activate. Please try again shortly or use your registered email to log in.'
+            ),
+          };
+        }
+      } catch {
+        // Non-blocking — continue to profiles fallback
+      }
+
+      // 4. Fall back to profiles table lookup by service_number
       const { data: matchedProfile } = await supabase.from('profiles')
         .select('*')
         .ilike('service_number', cleanId)
