@@ -114,43 +114,45 @@ CREATE POLICY "Service role full access approved_users" ON public.approved_users
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
--- Public can submit signup requests
+-- Public can submit signup requests (INSERT only, no SELECT needed by anon)
 CREATE POLICY "Anyone can insert signup requests" ON public.signup_requests
   FOR INSERT WITH CHECK (true);
 
 -- MHA Admin can read signup requests
+-- IMPORTANT: Use auth.jwt() ->> 'email' instead of subquery on auth.users
+-- (anon key cannot SELECT from auth.users — permission denied)
 CREATE POLICY "Admin can read signup requests" ON public.signup_requests
   FOR SELECT USING (
     auth.role() = 'service_role' OR
-    auth.uid() IN (SELECT id FROM auth.users WHERE email = 'admin@mha.gov.in')
+    (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
 -- MHA Admin can update signup requests
 CREATE POLICY "Admin can update signup requests" ON public.signup_requests
   FOR UPDATE USING (
     auth.role() = 'service_role' OR
-    auth.uid() IN (SELECT id FROM auth.users WHERE email = 'admin@mha.gov.in')
+    (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
 -- MHA Admin can read approved users
 CREATE POLICY "Admin can read approved_users" ON public.approved_users
   FOR SELECT USING (
     auth.role() = 'service_role' OR
-    auth.uid() IN (SELECT id FROM auth.users WHERE email = 'admin@mha.gov.in')
+    (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
 -- MHA Admin can insert approved users
 CREATE POLICY "Admin can insert approved_users" ON public.approved_users
   FOR INSERT WITH CHECK (
     auth.role() = 'service_role' OR
-    auth.uid() IN (SELECT id FROM auth.users WHERE email = 'admin@mha.gov.in')
+    (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
 -- MHA Admin can update approved users
 CREATE POLICY "Admin can update approved_users" ON public.approved_users
   FOR UPDATE USING (
     auth.role() = 'service_role' OR
-    auth.uid() IN (SELECT id FROM auth.users WHERE email = 'admin@mha.gov.in')
+    (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
 -- 5. HELPER FUNCTIONS

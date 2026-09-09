@@ -84,25 +84,13 @@ export async function submitSignupForVerification(
   }
 
   // Fallback: Store directly in Supabase signup_requests table
+  // Note: anon key cannot SELECT from signup_requests (RLS blocks it).
+  // We skip the duplicate check here — the primary API handles it, and
+  // a duplicate INSERT will fail with a unique-constraint error which we surface below.
   try {
-    const { data: existing } = await supabase
-      .from('signup_requests')
-      .select('id, review_status')
-      .eq('email', cleanEmail)
-      .order('submitted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing && (existing as any).review_status === 'awaiting_review') {
-      return {
-        message: 'A signup request for this email is already pending review by MHA authorities.',
-        status: 'awaiting_review',
-        request_id: (existing as any).id,
-      };
-    }
-
     // Do NOT set a manual id — let Supabase generate a proper UUID
-    const { data: inserted, error: dbError } = await supabase
+    // Do NOT chain .select() — the anon key cannot SELECT from signup_requests (RLS blocks it)
+    const { error: dbError } = await supabase
       .from('signup_requests')
       .insert({
         full_name: data.full_name.trim(),
@@ -117,25 +105,31 @@ export async function submitSignupForVerification(
         designation: data.designation?.trim() || `${data.rank || 'Officer'} (${data.role || 'personnel'})`,
         review_status: 'awaiting_review',
         submitted_at: new Date().toISOString(),
-      })
-      .select()
-      .maybeSingle();
+      });
 
     if (dbError) {
       console.error('[Signup Verification] Direct Supabase insert FAILED:', dbError.code, dbError.message, dbError.details);
-      // If table doesn't exist, surface a clear error
+      // Table doesn't exist → migration not run
       if (dbError.message?.includes('relation') || dbError.message?.includes('does not exist') || dbError.code === '42P01') {
         throw new Error('Database table "signup_requests" does not exist. Please run the SQL migration in Supabase SQL Editor first.');
+      }
+      // Duplicate email → already submitted
+      if (dbError.code === '23505') {
+        return {
+          message: 'A signup request for this email is already pending MHA Admin review.',
+          status: 'awaiting_review',
+          request_id: 'duplicate',
+        };
       }
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log('[Signup Verification] ✅ Stored signup request in Supabase:', inserted?.id);
+    console.log('[Signup Verification] ✅ Signup request stored in Supabase for:', cleanEmail);
 
     return {
       message: 'Signup request submitted for review. You will be notified once your account is approved by MHA admin.',
       status: 'awaiting_review',
-      request_id: inserted?.id || 'pending',
+      request_id: `pending-${Date.now()}`,
     };
   } catch (fallbackErr: any) {
     console.error('[Signup Verification] Direct fallback error:', fallbackErr?.message || fallbackErr);
