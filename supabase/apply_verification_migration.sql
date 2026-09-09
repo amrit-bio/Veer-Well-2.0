@@ -169,7 +169,18 @@ CREATE POLICY "Admin can update approved_users"
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
 
--- STEP 8: Fix match_service_id function (resolves "column reference role_code is ambiguous")
+-- STEP 8: Drop existing functions before recreating (allows return type / signature changes)
+DROP FUNCTION IF EXISTS public.get_pending_signups();
+DROP FUNCTION IF EXISTS public.get_approved_personnel();
+DROP FUNCTION IF EXISTS public.check_approved_personnel(TEXT);
+DROP FUNCTION IF EXISTS public.approve_signup_request(UUID, UUID, TEXT);
+DROP FUNCTION IF EXISTS public.approve_signup_request(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.reject_signup_request(UUID, UUID, TEXT);
+DROP FUNCTION IF EXISTS public.reject_signup_request(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.update_approved_user_auth_id(TEXT, UUID);
+DROP FUNCTION IF EXISTS public.match_service_id(TEXT);
+
+-- STEP 9: Fix match_service_id function (resolves "column reference role_code is ambiguous")
 CREATE OR REPLACE FUNCTION public.match_service_id(p_service_number TEXT)
 RETURNS public.service_id_lookup AS $$
 DECLARE
@@ -201,7 +212,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- STEP 9: Stored Procedures (SECURITY DEFINER to run safely with anon or authenticated key)
+-- STEP 10: Stored Procedures (SECURITY DEFINER to run safely with anon or authenticated key)
 
 -- Approve a signup request → records approval in approved_users and updates signup_requests
 CREATE OR REPLACE FUNCTION public.approve_signup_request(
@@ -295,7 +306,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- STEP 10: RPC Functions for MHA Admin Dashboard & Personnel Login
+-- STEP 11: RPC Functions for MHA Admin Dashboard & Personnel Login
 
 -- Get all pending signup requests (for MHA admin review queue)
 CREATE OR REPLACE FUNCTION public.get_pending_signups()
@@ -399,7 +410,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- STEP 11: Grant Execution Permissions to anon, authenticated, service_role
+-- STEP 12: Grant Execution Permissions to anon, authenticated, service_role
 GRANT EXECUTE ON FUNCTION public.approve_signup_request(UUID, TEXT, TEXT)   TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.reject_signup_request(UUID, TEXT, TEXT)    TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.update_approved_user_auth_id(TEXT, UUID)   TO anon, authenticated, service_role;
