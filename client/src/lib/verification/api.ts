@@ -12,11 +12,14 @@ import type { SignupVerificationResponse, ReviewQueueResponse, ReviewActionRespo
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || '';
 
 function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (origin && origin !== 'http://localhost:3000' && origin !== 'http://localhost:5173') {
+      return `${origin}${path}`;
+    }
+  }
   if (API_BASE && API_BASE.startsWith('http')) {
     return `${API_BASE}${path}`;
-  }
-  if (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'http://localhost:3000' && window.location.origin !== 'http://localhost:5173') {
-    return `${window.location.origin}${path}`;
   }
   return `http://localhost:5000${path}`;
 }
