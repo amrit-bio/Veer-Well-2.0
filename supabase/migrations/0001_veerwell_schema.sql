@@ -261,6 +261,12 @@ $$ LANGUAGE SQL SECURITY DEFINER STABLE;
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (idempotent migration)
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Commanders and welfare officers can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+
 CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
@@ -282,6 +288,11 @@ CREATE POLICY "Users can insert own profile"
 -- WEARABLE TELEMETRY
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.wearable_telemetry ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own telemetry" ON public.wearable_telemetry;
+DROP POLICY IF EXISTS "Privileged roles can read all telemetry" ON public.wearable_telemetry;
+DROP POLICY IF EXISTS "Users can insert own telemetry" ON public.wearable_telemetry;
+DROP POLICY IF EXISTS "Users can update own telemetry" ON public.wearable_telemetry;
 
 CREATE POLICY "Users can read own telemetry"
   ON public.wearable_telemetry FOR SELECT
@@ -305,6 +316,11 @@ CREATE POLICY "Users can update own telemetry"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.assessments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read own assessments" ON public.assessments;
+DROP POLICY IF EXISTS "Welfare officers can read all assessments" ON public.assessments;
+DROP POLICY IF EXISTS "Users can insert own assessments" ON public.assessments;
+DROP POLICY IF EXISTS "Users can update own assessments" ON public.assessments;
+
 CREATE POLICY "Users can read own assessments"
   ON public.assessments FOR SELECT
   USING (auth.uid() = user_id);
@@ -327,6 +343,10 @@ CREATE POLICY "Users can update own assessments"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.stress_metrics ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read own stress metrics" ON public.stress_metrics;
+DROP POLICY IF EXISTS "Privileged roles can read all stress metrics" ON public.stress_metrics;
+DROP POLICY IF EXISTS "Users can insert own stress metrics" ON public.stress_metrics;
+
 CREATE POLICY "Users can read own stress metrics"
   ON public.stress_metrics FOR SELECT
   USING (auth.uid() = user_id);
@@ -343,6 +363,11 @@ CREATE POLICY "Users can insert own stress metrics"
 -- DEPLOYMENTS
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.deployments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own deployments" ON public.deployments;
+DROP POLICY IF EXISTS "Commanders can read all deployments" ON public.deployments;
+DROP POLICY IF EXISTS "Users can insert own deployments" ON public.deployments;
+DROP POLICY IF EXISTS "Users can update own deployments" ON public.deployments;
 
 CREATE POLICY "Users can read own deployments"
   ON public.deployments FOR SELECT
@@ -365,6 +390,12 @@ CREATE POLICY "Users can update own deployments"
 -- LEAVE RECORDS
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.leave_records ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own leave records" ON public.leave_records;
+DROP POLICY IF EXISTS "Commanders can read all leave records" ON public.leave_records;
+DROP POLICY IF EXISTS "Users can insert own leave requests" ON public.leave_records;
+DROP POLICY IF EXISTS "Users can update own leave records" ON public.leave_records;
+DROP POLICY IF EXISTS "Commanders can update leave status" ON public.leave_records;
 
 CREATE POLICY "Users can read own leave records"
   ON public.leave_records FOR SELECT
@@ -392,6 +423,10 @@ CREATE POLICY "Commanders can update leave status"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.wellness_surveys ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "All authenticated users can view surveys" ON public.wellness_surveys;
+DROP POLICY IF EXISTS "Admins can create surveys" ON public.wellness_surveys;
+DROP POLICY IF EXISTS "Admins can update surveys" ON public.wellness_surveys;
+
 CREATE POLICY "All authenticated users can view surveys"
   ON public.wellness_surveys FOR SELECT
   USING (auth.uid() IS NOT NULL);
@@ -408,6 +443,11 @@ CREATE POLICY "Admins can update surveys"
 -- SURVEY RESPONSES
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.survey_responses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own survey responses" ON public.survey_responses;
+DROP POLICY IF EXISTS "Analysts can read all survey responses" ON public.survey_responses;
+DROP POLICY IF EXISTS "Users can submit own survey responses" ON public.survey_responses;
+DROP POLICY IF EXISTS "Users can update own survey responses" ON public.survey_responses;
 
 CREATE POLICY "Users can read own survey responses"
   ON public.survey_responses FOR SELECT
@@ -431,6 +471,11 @@ CREATE POLICY "Users can update own survey responses"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.workload_records ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read own workload" ON public.workload_records;
+DROP POLICY IF EXISTS "Managers can read all workload" ON public.workload_records;
+DROP POLICY IF EXISTS "Users can insert own workload" ON public.workload_records;
+DROP POLICY IF EXISTS "Users can update own workload" ON public.workload_records;
+
 CREATE POLICY "Users can read own workload"
   ON public.workload_records FOR SELECT
   USING (auth.uid() = user_id);
@@ -453,6 +498,11 @@ CREATE POLICY "Users can update own workload"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.interventions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Target users can view their interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Welfare staff can view all interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Welfare officers can create interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Welfare officers can update interventions" ON public.interventions;
+
 CREATE POLICY "Target users can view their interventions"
   ON public.interventions FOR SELECT
   USING (auth.uid() = target_user_id);
@@ -474,6 +524,10 @@ CREATE POLICY "Welfare officers can update interventions"
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.welfare_alerts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Privileged roles can view alerts" ON public.welfare_alerts;
+DROP POLICY IF EXISTS "System can create alerts" ON public.welfare_alerts;
+DROP POLICY IF EXISTS "Admins can update alerts" ON public.welfare_alerts;
+
 CREATE POLICY "Privileged roles can view alerts"
   ON public.welfare_alerts FOR SELECT
   USING (public.get_user_role() IN ('commander', 'welfare_officer', 'hr_admin', 'analyst'));
@@ -490,6 +544,11 @@ CREATE POLICY "Admins can update alerts"
 -- FEEDBACK
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Admins can read all feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Users can submit own feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Users can update own feedback" ON public.feedback;
 
 CREATE POLICY "Users can read own feedback"
   ON public.feedback FOR SELECT
