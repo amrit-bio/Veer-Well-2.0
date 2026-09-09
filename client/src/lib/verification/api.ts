@@ -101,18 +101,17 @@ export async function submitSignupForVerification(
       };
     }
 
-    const requestId = `sr-${Date.now()}`;
+    // Do NOT set a manual id — let Supabase generate a proper UUID
     const { data: inserted, error: dbError } = await supabase
       .from('signup_requests')
       .insert({
-        id: requestId,
         full_name: data.full_name.trim(),
         email: cleanEmail,
         password_plain: data.password || null,
         rank: data.rank?.trim() || 'Officer',
-        service_id: data.service_id?.trim() || `CRPF-${Math.floor(100000 + Math.random() * 900000)}`,
+        service_id: data.service_id?.trim() || null,
         force: data.force?.trim() || 'CRPF',
-        unit: data.unit?.trim() || '142 Bn',
+        unit: data.unit?.trim() || null,
         role: data.role?.trim() || 'personnel',
         department: data.department?.trim() || 'Operations',
         designation: data.designation?.trim() || `${data.rank || 'Officer'} (${data.role || 'personnel'})`,
@@ -123,21 +122,24 @@ export async function submitSignupForVerification(
       .maybeSingle();
 
     if (dbError) {
-      console.warn('[Signup Verification] Direct Supabase insert notice:', dbError.message);
+      console.error('[Signup Verification] Direct Supabase insert FAILED:', dbError.code, dbError.message, dbError.details);
+      // If table doesn't exist, surface a clear error
+      if (dbError.message?.includes('relation') || dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        throw new Error('Database table "signup_requests" does not exist. Please run the SQL migration in Supabase SQL Editor first.');
+      }
+      throw new Error(`Database error: ${dbError.message}`);
     }
+
+    console.log('[Signup Verification] ✅ Stored signup request in Supabase:', inserted?.id);
 
     return {
       message: 'Signup request submitted for review. You will be notified once your account is approved by MHA admin.',
       status: 'awaiting_review',
-      request_id: inserted?.id || requestId,
+      request_id: inserted?.id || 'pending',
     };
   } catch (fallbackErr: any) {
-    console.error('[Signup Verification] Direct fallback error:', fallbackErr);
-    return {
-      message: 'Signup request queued for MHA admin review.',
-      status: 'awaiting_review',
-      request_id: `sr-${Date.now()}`,
-    };
+    console.error('[Signup Verification] Direct fallback error:', fallbackErr?.message || fallbackErr);
+    throw new Error(fallbackErr?.message || 'Failed to submit signup request. Please check your internet connection and try again.');
   }
 }
 
