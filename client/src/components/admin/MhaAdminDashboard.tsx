@@ -45,7 +45,7 @@ export const MhaAdminDashboard: React.FC = () => {
     setLastResult(null);
     try {
       const data = await getReviewQueue();
-      setRequests(data.requests || []);
+      setRequests(data.requests || (data as any)?.queue || []);
     } catch (err: any) {
       setLastResult({
         success: false,

@@ -47,7 +47,7 @@ export const ReviewDashboardTab: React.FC = () => {
         getReviewQueue(),
         getApprovedUsers(),
       ]);
-      setQueue(queueData.requests || []);
+      setQueue(queueData.requests || (queueData as any)?.queue || []);
       setApprovedUsers(approvedData.approved_users || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data');

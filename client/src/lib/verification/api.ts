@@ -100,31 +100,9 @@ export async function submitSignupForVerification(
     throw new Error(`Signup failed: ${dbError.message}`);
   }
 
-  console.log('[Signup] ✅ Registration stored in Supabase for:', cleanEmail);
+  console.log('[Signup] ✅ Registration submitted for review:', cleanEmail);
 
-  // ── STEP 2: Also register user in Supabase Auth (non-blocking) ────────────
-  // This securely prepares the user's Auth account so login works seamlessly once approved.
-  try {
-    await supabase.auth.signUp({
-      email: cleanEmail,
-      password: data.password,
-      options: {
-        data: {
-          full_name: data.full_name,
-          rank: data.rank,
-          service_id: data.service_id,
-          force: data.force,
-          unit: data.unit,
-          role: data.role,
-        },
-      },
-    });
-    console.log('[Signup] ✅ Supabase Auth user record initiated for:', cleanEmail);
-  } catch (authErr: any) {
-    console.warn('[Signup] auth.signUp notice (will complete on approval):', authErr?.message);
-  }
-
-  // ── STEP 3: Best-effort server notification (non-blocking) ─────────────────
+  // Best-effort server notification (non-blocking)
   try {
     const serverUrl = getApiUrl('/api/auth/signup/verify');
     fetch(serverUrl, {
@@ -148,27 +126,35 @@ export async function submitSignupForVerification(
  * Get review queue for MHA admin
  */
 export async function getReviewQueue(): Promise<ReviewQueueResponse> {
-  // Primary: Try HTTP API endpoint (server has service_role key)
+  // Primary: Try HTTP API endpoint
   try {
     const response = await fetch(getApiUrl('/api/admin/review-queue'), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
     if (response.ok) {
-      return await response.json();
+      const resData = await response.json();
+      const list = resData.requests || resData.queue || [];
+      return {
+        requests: list,
+        queue: list,
+        total: list.length,
+      } as any;
     }
   } catch (err: any) {
     console.warn('[Review Queue] API fetch failed, falling back to RPC:', err.message);
   }
 
-  // Fallback: Call SECURITY DEFINER RPC function (bypasses RLS, works with anon key)
+  // Fallback 1: Call SECURITY DEFINER RPC function (bypasses RLS, works with anon key)
   try {
     const { data, error } = await supabase.rpc('get_pending_signups');
     if (!error && data) {
+      const list = (data as any[]) || [];
       return {
-        queue: data as any[],
-        total: (data as any[]).length,
-      };
+        requests: list,
+        queue: list,
+        total: list.length,
+      } as any;
     }
     if (error) {
       console.error('[Review Queue] RPC error:', error.code, error.message);
@@ -177,7 +163,26 @@ export async function getReviewQueue(): Promise<ReviewQueueResponse> {
     console.error('[Review Queue] RPC fallback error:', sbErr);
   }
 
-  return { queue: [], total: 0 };
+  // Fallback 2: Direct Supabase query on signup_requests
+  try {
+    const { data: directRows } = await supabase
+      .from('signup_requests')
+      .select('*')
+      .eq('review_status', 'awaiting_review')
+      .order('submitted_at', { ascending: true });
+
+    if (directRows && directRows.length > 0) {
+      return {
+        requests: directRows,
+        queue: directRows,
+        total: directRows.length,
+      } as any;
+    }
+  } catch (directErr) {
+    console.warn('[Review Queue] Direct table fallback note:', directErr);
+  }
+
+  return { requests: [], queue: [], total: 0 } as any;
 }
 
 /**
