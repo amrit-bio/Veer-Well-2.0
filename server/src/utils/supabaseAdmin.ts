@@ -1,14 +1,27 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
+// Try loading environment variables from .env or .env.vercel if not present
+dotenv.config();
 
-if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
-  throw new Error('[MHA] Supabase Admin NOT configured — set SUPABASE_URL and SUPABASE_SECRET_KEY');
+const parentVercelEnv = path.resolve(process.cwd(), '../.env.vercel');
+if ((!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) && fs.existsSync(parentVercelEnv)) {
+  dotenv.config({ path: parentVercelEnv });
 }
 
-export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://krshfwuqifaxecbtrxmy.supabase.co';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
 
-console.log(`[MHA] Supabase Admin initialized: ${SUPABASE_URL}`);
+export const supabaseAdmin: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SECRET_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
+
+if (supabaseAdmin) {
+  console.log(`[MHA] Supabase Admin initialized: ${SUPABASE_URL}`);
+} else {
+  console.warn('[MHA] Supabase Admin NOT initialized (missing SUPABASE_SECRET_KEY)');
+}
