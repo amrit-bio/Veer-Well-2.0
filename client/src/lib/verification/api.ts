@@ -129,33 +129,30 @@ export async function submitSignupForVerification(
  * Get review queue for MHA admin
  */
 export async function getReviewQueue(): Promise<ReviewQueueResponse> {
-  // Primary: Try HTTP API endpoint
+  // Primary: Try HTTP API endpoint (server has service_role key)
   try {
     const response = await fetch(getApiUrl('/api/admin/review-queue'), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
-
     if (response.ok) {
       return await response.json();
     }
   } catch (err: any) {
-    console.warn('[Review Queue] API fetch failed, trying direct Supabase query:', err.message);
+    console.warn('[Review Queue] API fetch failed, trying RPC fallback:', err.message);
   }
 
-  // Fallback: Direct Supabase query
+  // Fallback: Call SECURITY DEFINER RPC function (bypasses RLS, works with anon key)
   try {
-    const { data: requests, error } = await supabase
-      .from('signup_requests')
-      .select('*')
-      .order('submitted_at', { ascending: false });
-
-    if (!error && requests) {
-      const awaiting = requests.filter((r: any) => r.review_status === 'awaiting_review' || !r.review_status);
-      return { requests: (awaiting.length > 0 ? awaiting : requests) as any[] };
+    const { data, error } = await supabase.rpc('get_pending_signups');
+    if (!error && data) {
+      return { requests: data as any[] };
+    }
+    if (error) {
+      console.error('[Review Queue] RPC error:', error.code, error.message);
     }
   } catch (sbErr) {
-    console.error('[Review Queue] Supabase fallback error:', sbErr);
+    console.error('[Review Queue] RPC fallback error:', sbErr);
   }
 
   return { requests: [] };
@@ -329,22 +326,20 @@ export async function getApprovedUsers(): Promise<{ approved_users: ApprovedUser
       return await response.json();
     }
   } catch (err: any) {
-    console.warn('[Approved Users] API fetch failed, trying direct Supabase query:', err.message);
+    console.warn('[Approved Users] API fetch failed, trying RPC fallback:', err.message);
   }
 
-  // Fallback: Direct Supabase query
+  // Fallback: Call SECURITY DEFINER RPC function (bypasses RLS, works with anon key)
   try {
-    const { data, error } = await supabase
-      .from('approved_users')
-      .select('*')
-      .eq('account_active', true)
-      .order('approved_at', { ascending: false });
-
+    const { data, error } = await supabase.rpc('get_approved_personnel');
     if (!error && data) {
       return { approved_users: data as ApprovedUser[] };
     }
+    if (error) {
+      console.error('[Approved Users] RPC error:', error.code, error.message);
+    }
   } catch (sbErr) {
-    console.error('[Approved Users] Supabase fallback error:', sbErr);
+    console.error('[Approved Users] RPC fallback error:', sbErr);
   }
 
   return { approved_users: [] };

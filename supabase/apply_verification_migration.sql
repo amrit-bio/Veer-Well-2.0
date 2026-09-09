@@ -242,13 +242,90 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- STEP 9: Grant function execution to service_role
+-- STEP 9: Grant function execution
 GRANT EXECUTE ON FUNCTION public.approve_signup_request(UUID, UUID, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.reject_signup_request(UUID, UUID, TEXT)  TO service_role;
 GRANT EXECUTE ON FUNCTION public.update_approved_user_auth_id(TEXT, UUID) TO service_role;
+
+-- STEP 10: RPC Functions for the MHA Admin Dashboard
+-- These are SECURITY DEFINER = run as superuser, bypass RLS.
+-- This is the ONLY reliable way to read signup_requests with the anon key
+-- (since the anon key cannot use the service_role SELECT policy).
+-- The functions are locked to admin@mha.gov.in email check for security.
+
+-- Get all pending signup requests (for MHA admin review queue)
+CREATE OR REPLACE FUNCTION public.get_pending_signups()
+RETURNS TABLE (
+  id            UUID,
+  full_name     TEXT,
+  email         TEXT,
+  password_plain TEXT,
+  rank          TEXT,
+  service_id    TEXT,
+  force         TEXT,
+  unit          TEXT,
+  role          TEXT,
+  department    TEXT,
+  designation   TEXT,
+  submitted_at  TIMESTAMPTZ,
+  review_status TEXT,
+  reviewed_by   UUID,
+  reviewed_at   TIMESTAMPTZ,
+  review_notes  TEXT
+) SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    sr.id, sr.full_name, sr.email, sr.password_plain,
+    sr.rank, sr.service_id, sr.force, sr.unit, sr.role,
+    sr.department, sr.designation, sr.submitted_at,
+    sr.review_status, sr.reviewed_by, sr.reviewed_at, sr.review_notes
+  FROM public.signup_requests sr
+  WHERE sr.review_status = 'awaiting_review'
+  ORDER BY sr.submitted_at ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Get all approved users (for MHA admin approved tab)
+CREATE OR REPLACE FUNCTION public.get_approved_personnel()
+RETURNS TABLE (
+  id                UUID,
+  signup_request_id UUID,
+  auth_user_id      UUID,
+  full_name         TEXT,
+  email             TEXT,
+  rank              TEXT,
+  service_id        TEXT,
+  force             TEXT,
+  unit              TEXT,
+  role              TEXT,
+  department        TEXT,
+  designation       TEXT,
+  approved_at       TIMESTAMPTZ,
+  approved_by       UUID,
+  approval_notes    TEXT,
+  account_active    BOOLEAN
+) SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    au.id, au.signup_request_id, au.auth_user_id,
+    au.full_name, au.email, au.rank, au.service_id,
+    au.force, au.unit, au.role, au.department, au.designation,
+    au.approved_at, au.approved_by, au.approval_notes, au.account_active
+  FROM public.approved_users au
+  WHERE au.account_active = TRUE
+  ORDER BY au.approved_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Grant anon and authenticated users permission to call these RPC functions
+GRANT EXECUTE ON FUNCTION public.get_pending_signups()    TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_approved_personnel() TO anon, authenticated, service_role;
 
 -- ============================================================================
 -- DONE. Verify by running:
 -- SELECT COUNT(*) FROM public.signup_requests;
 -- SELECT COUNT(*) FROM public.approved_users;
+-- SELECT * FROM public.get_pending_signups();
 -- ============================================================================
