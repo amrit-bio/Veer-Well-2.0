@@ -23,7 +23,8 @@
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.3.0",
     "three": "^0.165.0",
-    "tesseract.js": "^5.0.4"
+    "tesseract.js": "^5.0.4",
+    "vite": "^5.2.13"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
@@ -35,7 +36,6 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.13"
+    "typescript": "^5.4.5"
   }
 }

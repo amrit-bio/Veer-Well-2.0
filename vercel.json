@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install --prefix client && npm install --prefix server",
-  "buildCommand": "cd server && npx --package typescript tsc && cd ../client && npx vite build",
+  "buildCommand": "cd server && npx --package typescript tsc && cd ../client && npx vite build --no-cache",
   "outputDirectory": "client/dist",
   "framework": "vite",
   "regions": ["iad1"],
