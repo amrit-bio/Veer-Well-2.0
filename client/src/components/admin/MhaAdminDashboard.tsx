@@ -132,7 +132,7 @@ export const MhaAdminDashboard: React.FC = () => {
     });
   };
 
-  const isMhaAdmin = role === 'mha_admin';
+  const isMhaAdmin = role === 'mha_admin' || role === 'admin';
 
   if (!isMhaAdmin) {
     return (

@@ -183,7 +183,7 @@ const MainPlatform: React.FC = () => {
                   {activeTab === 'subordinate-dashboard' && role === 'subordinate_officer' && <SubordinateOfficerDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'nsg-taskforce-dashboard' && role === 'nsg_taskforce' && <NSGTaskForceDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'clinical-dashboard' && role === 'welfare_officer' && <ClinicalDashboardTab />}
-                  {activeTab === 'review-dashboard' && role === 'mha_admin' && <MhaAdminDashboard />}
+                  {(activeTab === 'review-dashboard' || activeTab === 'mha-approval') && (role === 'mha_admin' || role === 'admin') && <MhaAdminDashboard />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
                   {activeTab === 'interventions' && <InterventionsTab />}

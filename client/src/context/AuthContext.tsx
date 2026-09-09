@@ -104,7 +104,19 @@ export const ROLE_PRESETS: Record<string, RoleCredentials> = {
     description: 'NSG operational overlay: CT deployment metrics, ops tempo, task-force readiness.',
   },
   admin: {
-    role: 'admin' as UserRole,
+    role: 'mha_admin' as UserRole,
+    roleLabel: 'MHA System Administrator',
+    defaultLoginId: 'admin@mha.gov.in',
+    defaultPassword: 'admin-password-2026',
+    rank: 'Administrator',
+    name: 'MHA System Administrator',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    badge: 'Single Admin Access',
+    description: 'Single MHA administrator — review queue, approve/reject signups, system configuration.',
+  },
+  mha_admin: {
+    role: 'mha_admin' as UserRole,
     roleLabel: 'MHA System Administrator',
     defaultLoginId: 'admin@mha.gov.in',
     defaultPassword: 'admin-password-2026',
@@ -239,7 +251,23 @@ const INITIAL_USERS: Record<string, User> = {
     serviceNumber: 'ADMIN-MHA-001',
     force: 'MHA',
     unit: 'MHA HQ',
-    role: 'admin' as UserRole,
+    role: 'mha_admin' as UserRole,
+    roleTitle: 'MHA System Administrator',
+    anonymizedId: 'CAPF-ADMIN-00',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    location: 'MHA HQ, New Delhi',
+    tier: 1,
+    rankTier: 'administrator',
+    scope: 'national',
+  },
+  mha_admin: {
+    id: 'usr-admin-00',
+    name: 'MHA System Administrator',
+    rank: 'Administrator',
+    serviceNumber: 'ADMIN-MHA-001',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    role: 'mha_admin' as UserRole,
     roleTitle: 'MHA System Administrator',
     anonymizedId: 'CAPF-ADMIN-00',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
@@ -387,9 +415,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const meta = sbUser.user_metadata || {};
       const userRole = (profile?.role || meta.role || 'personnel') as UserRole;
-      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce'].includes(userRole)
-        ? userRole
-        : 'personnel';
+      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce', 'mha_admin', 'admin'].includes(userRole)
+        ? (userRole === 'admin' ? 'mha_admin' : userRole)
+        : (sbUser.email === 'admin@mha.gov.in' ? 'mha_admin' : 'personnel');
 
       setRole(validRole);
       setUser({

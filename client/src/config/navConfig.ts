@@ -270,7 +270,17 @@ export const NAV_CONFIG: TabItem[] = [
     icon: Shield,
     badge: 'MHA',
     description: 'Ministry of Home Affairs approval workflow — pending registrations, verification & audit',
-    roles: ['mha_admin'],
+    roles: ['mha_admin', 'admin'],
+    operationalScope: 'MHA Authorized Administrators Only',
+  },
+  {
+    id: 'review-dashboard',
+    label: 'MHA Review Queue',
+    category: 'Platform & Demo',
+    icon: Shield,
+    badge: 'MHA',
+    description: 'Single admin dashboard — review and approve public signup requests',
+    roles: ['mha_admin', 'admin'],
     operationalScope: 'MHA Authorized Administrators Only',
   },
 ];
@@ -327,8 +337,9 @@ export function getDefaultTabForRole(role: UserRole): string {
       return 'subordinate-dashboard';
     case 'nsg_taskforce':
       return 'nsg-taskforce-dashboard';
+    case 'admin':
     case 'mha_admin':
-      return 'mha-approval';
+      return 'review-dashboard';
     case 'personnel':
     default:
       return 'dashboard';
