@@ -12,16 +12,14 @@ if ((!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) && fs.exists
 }
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://krshfwuqifaxecbtrxmy.supabase.co';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || 'placeholder_dummy_key_not_configured';
 
-export const supabaseAdmin: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SECRET_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
+export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
-if (supabaseAdmin) {
+if (process.env.SUPABASE_SECRET_KEY) {
   console.log(`[MHA] Supabase Admin initialized: ${SUPABASE_URL}`);
 } else {
-  console.warn('[MHA] Supabase Admin NOT initialized (missing SUPABASE_SECRET_KEY)');
+  console.warn('[MHA] Supabase Admin running with placeholder key (missing SUPABASE_SECRET_KEY)');
 }
