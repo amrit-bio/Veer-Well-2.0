@@ -3,7 +3,6 @@ import { User, UserRole } from '../types';
 import { supabase, isSupabaseReady } from '../lib/supabaseClient';
 import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
-import { submitSignupForVerification, checkApprovedUser } from '../lib/verification/api';
 
 export interface RoleCredentials {
   role: UserRole;
@@ -473,7 +472,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. If it is an email address, authenticate with secure auth
+      // 2. If it is an email address, authenticate via Supabase Auth
       if (cleanId.includes('@')) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: cleanId.toLowerCase(),
@@ -481,19 +480,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (!error && data?.session) {
-          // Verify clearance for non-admin accounts
-          if (cleanId.toLowerCase() !== 'admin@mha.gov.in') {
-            const approvedCheck = await checkApprovedUser(cleanId.toLowerCase());
-            if (approvedCheck.found && !approvedCheck.approved) {
-              await supabase.auth.signOut();
-              return {
-                error: new Error(
-                  '⛔ Access Suspended: Your account has been deactivated by MHA authorities. Please contact your welfare officer.'
-                ),
-              };
-            }
-          }
-
           setSession(data.session);
           setSupabaseUser(data.user);
           await syncUserProfile(data.user);
@@ -502,116 +488,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { error: null };
         }
 
-        // Try backend login if Supabase auth fails (e.g. backend seeded accounts)
-        try {
-          const res = await fetch(getApiUrl('/auth/login'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanId.toLowerCase(), password: cleanPass }),
-          });
-          if (res.ok) {
-            const text = await res.text();
-            const data = text ? JSON.parse(text) : null;
-            if (data?.user) {
-              const uRole = (data.user.role || 'personnel') as UserRole;
-              setRole(uRole);
-              setUser(data.user);
-              setIsAuthenticated(true);
-              setIsAuthModalOpen(false);
-              return { error: null };
-            }
-          }
-        } catch {
-          // Fall through to error
-        }
-
-        // Check if this email has a pending or rejected signup request
-        try {
-          const approvedStatus = await checkApprovedUser(cleanId.toLowerCase());
-          if (approvedStatus.found && approvedStatus.approved) {
-            return {
-              error: new Error(
-                'Invalid password. Your account is approved by MHA, but the password entered did not match. Please re-enter the password you set during signup.'
-              ),
-            };
-          }
-
-          const { data: pendingReq } = await supabase
-            .from('signup_requests')
-            .select('review_status, email, full_name')
-            .eq('email', cleanId.toLowerCase())
-            .order('submitted_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (pendingReq) {
-            if (pendingReq.review_status === 'awaiting_review') {
-              return {
-                error: new Error(
-                  '🔒 Security Clearance Pending: Your signup request is currently awaiting MHA Admin approval. Once approved by the Ministry of Home Affairs, your account will be activated.'
-                ),
-              };
-            }
-            if (pendingReq.review_status === 'rejected') {
-              return {
-                error: new Error(
-                  '⛔ Access Denied: Your signup request was reviewed and rejected by MHA authorities. Please contact your unit welfare officer.'
-                ),
-              };
-            }
-          }
-        } catch {
-          // Non-blocking check
-        }
-
         if (error) return { error };
       }
 
-      // 3. Service ID lookup: first check approved_users table, then fall back to profiles
-      // Try approved_users first (approved by MHA admin)
-      try {
-        const approvedResult = await checkApprovedUser(cleanId);
-        if (approvedResult.found && approvedResult.approved) {
-          // Found in approved_users — try to sign in with their email
-          const approvedEmail = approvedResult.email!;
-          const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
-            email: approvedEmail,
-            password: cleanPass,
-          });
-
-          if (!sbErr && sbData?.session) {
-            setSession(sbData.session);
-            setSupabaseUser(sbData.user);
-            await syncUserProfile(sbData.user);
-            setIsAuthenticated(true);
-            setIsAuthModalOpen(false);
-            return { error: null };
-          }
-
-          if (sbErr) {
-            // Auth account exists but wrong password
-            return { error: new Error('Invalid password. Please use the password you set during signup.') };
-          }
-
-          // Auth account may not exist yet (pending creation)
-          return {
-            error: new Error(
-              '🔒 Your account has been approved by MHA Admin. However, it may take a few minutes to activate. Please try again shortly or use your registered email to log in.'
-            ),
-          };
-        }
-      } catch {
-        // Non-blocking — continue to profiles fallback
-      }
-
-      // 4. Fall back to profiles table lookup by service_number
+      // 3. Service ID lookup via profiles table
       const { data: matchedProfile } = await supabase.from('profiles')
         .select('*')
         .ilike('service_number', cleanId)
         .maybeSingle();
 
       if (matchedProfile && matchedProfile.email) {
-        // Attempt sign-in with the profile's registered email
         const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
           email: matchedProfile.email,
           password: cleanPass,
@@ -625,36 +511,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthModalOpen(false);
           return { error: null };
         }
-      }
-
-      // Check if Service ID has a pending or rejected signup request
-      try {
-        const { data: pendingReqById } = await supabase
-          .from('signup_requests')
-          .select('review_status, service_id')
-          .ilike('service_id', cleanId)
-          .order('submitted_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (pendingReqById) {
-          if (pendingReqById.review_status === 'awaiting_review') {
-            return {
-              error: new Error(
-                `🔒 Security Clearance Pending: Signup request for Service ID "${cleanId}" is currently awaiting MHA Admin approval.`
-              ),
-            };
-          }
-          if (pendingReqById.review_status === 'rejected') {
-            return {
-              error: new Error(
-                `⛔ Access Denied: Signup request for Service ID "${cleanId}" was rejected by MHA authorities.`
-              ),
-            };
-          }
-        }
-      } catch {
-        // Non-blocking
       }
 
       return { error: new Error('Invalid credentials. Please verify your Email/Service ID and password.') };
@@ -717,51 +573,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. Try secure auth Sign Up
-      try {
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: {
-              name: cleanName,
-              rank: cleanRank,
-              serviceNumber: cleanServiceNumber,
-              force: cleanForce,
-              unit: cleanUnit,
-              role: cleanRole,
-            },
+      // 2. Direct Supabase Auth Sign Up
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            name: cleanName,
+            rank: cleanRank,
+            serviceNumber: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
           },
-        });
+        },
+      });
 
-        if (signupData?.user) {
-          assignedUserId = signupData.user.id;
-          setSupabaseUser(signupData.user);
-          if (signupData.session) {
-            setSession(signupData.session);
-          }
+      if (signupError) {
+        console.error('[VeerWell Client] Supabase signUp error:', signupError);
+        return { error: signupError };
+      }
 
-          try {
-            await supabase.from('profiles').upsert({
-              id: signupData.user.id,
-              name: cleanName,
-              email: cleanEmail,
-              rank: cleanRank,
-              service_number: cleanServiceNumber,
-              force: cleanForce,
-              unit: cleanUnit,
-              role: cleanRole,
-              role_title: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
-              anonymized_id: `CAPF-NODE-${signupData.user.id.slice(0, 5).toUpperCase()}`,
-              avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-              location: `${cleanUnit}, ${cleanForce}`,
-            });
-          } catch {
-            // Non-blocking
-          }
+      if (signupData?.user) {
+        assignedUserId = signupData.user.id;
+        setSupabaseUser(signupData.user);
+        if (signupData.session) {
+          setSession(signupData.session);
         }
-      } catch {
-        // Non-blocking
+
+        // Write directly to public.profiles table
+        try {
+          const { error: profileErr } = await supabase.from('profiles').upsert({
+            id: signupData.user.id,
+            name: cleanName,
+            email: cleanEmail,
+            rank: cleanRank,
+            service_number: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
+            role_title: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
+            anonymized_id: `CAPF-NODE-${signupData.user.id.slice(0, 5).toUpperCase()}`,
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            location: `${cleanUnit}, ${cleanForce}`,
+          });
+          if (profileErr) {
+            console.warn('[VeerWell Client] Error writing to profiles table:', profileErr.message);
+          }
+        } catch (pe) {
+          console.warn('[VeerWell Client] Profile upsert exception:', pe);
+        }
       }
 
       const newMilitaryUser: User = {

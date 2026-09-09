@@ -39,7 +39,6 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     supabaseUser,
     supabaseSignIn,
     supabaseSignUp,
-    signupWithVerification,
     supabaseSignOut,
     supabaseResetPassword,
     supabaseVerifyOtp,
@@ -255,30 +254,26 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     setLoading(true);
 
     try {
-      // All signups go through MHA admin review
-      const { error, data } = await signupWithVerification({
-        serviceId: serviceNumber.trim() ? serviceNumber.trim().toUpperCase() : undefined,
-        email: email.trim(),
-        password,
-        full_name: name.trim() || email.split('@')[0],
+      // Direct signup — no MHA admin approval needed.
+      // Creates a Supabase Auth user + profiles row immediately.
+      const { error, data } = await supabaseSignUp(email.trim(), password, {
+        name: name.trim() || email.split('@')[0],
         rank: getRankDisplayName(rank),
+        serviceNumber: serviceNumber.trim() ? serviceNumber.trim().toUpperCase() : undefined,
         force,
         unit,
         role,
-        department: 'Operations',
-        designation: `${getRankDisplayName(rank)} (${role})`,
       });
 
       if (error) {
-        setErrorMsg(error.message || 'Signup verification failed. Please try again.');
-      } else if (data?.status === 'awaiting_review') {
-        setSuccessMsg(
-          data.message ||
-          '🔒 Security Clearance Registered: Your signup credentials have been securely stored in the Supabase backend awaiting MHA Admin review. The MHA Admin can now audit your credentials and grant operational clearance.'
-        );
-        setMode('entry');
+        setErrorMsg(error.message || 'Signup failed. Please try again.');
       } else {
-        setErrorMsg('Unexpected response from verification system. Please try again.');
+        setSuccessMsg(
+          '✅ Account created successfully! You are now logged in.'
+        );
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 1500);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred. Please try again.');
