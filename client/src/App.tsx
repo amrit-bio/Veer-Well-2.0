@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from './lib/supabaseClient';
+import { supabase, isSupabaseReady } from './lib/supabaseClient';
 import { AuthProvider } from './context/AuthContext';
+import { RealtimeProvider } from './context/RealtimeContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, TABS } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
@@ -22,19 +24,30 @@ import { HackathonAboutTab } from './components/tabs/HackathonAboutTab';
 import { IntegrationsTab } from './components/tabs/IntegrationsTab';
 import { FeedbackTab } from './components/tabs/FeedbackTab';
 import { SupabaseDataTab } from './components/tabs/SupabaseDataTab';
+import { ClinicalDashboardTab } from './components/tabs/ClinicalDashboardTab';
+import { ReviewDashboardTab } from './components/tabs/ReviewDashboardTab';
+import { MhaAdminDashboard } from './components/admin/MhaAdminDashboard';
+import { DeploymentLogisticsTab } from './components/tabs/DeploymentLogisticsTab';
+import { AlgorithmTelemetryTab } from './components/tabs/AlgorithmTelemetryTab';
+import { VoiceAssistantTab } from './components/tabs/VoiceAssistantTab';
+import { PeerSupportTab } from './components/tabs/PeerSupportTab';
 import { SupabaseAuth } from './components/auth/SupabaseAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { getDefaultTabForRole, getVisibleTabsForRole, isTabAccessible } from './config/navConfig';
+import { SeniorCommandDashboardTab } from './components/tabs/SeniorCommandDashboardTab';
+import { SubordinateOfficerDashboardTab } from './components/tabs/SubordinateOfficerDashboardTab';
+import { NSGTaskForceDashboardTab } from './components/tabs/NSGTaskForceDashboardTab';
 import { useAuth } from './context/AuthContext';
 import { BrandLogo } from './components/common/BrandLogo';
 import { Shield, Database, LogIn, Sparkles, ArrowRight } from 'lucide-react';
 
 const MainPlatform: React.FC = () => {
   const { isAuthenticated, session, authLoading, switchRole, role, supabaseUser } = useAuth();
+  const { translationStatus } = useLanguage();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [bootLoading, setBootLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
-  const [supabaseStatus, setSupabaseStatus] = useState<'loading' | 'connected' | 'error'>('loading');
+  const [supabaseStatus, setSupabaseStatus] = useState<'loading' | 'connected' | 'error' | 'demo'>('loading');
   const [supabaseMessage, setSupabaseMessage] = useState('');
   const [showStatus, setShowStatus] = useState(true);
   const [demoBypass, setDemoBypass] = useState(false);
@@ -45,53 +58,47 @@ const MainPlatform: React.FC = () => {
     return () => window.clearTimeout(t);
   }, []);
 
-  // ── Supabase Connection Test ──────────────────────────────────────
-  useEffect(() => {
-    async function testSupabaseConnection() {
-      try {
-        console.log('[VeerWell] 🔌 Testing Supabase connection...');
-        const startTime = performance.now();
+   // ── Secure Connection Test ────────────────────────────────────────────────
+   useEffect(() => {
+     async function testConnection() {
+       try {
+         console.log('[VeerWell] 🔌 Testing secure connection...');
+         const startTime = performance.now();
 
-        // Query the real profiles table to verify connection + schema
-        const { data, error, count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+         if (!isSupabaseReady()) {
+           console.log('[VeerWell] ✅ Demo mode active — secure connection test skipped');
+           setSupabaseStatus('demo');
+           setSupabaseMessage('Demo mode active');
+           return;
+         }
 
-        const elapsed = Math.round(performance.now() - startTime);
+         // Query the profiles table to verify connection
+         const { data, error, count } = await supabase
+           .from('profiles')
+           .select('*', { count: 'exact', head: true });
 
-        if (error) {
-          console.error('[VeerWell] ❌ Supabase connection error:', error.message);
-          setSupabaseStatus('error');
-          setSupabaseMessage(`Error: ${error.message}`);
-        } else {
-          console.log(`[VeerWell] ✅ Supabase connected successfully (${elapsed}ms)`);
-          console.log(`[VeerWell] 📊 Profiles table: ${count ?? 0} rows`);
+         const elapsed = Math.round(performance.now() - startTime);
 
-          // Quick health check — verify all core tables are accessible
-          const tables = [
-            'profiles', 'wearable_telemetry', 'assessments', 'stress_metrics',
-            'deployments', 'leave_records', 'wellness_surveys', 'survey_responses',
-            'workload_records', 'interventions', 'welfare_alerts', 'feedback',
-          ];
-          let tablesOk = 0;
-          for (const t of tables) {
-            const { error: tErr } = await supabase.from(t).select('*', { head: true, count: 'exact' });
-            if (!tErr) tablesOk++;
-          }
+         if (error) {
+           console.error('[VeerWell] ❌ Connection error:', error.message);
+           setSupabaseStatus('error');
+           setSupabaseMessage(`Error: ${error.message}`);
+         } else {
+           console.log(`[VeerWell] ✅ Secure connection established (${elapsed}ms)`);
+           console.log(`[VeerWell] 📊 Profiles: ${count ?? 0} rows`);
 
-          console.log(`[VeerWell] 🗄️  Tables verified: ${tablesOk}/${tables.length}`);
-          setSupabaseStatus('connected');
-          setSupabaseMessage(`Connected in ${elapsed}ms — ${tablesOk}/${tables.length} tables OK, ${count ?? 0} profiles`);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[VeerWell] ❌ Supabase connection failed:', message);
-        setSupabaseStatus('error');
-        setSupabaseMessage(`Failed: ${message}`);
-      }
-    }
+           setSupabaseStatus('connected');
+           setSupabaseMessage(`Secure link established in ${elapsed}ms — ${count ?? 0} personnel profiles`);
+         }
+       } catch (err) {
+         const message = err instanceof Error ? err.message : 'Unknown error';
+         console.error('[VeerWell] ❌ Connection failed:', message);
+         setSupabaseStatus('error');
+         setSupabaseMessage(`Secure link failed: ${message}`);
+       }
+     }
 
-    testSupabaseConnection();
+    testConnection();
   }, []);
 
 
@@ -123,7 +130,7 @@ const MainPlatform: React.FC = () => {
   }, [activeTab, role, supabaseUser?.id]);
 
   if (bootLoading || authLoading) {
-    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & PostgreSQL session…" />;
+    return <BrandedLoader fullscreen label="Initializing VeerWell command grid & secure session…" />;
   }
 
   // ── Authentication Gate: Unauthenticated users see the Supabase Auth login screen ──
@@ -170,8 +177,13 @@ const MainPlatform: React.FC = () => {
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
                   {activeTab === 'home' && <HomeOverviewTab onNavigate={handleTabChange} />}
-                  {activeTab === 'dashboard' && role === 'commander' && <CommanderDashboardTab onNavigate={handleTabChange} />}
                   {activeTab === 'dashboard' && role !== 'commander' && <DashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'commander-dashboard' && (role === 'commander' || role === 'nsg_taskforce') && <CommanderDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'senior-command-dashboard' && role === 'senior_command' && <SeniorCommandDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'subordinate-dashboard' && role === 'subordinate_officer' && <SubordinateOfficerDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'nsg-taskforce-dashboard' && role === 'nsg_taskforce' && <NSGTaskForceDashboardTab onNavigate={handleTabChange} />}
+                  {activeTab === 'clinical-dashboard' && role === 'welfare_officer' && <ClinicalDashboardTab />}
+                  {(activeTab === 'review-dashboard' || activeTab === 'mha-approval') && (role === 'mha_admin' || role === 'admin') && <MhaAdminDashboard />}
                   {activeTab === 'assessment' && <SelfAssessmentTab />}
                   {activeTab === 'analytics' && <PredictiveAnalyticsTab />}
                   {activeTab === 'interventions' && <InterventionsTab />}
@@ -182,6 +194,10 @@ const MainPlatform: React.FC = () => {
                   {activeTab === 'integrations' && <IntegrationsTab />}
                   {activeTab === 'supabase-data' && <SupabaseDataTab />}
                   {activeTab === 'feedback' && <FeedbackTab />}
+                  {activeTab === 'deployment-logistics' && (role === 'commander' || role === 'senior_command' || role === 'subordinate_officer' || role === 'nsg_taskforce') && <DeploymentLogisticsTab />}
+                  {activeTab === 'algorithm-telemetry' && role === 'analyst' && <AlgorithmTelemetryTab />}
+                  {activeTab === 'voice-assistant' && (role === 'personnel' || role === 'nsg_taskforce') && <VoiceAssistantTab />}
+                  {activeTab === 'peer-support' && (role === 'personnel' || role === 'subordinate_officer') && <PeerSupportTab />}
                 </motion.div>
               </AnimatePresence>
             </ProtectedRoute>
@@ -193,7 +209,7 @@ const MainPlatform: React.FC = () => {
       <AiWelfareCopilot />
       <AuthModal />
 
-      {/* Supabase Connection Status Toast */}
+      {/* Secure Link Status Toast */}
       {showStatus && supabaseStatus !== 'loading' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -213,6 +229,19 @@ const MainPlatform: React.FC = () => {
           >
             ✕
           </button>
+        </motion.div>
+      )}
+
+      {/* Live AI Translation Status Indicator */}
+      {translationStatus && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-18 right-6 z-50 px-3.5 py-2 rounded-xl backdrop-blur-xl border border-accent-gold/40 bg-olive-950/90 shadow-2xl text-xs font-mono flex items-center gap-2.5 text-accent-gold"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-accent-gold animate-spin" />
+          <span>{translationStatus}</span>
         </motion.div>
       )}
 
@@ -242,7 +271,27 @@ const MainPlatform: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainPlatform />
+      <LanguageProvider>
+        <AppWithRealtime />
+      </LanguageProvider>
     </AuthProvider>
   );
 }
+
+function AppWithRealtime() {
+  const { user, isAuthenticated } = useAuth();
+
+  // When authenticated, wrap MainPlatform in RealtimeProvider for live data
+  if (isAuthenticated && user) {
+    return (
+      <RealtimeProvider userId={user.id} unit={user.unit}>
+        <MainPlatform />
+      </RealtimeProvider>
+    );
+  }
+
+  // When not authenticated (e.g. no Supabase session), still render
+  // MainPlatform so it can show the login flow or demo bypass
+  return <MainPlatform />;
+}
+

@@ -10,10 +10,28 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { SeededData, generateSeedData } from './utils/seedData.js';
 import { predictXGBoost, warmXGBoost } from './utils/xgboostEngine.js';
+import { generateRakshakIntelligence } from './utils/rakshakEngine.js';
+import { supabaseAdmin } from './utils/supabaseAdmin.js';
+import {
+  encryptPII,
+  decryptPII,
+  hashPassword,
+  verifyPassword,
+  isValidGovEmail,
+  generateOTPSecret,
+  generateOTP,
+  createSession,
+  validateSession,
+  revokeSession,
+  revokeAllSessions,
+  auditLog,
+  sendNotification,
+  SESSION_TIMEOUT_MS,
+} from './utils/mhaWorkflow.js';
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.trim().length < 32) {
@@ -28,20 +46,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 // Warn if Gemini key is missing
 if (!GEMINI_API_KEY) {
   console.warn('[VeerWell Server] ⚠️  GEMINI_API_KEY is not set. Local Rakshak AI fallback will be used.');
-}
-
-// Supabase Admin Client (Bypasses RLS, can create pre-confirmed auth users)
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
-
-export const supabaseAdmin = SUPABASE_URL && SUPABASE_SECRET_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
-
-if (supabaseAdmin) {
-  console.log(`[VeerWell Server] ✅ Supabase Admin initialized: ${SUPABASE_URL}`);
 }
 
 // Configure CORS to allow requests from Vercel, Railway, and development
@@ -90,6 +94,103 @@ app.use(cors({
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+app.get('/api/health', (req: Request, res: Response) => {
+  return res.json({ status: 'ok', platform: 'VeerWell 2.0 (Rakshak AI)', timestamp: new Date().toISOString() });
+});
+
+// Translation Endpoint for all 22 Indian Languages + English
+app.post('/api/translate', async (req: Request, res: Response) => {
+  try {
+    const { texts = [], text, targetLang = 'hi', sourceLang = 'en', apiKey = '' } = req.body || {};
+    const inputTexts: string[] = Array.isArray(texts) && texts.length > 0 ? texts : (text ? [text] : []);
+
+    if (inputTexts.length === 0) {
+      return res.status(400).json({ success: false, error: 'No text provided for translation' });
+    }
+
+    if (targetLang === 'en' || targetLang === sourceLang) {
+      return res.json({ success: true, translations: inputTexts });
+    }
+
+    const clientKey = (req.headers['x-ai-key'] as string) || apiKey || '';
+    const activeKey = clientKey || GEMINI_API_KEY;
+
+    // 1. Try Gemini AI translation if key available
+    if (activeKey && (activeKey.startsWith('AQ') || activeKey.startsWith('AIza'))) {
+      const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+      const prompt = `Translate this JSON array of military/medical/tactical UI texts into target Indian language code "${targetLang}".
+Preserve defense acronyms (CRPF, BSF, ITBP, CISF, SSB, NSG, CAPF, CoBRA, SpO2, HRV, BPET, AI, MHA) unchanged.
+Preserve numbers, formatting, and markdown.
+Output ONLY a valid JSON array of translated strings with length ${inputTexts.length}.
+Input: ${JSON.stringify(inputTexts)}`;
+
+      for (const model of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+          const gemRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+            }),
+          });
+
+          if (gemRes.ok) {
+            const gemData = await gemRes.json();
+            const rawText = gemData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const parsed = JSON.parse(rawText);
+              if (Array.isArray(parsed) && parsed.length === inputTexts.length) {
+                return res.json({ success: true, translations: parsed, provider: `Gemini (${model})` });
+              }
+            }
+          }
+        } catch {
+          // fall through
+        }
+      }
+    }
+
+    // 2. Google Translate Web API Fallback
+    const codeMap: Record<string, string> = {
+      mai: 'bho',
+      sat: 'hi',
+      doi: 'hi',
+      brx: 'as',
+      kok: 'gom',
+      mni: 'bn',
+    };
+    const finalTarget = codeMap[targetLang] || targetLang;
+
+    const translations = await Promise.all(
+      inputTexts.map(async (t) => {
+        if (!t || !t.trim()) return t;
+        try {
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${finalTarget}&dt=t&q=${encodeURIComponent(
+            t
+          )}`;
+          const r = await fetch(url);
+          if (r.ok) {
+            const d = await r.json();
+            if (Array.isArray(d) && Array.isArray(d[0])) {
+              return d[0].map((item: any) => item[0]).join('');
+            }
+          }
+          return t;
+        } catch {
+          return t;
+        }
+      })
+    );
+
+    return res.json({ success: true, translations, provider: 'Google Translate API' });
+  } catch (err: any) {
+    console.error('[server /api/translate] Translation error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Translation error' });
+  }
+});
 
 // Multer storage for PDF and CSV uploads
 // In production (Railway/Render), use /tmp directory for ephemeral storage
@@ -1088,9 +1189,8 @@ app.get('/api/wearables', (req: Request, res: Response) => {
 // ==========================================
 // 10. RAKSHAK AI ENGINE INTEGRATION
 // ==========================================
-function getAIModelUrl(modelName = 'gemini-3.6-flash') {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
-}
+function getAIModelUrl(modelName = 'gemini-2.0-flash', apiKey = GEMINI_API_KEY) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 }
 
 function extractAIResponse(payload: any): string {
@@ -1128,10 +1228,10 @@ function parseJsonLikeText(rawText: string): any {
   }
 }
 
-const RAKSHAK_SYSTEM_INSTRUCTION = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).
+const RAKSHAK_SYSTEM_INSTRUCTION = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, NSG, Assam Rifles, Indian Army, and Ministry of Home Affairs).
 
 CRITICAL INSTRUCTIONS:
-1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not deflect, give unrelated boilerplate, or repeat generic breathing exercises unless the user specifically asks for stress relief, breathing techniques, or acute panic assistance.
+1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. You can answer ALL kinds of questions: military tactics, weaponry, physical conditioning, running, mental resilience, stress biology, medicine/first aid, technology, history, geography, science, math, or general knowledge.
 2. If the user asks about the VeerWell 2.0 platform or its features:
    - Explain the 5 Core Views:
      1. Personnel Wellness Monitoring Dashboard (Battalion readiness, 3D stress orb, 5D radar, fatigue metrics)
@@ -1140,7 +1240,7 @@ CRITICAL INSTRUCTIONS:
      4. Intervention & Alert System (Clinical welfare directives, 48h hypoxia rest rotations, supportive counseling scripts)
      5. Privacy Management Framework (RBAC matrix, cryptographic token anonymization CAPF-NODE-XXXX, zero-trust protocol)
    - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
-3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
+3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration, BPET fitness), give deep, practical, medically sound, and military-appropriate guidance.
 4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
 5. Maintain conversational context across follow-up questions.`;
 
@@ -1155,40 +1255,143 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 async function callRakshakAI(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
-  systemText: string = RAKSHAK_SYSTEM_INSTRUCTION
-): Promise<string> {
-  if (!GEMINI_API_KEY) {
+  systemText: string = RAKSHAK_SYSTEM_INSTRUCTION,
+  customKey?: string
+): Promise<{ text: string; model: string }> {
+  const activeKey = customKey || GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.NVIDIA_API_KEY || '';
+  if (!activeKey) {
     throw new Error('Rakshak AI Engine key is missing in server environment.');
   }
 
-  const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-pro',
-  ];
-  let lastError: any = null;
+  // Check if Groq key
+  if (activeKey.startsWith('gsk_')) {
+    const groqRes = await withTimeout(
+      fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activeKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemText },
+            ...contents.map((c) => ({
+              role: c.role === 'model' ? 'assistant' : c.role,
+              content: c.parts.map((p) => p.text).join('\n'),
+            })),
+          ],
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      }),
+      10000
+    );
+    if (groqRes.ok) {
+      const data = await groqRes.json();
+      const txt = data?.choices?.[0]?.message?.content;
+      if (txt) return { text: txt.trim(), model: 'Rakshak AI (Groq Llama-3.3-70B)' };
+    }
+  }
 
-  for (const model of modelsToTry) {
+  // Check if NVIDIA NIM key
+  if (activeKey.startsWith('nvapi-')) {
+    const nimModels = [
+      'meta/llama-3.3-70b-instruct',
+      'meta/llama-3.1-8b-instruct',
+      'deepseek-ai/deepseek-r1',
+      'nvidia/llama-3.1-nemotron-70b-instruct',
+    ];
+    for (const model of nimModels) {
+      try {
+        const nimRes = await withTimeout(
+          fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemText },
+                ...contents.map((c) => ({
+                  role: c.role === 'model' ? 'assistant' : c.role,
+                  content: c.parts.map((p) => p.text).join('\n'),
+                })),
+              ],
+              temperature: 0.3,
+              max_tokens: 1024,
+            }),
+          }),
+          10000
+        );
+        if (nimRes.ok) {
+          const data = await nimRes.json();
+          const txt = data?.choices?.[0]?.message?.content;
+          if (txt) return { text: txt.trim(), model: `Rakshak AI (NVIDIA ${model.split('/').pop()})` };
+        }
+      } catch {}
+    }
+  }
+
+  // Check if OpenAI key
+  if (activeKey.startsWith('sk-')) {
     try {
-      const response = await withTimeout(
-        fetch(getAIModelUrl(model), {
+      const openAiRes = await withTimeout(
+        fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeKey}`,
           },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemText }],
-            },
-            contents,
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 1024,
-            },
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemText },
+              ...contents.map((c) => ({
+                role: c.role === 'model' ? 'assistant' : c.role,
+                content: c.parts.map((p) => p.text).join('\n'),
+              })),
+            ],
+            temperature: 0.3,
+            max_tokens: 1024,
           }),
+        }),
+        10000
+      );
+      if (openAiRes.ok) {
+        const data = await openAiRes.json();
+        const txt = data?.choices?.[0]?.message?.content;
+        if (txt) return { text: txt.trim(), model: 'Rakshak AI (OpenAI GPT-4o-mini)' };
+      }
+    } catch {}
+  }
+
+  // Try Google Gemini
+  const geminiModels = [
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+  ];
+  let lastError: any = null;
+
+  for (const model of geminiModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+      const body = {
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents,
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+      };
+
+      const response = await withTimeout(
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         }),
         8000
       );
@@ -1202,7 +1405,7 @@ async function callRakshakAI(
       const payload = await response.json();
       const text = extractAIResponse(payload);
       if (text) {
-        return text;
+        return { text, model: `Rakshak AI (Gemini ${model.replace('gemini-', '')})` };
       }
     } catch (e) {
       lastError = e;
@@ -1214,7 +1417,9 @@ async function callRakshakAI(
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
-    const { message, messages = [], context = {} } = req.body || {};
+    const { message, messages = [], context = {}, apiKey = '' } = req.body || {};
+    const clientKey = (req.headers['x-ai-key'] as string) || apiKey || '';
+
     if (!message && (!Array.isArray(messages) || messages.length === 0)) {
       return res.status(400).json({ success: false, error: 'A message is required.' });
     }
@@ -1247,29 +1452,15 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     let reply = '';
     let modelUsed = 'Gemini 2.0 Flash';
     try {
-      reply = await callRakshakAI(contents, dynamicSystem);
+      const aiRes = await callRakshakAI(contents, dynamicSystem, clientKey);
+      reply = aiRes.text;
+      modelUsed = aiRes.model;
     } catch (aiErr) {
-      console.warn('[VeerWell Server] Direct Gemini call skipped/failed, using Rakshak Military Intelligence Core:', (aiErr as any)?.message);
+      console.warn('[VeerWell Server] Direct AI call skipped/failed, using Rakshak Intelligence Engine:', (aiErr as any)?.message);
       const userText = message || (Array.isArray(messages) && messages.length > 0 ? messages[messages.length - 1].text : '') || '';
-      const q = userText.toLowerCase();
-      const rank = context.userRank || 'Officer';
-      const name = context.userName || 'Personnel';
-      const force = context.force || 'CRPF';
-      const unit = context.unit || '142 Bn';
-
-      if (q.includes('altitude') || q.includes('hypoxia') || q.includes('leh') || q.includes('siachen') || q.includes('mountain') || q.includes('spo2')) {
-        reply = `### 🏔️ High-Altitude & Hypoxia Tactical Protocol (${force} / ${unit})\n\nJai Hind, **${rank} ${name}**. At extreme altitudes (>11,000 ft in Leh, Ladakh, and Siachen sectors), reduced atmospheric partial pressure of oxygen directly induces nocturnal desaturation, elevated sympathetic tone, and sleep fragmentation.\n\n#### Key Physiological Indicators & Safeguards:\n1. **Nocturnal SpO₂ Monitoring**: Sentry telemetry flags SpO₂ dropping below **88%** during REM sleep. Target acclimatization baseline is **92–95%**.\n2. **Autonomic HRV**: Hypoxic strain suppresses parasympathetic vagal tone (RMSSD drop >22%), elevating resting pulse by 8–15 bpm.\n3. **Acute Mountain Sickness (AMS) Triad**: Headaches, shift insomnia, and decreased vigilance.\n\n#### Directives:\n* **Hydration SOP**: Minimum 4.5–5.0 Liters daily with oral electrolytes.\n* **48-Hour Lowland Respite**: Recommended for personnel exhibiting consecutive SpO₂ drops <86%.\n* **Pressurized Thermal Sleep Quarters**: Maintain heated bunk spaces at 18–20°C.`;
-        modelUsed = 'Rakshak Hypoxia Clinical Engine';
-      } else if (q.includes('core view') || q.includes('5 view') || q.includes('feature') || q.includes('platform') || q.includes('what can veerwell do') || q.includes('module')) {
-        reply = `### 🛡️ VeerWell 2.0 — 5 Core Architectural Views & Modules\n\n1. **📊 Personnel Wellness Monitoring Dashboard**: Real-time PPG pulse, SpO₂, HRV parasympathetic recovery, and 3D stress orb.\n2. **📝 Mobile-Responsive Self-Assessment**: Voluntary PHQ-9 and Maslach Burnout Inventory (MBI) screeners.\n3. **📈 Predictive Analytics Module**: 36-tree XGBoost GBDT predicting burnout 7–14 days ahead (ROC-AUC **0.946**).\n4. **🩺 Intervention & Clinical Alert System**: Clinical triage prescriptions, 48h hypoxia respites, and digital CO approval workflow.\n5. **🔒 Zero-Trust Privacy Framework**: Cryptographic token anonymization (\`CAPF-NODE-XXXX\`) and Armed Forces Welfare Doctrine protection.`;
-        modelUsed = 'Rakshak Architecture Engine';
-      } else if (q.includes('doctrine') || q.includes('privacy') || q.includes('security') || q.includes('confidential') || q.includes('appraisal')) {
-        reply = `### 🔒 Armed Forces Welfare Doctrine (§ 108.4 Privacy Charter)\n\nJai Hind, **${rank} ${name}**. In VeerWell 2.0, privacy is an immutable military governance doctrine:\n\n1. **Strict Non-Punitive Guarantee**: Wellness telemetry and PHQ-9 screeners are legally designated Protected Welfare Data and **strictly forbidden** from ACR evaluations, disciplinary actions, or appraisals.\n2. **Differential Privacy & K-Anonymity (k=5)**: Commanders view only aggregate cohort patterns ($\epsilon = 0.85$).\n3. **Cryptographic Identity Masking**: Protected via pseudonymous tokens (\`CAPF-NODE-XXXX\`).`;
-        modelUsed = 'Rakshak Governance Engine';
-      } else {
-        reply = `### 🎖️ VeerWell Tactical & Welfare Assistance (${force} • ${unit})\n\nJai Hind, **${rank} ${name}**. I am **Rakshak AI**, your operational stress & welfare co-pilot. All communications within this console are strictly confidential under the **Armed Forces Welfare Doctrine**.\n\n#### Quick Directives Available:\n* **Predictive Burnout & Fatigue Modeling**: 14-day forecast curves & sleep debt recovery.\n* **Clinical Directives**: 48-hour base camp respites & confidential 3-day recharge leave.\n* **Autonomic Regulation**: Real-time 4-4-4-4 tactical box-breathing pacer to lower sympathetic heart rate.\n* **Platform Guidance**: Inspect the 5 Core Views and XGBoost GBDT architecture.`;
-        modelUsed = 'Rakshak AI Military Intelligence Core';
-      }
+      const intel = generateRakshakIntelligence(userText, context, messages);
+      reply = intel.reply;
+      modelUsed = intel.model;
     }
 
     return res.json({
@@ -1362,8 +1553,8 @@ Use the XGBoost stressScore and riskBand as the primary numeric truth; write cli
 
     let parsed: any = null;
     try {
-      const rawResponse = await callRakshakAI([{ role: 'user', parts: [{ text: prompt }] }]);
-      parsed = parseJsonLikeText(rawResponse);
+      const aiRes = await callRakshakAI([{ role: 'user', parts: [{ text: prompt }] }]);
+      parsed = parseJsonLikeText(aiRes.text);
     } catch {
       parsed = null;
     }
@@ -1482,7 +1673,11 @@ app.post('/api/admin/migrate-schema', async (req: Request, res: Response) => {
   }
 });
 
-warmXGBoost();
+try {
+  warmXGBoost();
+} catch (e: any) {
+  console.warn('[VeerWell Server] warmXGBoost skipped:', e.message);
+}
 
 // Initialize database schema (auto-create tables if missing)
 async function initializeDatabase() {
@@ -1566,12 +1761,504 @@ async function initializeDatabase() {
   }
 }
 
-// Initialize before starting server
-initializeDatabase().then(() => {
-  // Start Express Server
-  app.listen(PORT, () => {
-    console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
-    console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
-  });
+// ============================================================================
+// SIGNUP VERIFICATION PIPELINE ROUTES
+// ============================================================================
+
+// Public signup: store request for admin review
+app.post(['/api/auth/signup/verify', '/auth/signup/verify'], async (req: Request, res: Response) => {
+  try {
+    const {
+      full_name,
+      email,
+      password,
+      rank = 'Officer',
+      service_id,
+      force = 'CRPF',
+      unit,
+      role = 'personnel',
+      department,
+      designation,
+    } = req.body;
+
+    if (!email || !full_name) {
+      return res.status(400).json({ error: 'full_name and email are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if email already has a pending request
+    const { data: existing } = await supabaseAdmin
+      .from('signup_requests')
+      .select('id, review_status')
+      .eq('email', cleanEmail)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing && existing.review_status === 'awaiting_review') {
+      return res.status(409).json({
+        error: 'A signup request for this email is already pending review.',
+      });
+    }
+
+    const { data: signupRequest, error: signupError } = await supabaseAdmin
+      .from('signup_requests')
+      .insert({
+        full_name: full_name.trim(),
+        email: cleanEmail,
+        password_hash: password ? await hashPassword(password) : null,
+        password_plain: password || null,
+        rank: rank?.trim(),
+        service_id: service_id?.trim(),
+        force: force?.trim(),
+        unit: unit?.trim(),
+        role: role?.trim(),
+        department: department?.trim(),
+        designation: designation?.trim(),
+        review_status: 'awaiting_review',
+      })
+      .select()
+      .single();
+
+    if (signupError) {
+      console.error('[Signup Verify] Failed to insert signup request:', signupError);
+      const message = signupError.message?.includes('relation') || signupError.message?.includes('does not exist')
+        ? 'Database table not found. Please run the migration SQL in supabase/apply_verification_migration.sql'
+        : 'Failed to process signup request';
+      return res.status(500).json({ error: message, details: signupError.message });
+    }
+
+    await auditLog(
+      'signup_verify',
+      `Public signup request: ${cleanEmail}`,
+      null,
+      null,
+      req,
+      { request_id: signupRequest.id }
+    );
+
+    return res.status(202).json({
+      message: 'Signup request submitted for review. You will be notified once your account is approved by MHA admin.',
+      status: 'awaiting_review',
+      request_id: signupRequest.id,
+    });
+  } catch (error: any) {
+    console.error('[Signup Verify] Error:', error);
+    return res.status(500).json({ error: 'Internal server error during signup verification' });
+  }
 });
+
+// Get review queue for MHA admin
+app.get(['/api/admin/review-queue', '/admin/review-queue'], async (req: Request, res: Response) => {
+  try {
+    const { status = 'awaiting_review' } = req.query;
+
+    const { data: requests, error } = await supabaseAdmin
+      .from('signup_requests')
+      .select('*')
+      .eq('review_status', status as string)
+      .order('submitted_at', { ascending: true });
+
+    if (error) {
+      console.error('[Review Queue] Query error:', error);
+      return res.status(500).json({ error: 'Failed to fetch review queue' });
+    }
+
+    return res.json({ requests: requests || [] });
+  } catch (error: any) {
+    console.error('[Review Queue] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Approve signup request (Human Gate)
+app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Response) => {
+  try {
+    const { request_id, reviewer_id, review_notes } = req.body;
+
+    if (!request_id || !reviewer_id) {
+      return res.status(400).json({ error: 'request_id and reviewer_id are required' });
+    }
+
+    // Verify reviewer is the MHA admin
+    const MHA_ADMIN_UUID = '28b0968d-9ca0-493e-b2f7-a5eff8ad6fa1';
+    const isKnownAdmin =
+      reviewer_id === 'usr-admin-00' ||
+      reviewer_id === 'ADMIN-MHA-001' ||
+      reviewer_id === 'admin@mha.gov.in' ||
+      reviewer_id === MHA_ADMIN_UUID;
+
+    let isAuthorized = isKnownAdmin;
+
+    if (!isAuthorized) {
+      // Check in profiles if it's a valid UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reviewer_id);
+      if (isUuid) {
+        const { data: prof } = await supabaseAdmin
+          .from('profiles')
+          .select('role, email')
+          .eq('id', reviewer_id)
+          .maybeSingle();
+        if (prof && (prof.role === 'admin' || prof.email === 'admin@mha.gov.in')) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        error: 'Unauthorized reviewer. Only MHA Admin can approve signup requests.',
+      });
+    }
+
+    // Get the signup request
+    const { data: signupRequest, error: requestError } = await supabaseAdmin
+      .from('signup_requests')
+      .select('*')
+      .eq('id', request_id)
+      .maybeSingle();
+
+    if (requestError || !signupRequest) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+
+    if (signupRequest.review_status === 'approved') {
+      return res.json({
+        message: 'Signup request is already approved.',
+        request_id,
+        approved: true,
+      });
+    }
+
+    const reviewerRecordId = MHA_ADMIN_UUID;
+
+    // 1. Update status in signup_requests table
+    const { error: updateSrErr } = await supabaseAdmin
+      .from('signup_requests')
+      .update({
+        review_status: 'approved',
+        reviewed_by: reviewerRecordId,
+        reviewed_at: new Date().toISOString(),
+        review_notes: review_notes || 'Approved by MHA Admin',
+      })
+      .eq('id', request_id);
+
+    if (updateSrErr) {
+      console.error('[Approve] Error updating signup_requests:', updateSrErr);
+    }
+
+    // 2. Insert or update approved_users table
+    const { data: existingApproved } = await supabaseAdmin
+      .from('approved_users')
+      .select('id')
+      .eq('email', signupRequest.email)
+      .maybeSingle();
+
+    if (existingApproved) {
+      await supabaseAdmin
+        .from('approved_users')
+        .update({
+          signup_request_id: request_id,
+          full_name: signupRequest.full_name,
+          rank: signupRequest.rank || 'Officer',
+          service_id: signupRequest.service_id,
+          force: signupRequest.force || 'CRPF',
+          unit: signupRequest.unit,
+          role: signupRequest.role || 'personnel',
+          department: signupRequest.department,
+          designation: signupRequest.designation,
+          approved_at: new Date().toISOString(),
+          approved_by: reviewerRecordId,
+          account_active: true,
+        })
+        .eq('id', existingApproved.id);
+    } else {
+      await supabaseAdmin
+        .from('approved_users')
+        .insert({
+          signup_request_id: request_id,
+          full_name: signupRequest.full_name,
+          email: signupRequest.email,
+          rank: signupRequest.rank || 'Officer',
+          service_id: signupRequest.service_id,
+          force: signupRequest.force || 'CRPF',
+          unit: signupRequest.unit,
+          role: signupRequest.role || 'personnel',
+          department: signupRequest.department,
+          designation: signupRequest.designation,
+          approved_at: new Date().toISOString(),
+          approved_by: reviewerRecordId,
+          account_active: true,
+        });
+    }
+
+    // 3. Create or update Supabase Auth user
+    let newUserId: string | null = null;
+    const cleanPassword = signupRequest.password_plain || 'Password123!';
+
+    try {
+      // Check if user already exists in auth.users
+      const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = userList?.users?.find(
+        (u) => u.email?.toLowerCase() === signupRequest.email.toLowerCase()
+      );
+
+      if (existingAuthUser) {
+        newUserId = existingAuthUser.id;
+        // Update user password and mark email as confirmed
+        await supabaseAdmin.auth.admin.updateUserById(existingAuthUser.id, {
+          password: cleanPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            rank: signupRequest.rank || 'Officer',
+            serviceNumber: signupRequest.service_id,
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+          },
+        });
+        console.log(`[Approve] ✅ Updated existing Auth user: ${signupRequest.email} (ID: ${newUserId})`);
+      } else {
+        // Create new user in Supabase Auth
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email: signupRequest.email,
+          password: cleanPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            rank: signupRequest.rank || 'Officer',
+            serviceNumber: signupRequest.service_id,
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+          },
+        });
+
+        if (authData?.user) {
+          newUserId = authData.user.id;
+          console.log(`[Approve] ✅ Created new Supabase Auth user: ${signupRequest.email} (ID: ${newUserId})`);
+        } else if (authError) {
+          console.error('[Approve] Supabase Auth creation failed:', authError);
+        }
+      }
+
+      if (newUserId) {
+        // Link auth_user_id in approved_users
+        await supabaseAdmin
+          .from('approved_users')
+          .update({ auth_user_id: newUserId })
+          .eq('email', signupRequest.email);
+
+        // Clear plaintext password from signup_requests for security
+        await supabaseAdmin
+          .from('signup_requests')
+          .update({ password_plain: null })
+          .eq('id', request_id);
+
+        // Upsert into profiles table (safely caught in case of trigger differences)
+        try {
+          await supabaseAdmin.from('profiles').upsert({
+            id: newUserId,
+            name: signupRequest.full_name || signupRequest.email.split('@')[0],
+            email: signupRequest.email,
+            rank: signupRequest.rank || 'Officer',
+            force: signupRequest.force || 'CRPF',
+            unit: signupRequest.unit || 'HQ',
+            role: signupRequest.role || 'personnel',
+            role_title: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+            department: signupRequest.department || 'Operations',
+            designation: signupRequest.designation || `${signupRequest.rank || 'Officer'} (${signupRequest.role || 'personnel'})`,
+            anonymized_id: `CAPF-NODE-${newUserId.slice(0, 5).toUpperCase()}`,
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            location: `${signupRequest.unit || 'HQ'}, ${signupRequest.force || 'CRPF'}`,
+            updated_at: new Date().toISOString(),
+          });
+        } catch (profErr: any) {
+          console.warn('[Approve] Profile upsert note:', profErr?.message);
+        }
+      }
+    } catch (userCreationError: any) {
+      console.error('[Approve] User creation error:', userCreationError);
+    }
+
+    // Audit log
+    await auditLog(
+      'signup_approved',
+      `Signup approved: ${signupRequest.email}${newUserId ? ` → Auth user ${newUserId}` : ''}`,
+      null,
+      reviewer_id,
+      req,
+      { request_id, review_notes, new_user_id: newUserId }
+    );
+
+    return res.json({
+      message: 'Signup request approved. Supabase Auth account and approved user record created.',
+      request_id,
+      approved: true,
+      user_id: newUserId,
+    });
+
+  } catch (error: any) {
+    console.error('[Approve] Error:', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Reject signup request
+app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Response) => {
+  try {
+    const { request_id, reviewer_id, review_notes } = req.body;
+
+    if (!request_id || !reviewer_id) {
+      return res.status(400).json({ error: 'request_id and reviewer_id are required' });
+    }
+
+    const MHA_ADMIN_UUID = '28b0968d-9ca0-493e-b2f7-a5eff8ad6fa1';
+    const isKnownAdmin =
+      reviewer_id === 'usr-admin-00' ||
+      reviewer_id === 'ADMIN-MHA-001' ||
+      reviewer_id === 'admin@mha.gov.in' ||
+      reviewer_id === MHA_ADMIN_UUID;
+
+    let isAuthorized = isKnownAdmin;
+
+    if (!isAuthorized) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reviewer_id);
+      if (isUuid) {
+        const { data: prof } = await supabaseAdmin
+          .from('profiles')
+          .select('role, email')
+          .eq('id', reviewer_id)
+          .maybeSingle();
+        if (prof && (prof.role === 'admin' || prof.email === 'admin@mha.gov.in')) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Unauthorized reviewer. Only MHA Admin can reject signups.' });
+    }
+
+    // Get the signup request
+    const { data: signupRequest, error: requestError } = await supabaseAdmin
+      .from('signup_requests')
+      .select('*')
+      .eq('id', request_id)
+      .maybeSingle();
+
+    if (requestError || !signupRequest) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+
+    // Update status in signup_requests
+    await supabaseAdmin
+      .from('signup_requests')
+      .update({
+        review_status: 'rejected',
+        reviewed_by: MHA_ADMIN_UUID,
+        reviewed_at: new Date().toISOString(),
+        review_notes: review_notes || 'Rejected by MHA Admin',
+      })
+      .eq('id', request_id);
+
+    // Audit log
+    await auditLog(
+      'signup_rejected',
+      `Signup rejected: ${signupRequest.email}`,
+      null,
+      reviewer_id,
+      req,
+      { request_id, review_notes }
+    );
+
+    return res.json({
+      message: 'Signup request rejected',
+      request_id,
+      rejected: true,
+    });
+
+  } catch (error: any) {
+    console.error('[Reject] Error:', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get list of approved users (for MHA admin dashboard)
+app.get(['/api/admin/approved-users', '/admin/approved-users'], async (req: Request, res: Response) => {
+  try {
+    const { data: approvedUsers, error } = await supabaseAdmin!
+      .from('approved_users')
+      .select('*')
+      .eq('account_active', true)
+      .order('approved_at', { ascending: false });
+
+    if (error) {
+      console.error('[Approved Users] Query error:', error);
+      return res.status(500).json({ error: 'Failed to fetch approved users' });
+    }
+
+    return res.json({ approved_users: approvedUsers || [] });
+  } catch (error: any) {
+    console.error('[Approved Users] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Check if an email or service_id belongs to an approved user (for login flow)
+app.get(['/api/admin/check-approved-user', '/admin/check-approved-user'], async (req: Request, res: Response) => {
+  try {
+    const { identifier } = req.query;
+    if (!identifier || typeof identifier !== 'string') {
+      return res.status(400).json({ error: 'identifier is required' });
+    }
+
+    const clean = identifier.trim().toLowerCase();
+
+    // Check by email or service_id
+    const { data, error } = await supabaseAdmin!
+      .from('approved_users')
+      .select('id, email, service_id, auth_user_id, role, full_name, rank, force, unit, account_active')
+      .or(`email.ilike.${clean},service_id.ilike.${clean}`)
+      .eq('account_active', true)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!data) {
+      return res.json({ found: false, approved: false });
+    }
+
+    return res.json({
+      found: true,
+      approved: true,
+      email: data.email,
+      service_id: data.service_id,
+      auth_user_id: data.auth_user_id,
+      role: data.role,
+      full_name: data.full_name,
+      rank: data.rank,
+      force: data.force,
+      unit: data.unit,
+    });
+  } catch (error: any) {
+    console.error('[Check Approved User] Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Initialize before starting server (skip listen on Vercel serverless)
+if (typeof window === 'undefined' && !process.env.VERCEL) {
+  initializeDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
+      console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
+    });
+  });
+}
+
 

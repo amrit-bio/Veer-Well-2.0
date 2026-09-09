@@ -55,3 +55,7 @@ Veer-Well/
 # Vercel
 .vercel
 
+# Scratch & Temporary
+scratch/
+*.timestamp-*.mjs
+

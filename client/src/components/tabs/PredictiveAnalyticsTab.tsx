@@ -173,7 +173,7 @@ export const PredictiveAnalyticsTab: React.FC = () => {
           <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
-              XGBoost Behavioral Engine
+              Predictive Behavioral Engine
             </span>
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">
@@ -187,7 +187,7 @@ export const PredictiveAnalyticsTab: React.FC = () => {
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-olive-900 border border-olive-500/40 text-xs font-mono text-accent-gold">
           <Cpu className="w-4 h-4" />
-          <span>XGBoost GBDT · live inference</span>
+              <span>Predictive Engine · live inference</span>
         </div>
       </div>
 

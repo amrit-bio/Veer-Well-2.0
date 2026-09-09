@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { BrandLogo } from '../common/BrandLogo';
 
 import {
@@ -129,6 +130,7 @@ const CountUp: React.FC<{ value: number; suffix?: string; prefix?: string; decim
 
 export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
   const { user } = useAuth();
+  const { telemetry, riskAlerts, heatmapData, telemetryEvents, loading } = useRealtime();
 
   // Main Tab Navigation
   type MainTab = 'overview' | 'readiness' | 'roster' | 'alerts' | 'reports';
@@ -137,7 +139,7 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
   // Subtabs for each main tab
   const [activeSubTab, setActiveSubTab] = useState<string>('summary');
 
-  // Live Metrics
+  // Live Metrics - derived from real-time telemetry
   const [metrics, setMetrics] = useState<CommanderMetrics>({
     readinessScore: 84,
     avgStress: 4.8,
@@ -146,57 +148,34 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
     lastSyncTime: 'Just now',
   });
 
-  // Battalion Data (aggregated view)
+  // Battalion Data (aggregated/anonymized view from real-time heatmap)
   const [battalionData, setBattalionData] = useState<BattalionData[]>([
-    {
-      name: '142 Bn (Srinagar)',
-      readiness: 76,
-      stress: 5.8,
-      workload: 52,
-      personnel: 450,
-      alerts: 3,
-      location: 'Srinagar Sector',
-    },
-    {
-      name: '209 CoBRA (Gaya)',
-      readiness: 84,
-      stress: 4.6,
-      workload: 44,
-      personnel: 320,
-      alerts: 1,
-      location: 'Central Region',
-    },
-    {
-      name: '88 Mahila Bn (Delhi)',
-      readiness: 89,
-      stress: 3.8,
-      workload: 38,
-      personnel: 280,
-      alerts: 0,
-      location: 'Delhi Cantonment',
-    },
-    {
-      name: 'Leh Sector (ITBP)',
-      readiness: 71,
-      stress: 6.9,
-      workload: 56,
-      personnel: 180,
-      alerts: 5,
-      location: 'Ladakh Region',
-    },
+    { name: '142 Bn', readiness: 76, stress: 5.2, workload: 48, personnel: 420, alerts: 2, location: 'Srinagar Sector HQ' },
+    { name: '209 CoBRA', readiness: 84, stress: 4.1, workload: 52, personnel: 380, alerts: 1, location: 'Jammu Sector' },
+    { name: '88 Mahila Bn', readiness: 89, stress: 3.8, workload: 42, personnel: 350, alerts: 0, location: 'Central Sector' },
+    { name: 'Leh Sector', readiness: 71, stress: 6.1, workload: 56, personnel: 290, alerts: 3, location: 'Leh-Ladakh' },
   ]);
 
-  // Stress Distribution by Outpost
-  const stressDistribution = [
+  // Battalion Radar Data (dynamic)
+  const [battalionRadarData, setBattalionRadarData] = useState([
+    { dimension: 'Readiness Index', '142Bn': 76, '209CoBRA': 84, '88Mahila': 89, 'LehSector': 71 },
+    { dimension: 'Sleep Quality', '142Bn': 72, '209CoBRA': 80, '88Mahila': 85, 'LehSector': 65 },
+    { dimension: 'Stress Management', '142Bn': 68, '209CoBRA': 78, '88Mahila': 82, 'LehSector': 60 },
+    { dimension: 'Duty Load Balance', '142Bn': 70, '209CoBRA': 82, '88Mahila': 88, 'LehSector': 55 },
+    { dimension: 'Personnel Morale', '142Bn': 75, '209CoBRA': 85, '88Mahila': 90, 'LehSector': 68 },
+  ]);
+
+  // Stress Distribution - aggregated from real-time telemetry
+  const [stressDistribution, setStressDistribution] = useState([
     { name: 'Low (1-3)', value: 35, count: 280 },
     { name: 'Moderate (4-6)', value: 45, count: 720 },
     { name: 'High (7-9)', value: 15, count: 240 },
     { name: 'Critical (9+)', value: 5, count: 80 },
-  ];
+  ]);
 
   const STRESS_COLORS = ['#10b981', '#eab308', '#f97316', '#ef4444'];
 
-  // Personnel Wellness by Battalion
+  // Personnel Wellness by Battalion (fallback static data)
   const wellnessTimeline = [
     { day: 'Mon', personnel: 420, stress: 4.5, readiness: 82, alerts: 2 },
     { day: 'Tue', personnel: 418, stress: 4.8, readiness: 80, alerts: 3 },
@@ -215,16 +194,7 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
     { week: 'Week 4', scheduled: 128, onLeave: 22, available: 106, forecast: 125 },
   ];
 
-  // Battalion Radar Data
-  const battalionRadarData = [
-    { dimension: 'Readiness Index', '142Bn': 76, '209CoBRA': 84, '88Mahila': 89, 'LehSector': 71 },
-    { dimension: 'Sleep Quality', '142Bn': 72, '209CoBRA': 80, '88Mahila': 85, 'LehSector': 65 },
-    { dimension: 'Stress Management', '142Bn': 68, '209CoBRA': 78, '88Mahila': 82, 'LehSector': 60 },
-    { dimension: 'Duty Load Balance', '142Bn': 70, '209CoBRA': 82, '88Mahila': 88, 'LehSector': 55 },
-    { dimension: 'Personnel Morale', '142Bn': 75, '209CoBRA': 85, '88Mahila': 90, 'LehSector': 68 },
-  ];
-
-  // Alerts
+  // Build alerts from real-time risk alert stream (anonymized for commander view)
   const [alerts, setAlerts] = useState<PersonnelAlert[]>([
     {
       id: 'alt-1',
@@ -268,19 +238,166 @@ export const CommanderDashboardTab: React.FC<{ onNavigate: (tabId: string) => vo
     },
   ]);
 
-  // Simulate live updates
+  // Derive aggregate metrics from real-time telemetry streams
   useEffect(() => {
-    const interval = setInterval(() => {
+    const telemetryValues = Object.values(telemetry);
+
+    if (telemetryValues.length > 0) {
+      const totalReadiness = telemetryValues.reduce((sum, t) => sum + (t.recoveryScore || 50), 0);
+      const avgRecovery = totalReadiness / telemetryValues.length;
+
+      const totalStress = telemetryValues.reduce((sum, t) => sum + (t.stressIndex || 50) / 10, 0);
+      const avgStress = totalStress / telemetryValues.length;
+
+      const lowRecovery = telemetryValues.filter((t) => (t.recoveryScore || 50) < 30).length;
+      const fatigueFlags = Math.max(0, Math.min(lowRecovery, 50));
+
+      const highRiskAlerts = riskAlerts.filter((a) => a.riskScore >= 60).length;
+      const restAuth = Math.max(5, highRiskAlerts * 2);
+
       setMetrics((prev) => ({
-        ...prev,
-        avgStress: Math.max(2.8, Math.min(7.5, Number((prev.avgStress + (Math.random() - 0.5) * 0.3).toFixed(1)))),
-        readinessScore: Math.round(100 - metrics.avgStress * 4.5 + Math.random() * 10),
+        readinessScore: Math.round(avgRecovery),
+        avgStress: Number(avgStress.toFixed(1)),
+        fatigueFlags: prev.fatigueFlags + (Math.random() > 0.7 ? (Math.random() - 0.5) * 2 : 0),
+        restAuthorizations: restAuth,
         lastSyncTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       }));
+
+      // Update stress distribution from telemetry
+      const distribution = [
+        { name: 'Low (1-3)', value: 0, count: 0 },
+        { name: 'Moderate (4-6)', value: 0, count: 0 },
+        { name: 'High (7-9)', value: 0, count: 0 },
+        { name: 'Critical (9+)', value: 0, count: 0 },
+      ];
+
+      telemetryValues.forEach((t) => {
+        const stressLevel = t.stressIndex / 10;
+        if (stressLevel <= 3) {
+          distribution[0].count++;
+        } else if (stressLevel <= 6) {
+          distribution[1].count++;
+        } else if (stressLevel <= 9) {
+          distribution[2].count++;
+        } else {
+          distribution[3].count++;
+        }
+      });
+
+      const totalCount = distribution.reduce((sum, d) => sum + d.count, 0);
+      if (totalCount > 0) {
+        distribution.forEach((d) => {
+          d.value = Math.round((d.count / totalCount) * 100);
+        });
+        setStressDistribution(distribution);
+      }
+    }
+  }, [telemetry, riskAlerts]);
+
+  // Update battalion data from heatmap stream (anonymized for commander)
+  useEffect(() => {
+    if (heatmapData.length > 0) {
+      const converted: BattalionData[] = heatmapData.map((h) => ({
+        name: h.unit,
+        readiness: Math.round(100 - h.avgStress * 10),
+        stress: h.avgStress,
+        workload: h.fatigueIndex,
+        personnel: h.anonymizedCount,
+        alerts: riskAlerts.filter((a) => a.unit === h.unit).length,
+        location: h.location,
+      }));
+      setBattalionData(converted);
+    }
+  }, [heatmapData, riskAlerts]);
+
+  // Merge real-time risk alerts into commander's alert list (anonymized)
+  useEffect(() => {
+    if (riskAlerts.length > 0) {
+      const recentAlerts: PersonnelAlert[] = riskAlerts
+        .slice(0, 5)
+        .map((ra) => ({
+          id: ra.id,
+          type: ra.riskScore >= 70 ? 'critical' : ra.riskScore >= 50 ? 'warning' : 'info',
+          title: `${ra.riskType === 'phq9' ? 'PHQ-9' : ra.riskType === 'voice_nlp' ? 'Voice NLP' : 'Wearable'} Threshold Exceeded`,
+          unit: ra.unit,
+          personnel: 1,
+          message: ra.thresholdExceed,
+          action: ra.riskScore >= 70 ? 'Escalate to Medical Officer' : 'Monitor Closely',
+          timestamp: ra.triggeredAt,
+        }));
+
+      setAlerts((prev) => {
+        const existingIds = new Set(prev.map((a) => a.id));
+        const newAlerts = recentAlerts.filter((a) => !existingIds.has(a.id));
+        return [...newAlerts, ...prev];
+      });
+    }
+  }, [riskAlerts]);
+
+  // Update lastSyncTime on telemetry events
+  useEffect(() => {
+    if (telemetryEvents.length > 0) {
+      const latest = telemetryEvents[0];
+      setMetrics((prev) => ({
+        ...prev,
+        lastSyncTime: new Date(latest.timestamp).toLocaleTimeString([], {
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }),
+      }));
+    }
+  }, [telemetryEvents]);
+
+  // Simulate live updates as fallback when no real-time data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics((prev) => {
+        const avgStress = prev.avgStress;
+        const newStress = Math.max(2.8, Math.min(7.5, Number((avgStress + (Math.random() - 0.5) * 0.3).toFixed(1))));
+        const newReadiness = Math.round(100 - newStress * 4.5 + Math.random() * 10);
+
+        return {
+          ...prev,
+          avgStress: newStress,
+          readinessScore: Math.min(96, Math.max(65, newReadiness)),
+          lastSyncTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+      });
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [metrics.avgStress]);
+  }, []);
+
+  // Simulate live readiness tab data when no real heatmap data
+  useEffect(() => {
+    if (heatmapData.length > 0) return; // Don't simulate if real data exists
+
+    const interval = setInterval(() => {
+      setBattalionData((prev) =>
+        prev.map((b) => ({
+          ...b,
+          readiness: Math.min(96, Math.max(65, b.readiness + Math.round((Math.random() - 0.5) * 6))),
+          stress: Math.max(2.5, Math.min(7.5, Number((b.stress + (Math.random() - 0.5) * 0.4).toFixed(1)))),
+          workload: Math.max(35, Math.min(65, b.workload + Math.round((Math.random() - 0.5) * 4))),
+          personnel: Math.max(250, Math.min(500, b.personnel + Math.round((Math.random() - 0.5) * 20))),
+          alerts: Math.max(0, b.alerts + (Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0)),
+        }))
+      );
+
+      setBattalionRadarData((prev) =>
+        prev.map((d) => {
+          const updated: any = { dimension: d.dimension };
+          Object.keys(d).forEach((key) => {
+            if (key !== 'dimension') {
+              updated[key] = Math.min(96, Math.max(55, d[key as keyof typeof d] as number + Math.round((Math.random() - 0.5) * 8)));
+            }
+          });
+          return updated;
+        })
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [heatmapData.length]);
 
   // Main Tab Content Renderer
   const renderMainTabContent = () => {

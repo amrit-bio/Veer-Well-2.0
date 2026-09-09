@@ -20,33 +20,71 @@ interface ProtectedRouteProps {
   onNavigate: (tabId: string) => void;
 }
 
-const ROLE_RESTRICTION_EXPLANATIONS: Record<UserRole, Record<string, string>> = {
+const ROLE_RESTRICTION_EXPLANATIONS: Record<string, Record<string, string>> = {
   personnel: {
     analytics: 'Predictive battalion-level burnout curves and unit saturation indices are restricted to Commanding Officers, Medical Specialists, and Analysts.',
     interventions: 'Battalion rest rotation authorizations and clinical triage directive consoles are restricted to Commanding Officers and Medical Officers.',
     datasets: 'Raw synthetic dataset generation and multi-force telemetry exports are reserved exclusively for Behavioral Data Analysts.',
     impact: 'Strategic force readiness indicators and mission capacity metrics are restricted to Command level.',
-    'supabase-data': 'PostgreSQL Row-Level Security schema auditing tools are restricted to Behavioral Data Analysts.',
+    'supabase-data': 'Security policy auditing tools are restricted to Behavioral Data Analysts.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command (IG/DIG/ADG/DG).',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
   },
   commander: {
     dashboard: 'Individual personnel biometrics and live PPG/SpO2 waveforms are hidden to protect jawan psychological sovereignty under the Armed Forces Welfare Doctrine.',
     assessment: 'Private voluntary PHQ-9 mental stamina screenings are strictly confidential to prevent evaluation or appraisal bias.',
     datasets: 'Raw data pipeline manipulation is restricted to Behavioral Data Analysts.',
     integrations: 'Direct hardware sensor pairing is managed by frontline jawans and medical staff.',
-    'supabase-data': 'Postgres schema auditing tools are restricted to Data Analysts.',
+    'supabase-data': 'Security policy auditing tools are restricted to Data Analysts.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command (IG/DIG/ADG/DG).',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
   },
   welfare_officer: {
     assessment: 'Individual raw self-assessment intake forms are submitted privately by personnel; Medical Officers review aggregated clinical triage alerts.',
     privacy: 'System-level differential privacy parameter configurations are managed by Data Analysts.',
-    datasets: 'Raw model training datasets are restricted to Behavioral Data Analysts.',
+    datasets: 'Raw wellness datasets are restricted to Behavioral Data Analysts.',
     impact: 'Macro battalion readiness strategic reports are directed to Commanding Officers.',
-    'supabase-data': 'Database schema auditing is restricted to Data Analysts.',
+    'supabase-data': 'Security policy auditing is restricted to Data Analysts.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command.',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
   },
   analyst: {
     dashboard: 'Identified individual biometrics are masked under k-anonymity (k=5) to preserve non-traceability.',
     assessment: 'Voluntary self-assessment forms are private to frontline personnel.',
     interventions: 'Operational troop rest rotation commands are authorized strictly by Battalion Commanding Officers.',
     integrations: 'Tactical device pairing is handled on-site by field units.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command (IG/DIG/ADG/DG).',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
+  },
+  senior_command: {
+    dashboard: 'Individual personnel biometrics and live PPG/SpO2 waveforms are restricted to frontline personnel and their attached Medical Officers.',
+    assessment: 'Private voluntary PHQ-9 mental stamina screenings are strictly confidential to prevent evaluation or appraisal bias.',
+    datasets: 'Raw data pipeline manipulation is restricted to Behavioral Data Analysts.',
+    integrations: 'Direct hardware sensor pairing is managed on-site by field units.',
+    'supabase-data': 'Security policy auditing tools are restricted to Data Analysts.',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
+  },
+  subordinate_officer: {
+    dashboard: 'Individual personnel biometrics are restricted to the personnel themselves and their attached Medical Officers.',
+    assessment: 'Private voluntary PHQ-9 mental stamina screenings are strictly confidential to prevent evaluation or appraisal bias.',
+    datasets: 'Raw data pipeline manipulation is restricted to Behavioral Data Analysts.',
+    integrations: 'Direct hardware sensor pairing is managed on-site by field units.',
+    'supabase-data': 'Security policy auditing tools are restricted to Data Analysts.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command (IG/DIG/ADG/DG).',
+    'nsg-taskforce-dashboard': 'NSG Task Force dashboards are restricted to personnel on NSG deputation.',
+  },
+  nsg_taskforce: {
+    dashboard: 'Individual personnel biometrics are restricted to the personnel themselves and their attached Medical Officers.',
+    assessment: 'Private voluntary PHQ-9 mental stamina screenings are strictly confidential to prevent evaluation or appraisal bias.',
+    datasets: 'Raw data pipeline manipulation is restricted to Behavioral Data Analysts.',
+    'supabase-data': 'Security policy auditing tools are restricted to Data Analysts.',
+    'senior-command-dashboard': 'Sector-wide multi-battalion command dashboards are restricted to Senior Command (IG/DIG/ADG/DG).',
+    'subordinate-dashboard': 'Platoon-level command dashboards are restricted to Subordinate Officers (SI/ASI/Subedar).',
   },
 };
 

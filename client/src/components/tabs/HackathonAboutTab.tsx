@@ -19,7 +19,7 @@ export const HackathonAboutTab: React.FC = () => {
   const teamMembers = [
     {
       name: 'Amritanshu & Team',
-      role: 'Lead Systems Architect & Full-Stack AI Engineer',
+      role: 'Lead Systems Architect & Tactical AI Designer',
       focus: 'Tactical UI/UX, 3D Shaders, Predictive Analytics & Security Architecture',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     },
@@ -90,7 +90,7 @@ export const HackathonAboutTab: React.FC = () => {
             About VeerWell & Strategic Roadmap
           </h1>
           <p className="text-xs md:text-sm text-olive-200 mt-1 max-w-2xl">
-            Engineered to demonstrate the future of armed forces wellness technology. Designed for deployment on modern cloud edge infrastructure.
+            Built to demonstrate the future of armed forces wellness technology. Designed for tactical edge deployment.
           </p>
           </div>
         </div>
@@ -105,7 +105,7 @@ export const HackathonAboutTab: React.FC = () => {
       <div className="glass-panel p-6 md:p-8 rounded-3xl border border-olive-400/30 space-y-4">
         <div className="flex items-center gap-2 text-white font-bold text-lg">
           <Users className="w-5 h-5 text-accent-gold" />
-          <h2>Project Engineering Team: Team VeerWell</h2>
+          <h2>Project Development Team: Team VeerWell</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -296,7 +296,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
               <div>
                 <div className="text-xs font-bold text-accent-gold font-mono uppercase">14-Day Prediction</div>
                 <div className="text-sm font-bold text-white mt-1">Predictive Analytics Suite</div>
-                <p className="text-[10px] text-olive-300 mt-0.5">XGBoost 36-tree saturation model</p>
+                <p className="text-[10px] text-olive-300 mt-0.5">36-factor predictive fatigue model</p>
               </div>
               <button
                 onClick={() => onNavigate('analytics')}
@@ -387,7 +387,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
               </div>
               <div>
                 <div className="text-2xl font-black text-cyan-400 font-mono">0.946 <span className="text-xs font-normal text-olive-400">AUC</span></div>
-                <div className="text-xs font-bold text-white">XGBoost Model ROC-AUC</div>
+                <div className="text-xs font-bold text-white">Predictive Model ROC-AUC</div>
                 <p className="text-[10px] text-cyan-300 mt-1">14-day multi-variate horizon</p>
               </div>
             </div>
@@ -411,12 +411,12 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
                 <div className="p-2 rounded-xl bg-accent-gold/20 text-accent-gold border border-accent-gold/40">
                   <Database className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-mono text-accent-gold">Postgres RLS</span>
+                <span className="text-[10px] font-mono text-accent-gold">Security Verified</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-white font-mono">12 / 12</div>
-                <div className="text-xs font-bold text-white">Database Tables Synced</div>
-                <p className="text-[10px] text-olive-300 mt-1">Row-Level Security verified</p>
+                <div className="text-xs font-bold text-white">12 / 12 Secure Modules</div>
+                <p className="text-[10px] text-olive-300 mt-1">Security protocols verified</p>
               </div>
             </div>
 
@@ -474,7 +474,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
             <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
               <div className="text-xs font-bold text-white font-mono uppercase">14-Day Predictive Curve</div>
               <p className="text-xs text-slate-200 leading-relaxed">
-                Evaluate XGBoost forecasted fatigue trajectories to adjust patrol roster schedules before mission saturation.
+                Evaluate predictive fatigue trajectories to adjust patrol roster schedules before mission saturation.
               </p>
             </div>
             <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
@@ -537,19 +537,19 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
             <div className="glass-card p-4 rounded-2xl border border-cyan-500/40 space-y-2">
               <div className="text-xs font-bold text-cyan-400 font-mono uppercase">Differential Privacy Pipeline</div>
               <p className="text-xs text-slate-200 leading-relaxed">
-                Manage Laplacian noise parameters (ε = 0.85) and export anonymized training datasets.
+                Manage Laplacian noise parameters (ε = 0.85) and export anonymized wellness datasets.
               </p>
             </div>
             <div className="glass-card p-4 rounded-2xl border border-olive-700 space-y-2">
-              <div className="text-xs font-bold text-white font-mono uppercase">Multivariate XGBoost Engine</div>
+              <div className="text-xs font-bold text-white font-mono uppercase">Multivariate Predictive Engine</div>
               <p className="text-xs text-slate-200 leading-relaxed">
-                Validate 36-tree GBDT model accuracy (ROC-AUC 0.946) across 12 physiological and operational features.
+                Validate 36-factor predictive model accuracy (ROC-AUC 0.946) across 12 physiological and operational features.
               </p>
             </div>
             <div className="glass-card p-4 rounded-2xl border border-emerald-500/40 space-y-2">
-              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Postgres RLS Schema Audit</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono uppercase">Security Policy Audit</div>
               <p className="text-xs text-slate-200 leading-relaxed">
-                Verify multi-table Row-Level Security policies and data-at-rest encryption across CAPF grids.
+                Verify multi-table security policies and data encryption across CAPF grids.
               </p>
             </div>
           </div>
@@ -617,14 +617,14 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
               <Sparkles className="w-4 h-4 text-accent-gold" />
               Core Architecture Highlights
             </h2>
-            <p className="text-xs text-olive-300">Key pillars engineered for Central Armed Police Forces</p>
+            <p className="text-xs text-olive-300">Key pillars built for Central Armed Police Forces</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'commander' || currentRole === 'analyst' ? 'analytics' : 'dashboard')}
+            onClick={() => onNavigate(currentRole === 'commander' ? 'commander-dashboard' : currentRole === 'analyst' ? 'algorithm-telemetry' : currentRole === 'welfare_officer' ? 'clinical-dashboard' : 'dashboard')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-accent-gold/20 border border-accent-gold/40 text-accent-gold flex items-center justify-center">
@@ -642,7 +642,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
 
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'welfare_officer' ? 'interventions' : 'privacy')}
+            onClick={() => onNavigate(currentRole === 'welfare_officer' ? 'clinical-dashboard' : 'privacy')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
@@ -660,7 +660,7 @@ export const HomeOverviewTab: React.FC<{ onNavigate: (tabId: string) => void }> 
 
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate(currentRole === 'analyst' ? 'datasets' : 'integrations')}
+            onClick={() => onNavigate(currentRole === 'analyst' ? 'datasets' : currentRole === 'personnel' ? 'voice-assistant' : 'integrations')}
             className="glass-panel p-6 rounded-2xl border border-olive-400/25 hover:border-accent-gold transition-all cursor-pointer space-y-3"
           >
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center">

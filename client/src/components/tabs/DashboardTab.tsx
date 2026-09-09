@@ -228,9 +228,9 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/40 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                {role === 'commander' && 'Commanding Officer (CO) — Strategic Readiness Deck'}
+                {(role === 'commander' || role === 'senior_command' || role === 'nsg_taskforce') && 'Commanding Officer (CO) — Strategic Readiness Deck'}
                 {role === 'welfare_officer' && 'Chief Medical & Welfare Officer — Clinical Triage Deck'}
-                {role === 'personnel' && 'Frontline Sentinel — Personal Wellness & Wearables Deck'}
+                {(role === 'personnel' || role === 'subordinate_officer') && 'Frontline Sentinel — Personal Wellness & Wearables Deck'}
                 {role === 'analyst' && 'Directorate Behavioral Scientist — Predictive Modeling Lab'}
               </span>
               <span className="text-xs text-olive-300 font-mono">Location: {user.location}</span>
@@ -514,7 +514,7 @@ export const DashboardTab: React.FC<{ onNavigate: (tabId: string) => void }> = (
               </h2>
               <p className="text-xs text-olive-300">
                 {role === 'personnel' && 'Real-time physiological balance computed from continuous PPG heart rate variability.'}
-                {role === 'analyst' && 'Cross-sensor machine learning model correlating shift hours, sleep deficit & altitude.'}
+                {role === 'analyst' && 'Cross-sensor predictive model correlating shift hours, sleep deficit & altitude.'}
                 {role === 'welfare_officer' && 'Sympathetic over-arousal vs parasympathetic recovery curves across units.'}
                 {role === 'commander' && 'Visualizing physiological turbulence and sympathetic tone across deployed units.'}
               </p>

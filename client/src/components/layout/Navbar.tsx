@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Wordmark } from '../common/Wordmark';
 import { UserRole } from '../../types';
 import { isTabAccessible, getDefaultTabForRole } from '../../config/navConfig';
+import { LanguageSelector } from '../common/LanguageSelector';
 import {
   Bell,
   Eye,
@@ -113,8 +114,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
           </button>
         </div>
 
-        {/* Right: Military ID, Clearance Tier & Notifications */}
+        {/* Right: Military ID, Language, Clearance Tier & Notifications */}
         <div className="flex items-center gap-2.5">
+          {/* Indian Language Selector */}
+          <LanguageSelector />
+
           {/* Active User Role & ID Pill */}
           <div className="relative">
             <button

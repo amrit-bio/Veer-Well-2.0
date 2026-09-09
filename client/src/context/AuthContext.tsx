@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, isSupabaseReady } from '../lib/supabaseClient';
 import { getApiUrl, API_BASE } from '../services/api';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 
@@ -17,9 +17,9 @@ export interface RoleCredentials {
   description: string;
 }
 
-export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
+export const ROLE_PRESETS: Record<string, RoleCredentials> = {
   commander: {
-    role: 'commander',
+    role: 'commander' as UserRole,
     roleLabel: 'Commanding Officer (CO)',
     defaultLoginId: 'CRPF-CMD-7801',
     defaultPassword: 'co-password-2026',
@@ -31,7 +31,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Battalion Readiness, Rest Approvals, Macro Operational Fatigue Heatmaps (Names Masked).',
   },
   welfare_officer: {
-    role: 'welfare_officer',
+    role: 'welfare_officer' as UserRole,
     roleLabel: 'Medical & Welfare Officer',
     defaultLoginId: 'CRPF-MED-8492',
     defaultPassword: 'med-password-2026',
@@ -43,7 +43,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Prescribe 48h Recovery Respite, Clinical Counseling Scripts, Post-Mission Debriefs.',
   },
   personnel: {
-    role: 'personnel',
+    role: 'personnel' as UserRole,
     roleLabel: 'Frontline Sentinel (Jawan / Inspector)',
     defaultLoginId: 'CRPF-COBRA-1042',
     defaultPassword: 'jawan-password-2026',
@@ -55,7 +55,7 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     description: 'Confidential PHQ-9 Screener, Live Smartwatch Telemetry Sync, 3-Day Wellness Leave Request.',
   },
   analyst: {
-    role: 'analyst',
+    role: 'analyst' as UserRole,
     roleLabel: 'Behavioral Data Scientist',
     defaultLoginId: 'MHA-ANA-9104',
     defaultPassword: 'ana-password-2026',
@@ -66,9 +66,69 @@ export const ROLE_PRESETS: Record<UserRole, RoleCredentials> = {
     badge: 'Differential Privacy Analytics',
     description: 'Multi-variate 14-Day Predictive Burnout Regression, Roster What-If Simulation Models.',
   },
+  senior_command: {
+    role: 'senior_command' as UserRole,
+    roleLabel: 'Inspector General (IG) — Sector Command',
+    defaultLoginId: 'ITBP-IG-1102',
+    defaultPassword: 'ig-password-2026',
+    rank: 'Inspector General (IG)',
+    name: 'Lt. Gen. Ananya Krishnan',
+    force: 'ITBP',
+    unit: 'Northern Sector HQ',
+    badge: 'Sector Command (Multi-Battalion)',
+    description: 'Multi-battalion sector-wide aggregate, inter-unit comparison, escalated-case oversight.',
+  },
+  subordinate_officer: {
+    role: 'subordinate_officer' as UserRole,
+    roleLabel: 'Sub-Inspector — Platoon Commander',
+    defaultLoginId: 'BSF-SI-2241',
+    defaultPassword: 'si-password-2026',
+    rank: 'Sub-Inspector (SI)',
+    name: 'SI Manoj Tiwari',
+    force: 'BSF',
+    unit: '142 Bn, C Company',
+    badge: 'Platoon First-Line Triage',
+    description: 'Platoon-level fatigue/readiness view, first-line triage, duty roster management.',
+  },
+  nsg_taskforce: {
+    role: 'nsg_taskforce' as UserRole,
+    roleLabel: 'Commandant — NSG Task Force',
+    defaultLoginId: 'NSG-CMD-8817',
+    defaultPassword: 'nsg-password-2026',
+    rank: 'Commandant — NSG Deputation',
+    name: 'Col. Arjun Raghuvanshi',
+    force: 'NSG',
+    unit: 'NSG Special Action Group (SAG)',
+    badge: 'NSG Task Force (Counter-Terrorism)',
+    description: 'NSG operational overlay: CT deployment metrics, ops tempo, task-force readiness.',
+  },
+  admin: {
+    role: 'mha_admin' as UserRole,
+    roleLabel: 'MHA System Administrator',
+    defaultLoginId: 'admin@mha.gov.in',
+    defaultPassword: 'admin-password-2026',
+    rank: 'Administrator',
+    name: 'MHA System Administrator',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    badge: 'Single Admin Access',
+    description: 'Single MHA administrator — review queue, approve/reject signups, system configuration.',
+  },
+  mha_admin: {
+    role: 'mha_admin' as UserRole,
+    roleLabel: 'MHA System Administrator',
+    defaultLoginId: 'admin@mha.gov.in',
+    defaultPassword: 'admin-password-2026',
+    rank: 'Administrator',
+    name: 'MHA System Administrator',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    badge: 'Single Admin Access',
+    description: 'Single MHA administrator — review queue, approve/reject signups, system configuration.',
+  },
 };
 
-const INITIAL_USERS: Record<UserRole, User> = {
+const INITIAL_USERS: Record<string, User> = {
   commander: {
     id: 'usr-co-01',
     name: 'Col. Devendra Singh Rathore',
@@ -76,11 +136,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-CMD-7801',
     force: 'CRPF',
     unit: '142 Bn (Srinagar Sector HQ)',
-    role: 'commander',
+    role: 'commander' as UserRole,
     roleTitle: 'Battalion Commanding Officer',
     anonymizedId: 'CAPF-CMD-01',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     location: 'Srinagar Sector Command, J&K',
+    tier: 2,
+    rankTier: 'commandant',
+    scope: 'battalion',
   },
   welfare_officer: {
     id: 'usr-wo-02',
@@ -89,11 +152,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-MED-8492',
     force: 'CRPF',
     unit: 'Central Composite Hospital, Srinagar',
-    role: 'welfare_officer',
+    role: 'welfare_officer' as UserRole,
     roleTitle: 'Unit Welfare & Psychological Specialist',
     anonymizedId: 'CAPF-MED-02',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     location: 'Field Medical Station, Leh-Ladakh Sector',
+    tier: 2,
+    rankTier: 'chief_medical_officer',
+    scope: 'battalion',
   },
   personnel: {
     id: 'usr-jawan-03',
@@ -102,11 +168,14 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'CRPF-COBRA-1042',
     force: 'CRPF',
     unit: '209 CoBRA Bn (Special Ops)',
-    role: 'personnel',
+    role: 'personnel' as UserRole,
     roleTitle: 'Tactical Reconnaissance Lead',
     anonymizedId: 'CAPF-NODE-1042',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
     location: 'Forward Post Delta, Siachen Border Area',
+    tier: 4,
+    rankTier: 'constable',
+    scope: 'personal',
   },
   analyst: {
     id: 'usr-ana-04',
@@ -115,11 +184,96 @@ const INITIAL_USERS: Record<UserRole, User> = {
     serviceNumber: 'MHA-ANA-9104',
     force: 'CAPF Command',
     unit: 'HQ Directorate General (People Intelligence)',
-    role: 'analyst',
+    role: 'analyst' as UserRole,
     roleTitle: 'Workforce Stress & Fatigue Analyst',
     anonymizedId: 'CAPF-ANA-04',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     location: 'MHA CAPF HQ, New Delhi',
+    tier: 2,
+    rankTier: 'analyst',
+    scope: 'sector',
+  },
+  senior_command: {
+    id: 'usr-ig-05',
+    name: 'Lt. Gen. Ananya Krishnan',
+    rank: 'Inspector General (IG)',
+    serviceNumber: 'ITBP-IG-1102',
+    force: 'ITBP',
+    unit: 'Northern Sector HQ',
+    role: 'senior_command' as UserRole,
+    roleTitle: 'Inspector General — Sector Command',
+    anonymizedId: 'CAPF-IG-05',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    location: 'Northern Sector HQ, Shimla',
+    tier: 1,
+    rankTier: 'ig',
+    scope: 'sector',
+  },
+  subordinate_officer: {
+    id: 'usr-si-06',
+    name: 'SI Manoj Tiwari',
+    rank: 'Sub-Inspector (SI)',
+    serviceNumber: 'BSF-SI-2241',
+    force: 'BSF',
+    unit: '142 Bn, C Company',
+    role: 'subordinate_officer' as UserRole,
+    roleTitle: 'Platoon Commander — First-Line Triage',
+    anonymizedId: 'CAPF-SI-06',
+    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=150&auto=format&fit=crop&q=80',
+    location: 'BSF 142 Bn, Punjab Frontier',
+    tier: 3,
+    rankTier: 'si',
+    scope: 'platoon',
+  },
+  nsg_taskforce: {
+    id: 'usr-nsg-07',
+    name: 'Col. Arjun Raghuvanshi',
+    rank: 'Commandant — NSG Deputation',
+    serviceNumber: 'NSG-CMD-8817',
+    force: 'NSG',
+    unit: 'NSG Special Action Group (SAG)',
+    role: 'nsg_taskforce' as UserRole,
+    roleTitle: 'NSG Task Force Commander',
+    anonymizedId: 'CAPF-NSG-07',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+    location: 'NSG HQ, New Delhi',
+    tier: 2,
+    rankTier: 'commandant',
+    scope: 'battalion',
+    isNSG: true,
+    parentForce: 'CRPF',
+  },
+  admin: {
+    id: 'usr-admin-00',
+    name: 'MHA System Administrator',
+    rank: 'Administrator',
+    serviceNumber: 'ADMIN-MHA-001',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    role: 'mha_admin' as UserRole,
+    roleTitle: 'MHA System Administrator',
+    anonymizedId: 'CAPF-ADMIN-00',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    location: 'MHA HQ, New Delhi',
+    tier: 1,
+    rankTier: 'administrator',
+    scope: 'national',
+  },
+  mha_admin: {
+    id: 'usr-admin-00',
+    name: 'MHA System Administrator',
+    rank: 'Administrator',
+    serviceNumber: 'ADMIN-MHA-001',
+    force: 'MHA',
+    unit: 'MHA HQ',
+    role: 'mha_admin' as UserRole,
+    roleTitle: 'MHA System Administrator',
+    anonymizedId: 'CAPF-ADMIN-00',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    location: 'MHA HQ, New Delhi',
+    tier: 1,
+    rankTier: 'administrator',
+    scope: 'national',
   },
 };
 
@@ -162,8 +316,21 @@ interface AuthContextType {
       role?: UserRole;
     }
   ) => Promise<{ error: Error | null; data?: any }>;
+  signupWithVerification: (data: {
+    serviceId?: string;
+    email: string;
+    password: string;
+    full_name: string;
+    rank: string;
+    force: string;
+    unit: string;
+    role: UserRole;
+    department?: string;
+    designation?: string;
+  }) => Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }>;
   supabaseSignOut: () => Promise<void>;
   logout: () => void;
+  getMhaAdminToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -178,59 +345,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseUser, setSupabaseUser] = useState<SupabaseAuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
-  // ── 1. Supabase Auth Listener (Session tracking) ───────────────────────────
-  useEffect(() => {
-    // Check the initial session before allowing protected content to render.
-    const initializeSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      if (session?.user) {
-        await syncUserProfile(session.user);
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
-      setAuthLoading(false);
-    };
-    void initializeSession();
+   // ── 1. Session tracking ─────────────────────────────────────────────────
+   useEffect(() => {
+     // Check the initial session before allowing protected content to render.
+     const initializeSession = async () => {
+       if (!isSupabaseReady()) {
+         // Offline mode: keep the preset demo user authenticated
+         setIsAuthenticated(true);
+         setAuthLoading(false);
+         return;
+       }
 
-    // Listen for auth state changes across the entire app
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      if (session?.user) {
-        // Hide the previous account while the selected account's profile loads.
-        setIsAuthenticated(false);
-        await syncUserProfile(session.user);
-        setIsAuthenticated(true);
-      } else {
-        // When signed out from auth system
-        setIsAuthenticated(false);
-      }
-      setAuthLoading(false);
-    });
+      try {
+          const { data: { session } } = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<{ data: { session: null } }>(resolve => setTimeout(() => resolve({ data: { session: null } }), 5000)),
+          ]);
+          setSession(session);
+          setSupabaseUser(session?.user ?? null);
+          if (session?.user) {
+            await syncUserProfile(session.user);
+            setIsAuthenticated(true);
+          } else {
+            // No active session — show the login screen (SupabaseAuth)
+            setIsAuthenticated(false);
+          }
+        } catch {
+          // Supabase unreachable — fall back to demo mode so UI is never blank
+          setIsAuthenticated(true);
+        }
+        setAuthLoading(false);
+     };
+     void initializeSession();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Listen for auth state changes across the entire app (only when Supabase is configured)
+    if (isSupabaseReady()) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        if (session?.user) {
+          // Hide the previous account while the selected account's profile loads.
+          setIsAuthenticated(false);
+          await syncUserProfile(session.user);
+          setIsAuthenticated(true);
+        } else {
+          // When signed out from auth system
+          setIsAuthenticated(false);
+        }
+        setAuthLoading(false);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+
+    return () => {};
   }, []);
 
-  // Sync Supabase Auth User data to application military User state
+  // Sync military Auth User data to application military User state
   const syncUserProfile = async (sbUser: SupabaseAuthUser) => {
     try {
       // Try to fetch profile from public.profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: profile } = await supabase.from('profiles')
         .select('*')
         .eq('id', sbUser.id)
         .maybeSingle();
 
       const meta = sbUser.user_metadata || {};
       const userRole = (profile?.role || meta.role || 'personnel') as UserRole;
-      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst'].includes(userRole)
-        ? userRole
-        : 'personnel';
+      const validRole: UserRole = ['commander', 'welfare_officer', 'personnel', 'analyst', 'senior_command', 'subordinate_officer', 'nsg_taskforce', 'mha_admin', 'admin'].includes(userRole)
+        ? (userRole === 'admin' ? 'mha_admin' : userRole)
+        : (sbUser.email === 'admin@mha.gov.in' ? 'mha_admin' : 'personnel');
 
       setRole(validRole);
       setUser({
@@ -245,6 +431,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         anonymizedId: profile?.anonymized_id || `CAPF-NODE-${sbUser.id.slice(0, 5).toUpperCase()}`,
         avatar: profile?.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
         location: profile?.location || `${profile?.unit || 'HQ Sector'}, ${profile?.force || 'CAPF'}`,
+        tier: profile?.tier || meta.tier || (validRole === 'senior_command' ? 1 : validRole === 'commander' || validRole === 'welfare_officer' || validRole === 'analyst' ? 2 : validRole === 'subordinate_officer' ? 3 : 4),
+        rankTier: profile?.rank_tier || meta.rankTier || null,
+        scope: profile?.scope || meta.scope || null,
       });
     } catch (e) {
       console.warn('Could not sync user profile from Supabase table:', e);
@@ -283,7 +472,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. If it is an email address, authenticate with Supabase Auth
+      // 2. If it is an email address, authenticate via Supabase Auth
       if (cleanId.includes('@')) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: cleanId.toLowerCase(),
@@ -299,40 +488,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { error: null };
         }
 
-        // Try backend login if Supabase auth fails (e.g. backend seeded accounts)
-        try {
-          const res = await fetch(getApiUrl('/auth/login'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanId.toLowerCase(), password: cleanPass }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.user) {
-              const uRole = (data.user.role || 'personnel') as UserRole;
-              setRole(uRole);
-              setUser(data.user);
-              setIsAuthenticated(true);
-              setIsAuthModalOpen(false);
-              return { error: null };
-            }
-          }
-        } catch {
-          // Fall through to error
-        }
-
         if (error) return { error };
       }
 
-      // 3. If it is a custom military Service ID, query public.profiles for the corresponding account
-      const { data: matchedProfile } = await supabase
-        .from('profiles')
+      // 3. Service ID lookup via profiles table
+      const { data: matchedProfile } = await supabase.from('profiles')
         .select('*')
         .ilike('service_number', cleanId)
         .maybeSingle();
 
       if (matchedProfile && matchedProfile.email) {
-        // Attempt sign-in with the profile's registered email
         const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
           email: matchedProfile.email,
           password: cleanPass,
@@ -399,59 +564,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }),
           });
           if (res.ok) {
-            const resJson = await res.json();
-            if (resJson.userId) assignedUserId = resJson.userId;
+            const text = await res.text();
+            const resJson = text ? JSON.parse(text) : null;
+            if (resJson?.userId) assignedUserId = resJson.userId;
           }
         } catch {
           // Non-blocking
         }
       }
 
-      // 2. Try Supabase Auth Sign Up
-      try {
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: {
-              name: cleanName,
-              rank: cleanRank,
-              serviceNumber: cleanServiceNumber,
-              force: cleanForce,
-              unit: cleanUnit,
-              role: cleanRole,
-            },
+      // 2. Direct Supabase Auth Sign Up
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            name: cleanName,
+            rank: cleanRank,
+            serviceNumber: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
           },
-        });
+        },
+      });
 
-        if (signupData?.user) {
-          assignedUserId = signupData.user.id;
-          setSupabaseUser(signupData.user);
-          if (signupData.session) {
-            setSession(signupData.session);
-          }
+      if (signupError) {
+        console.error('[VeerWell Client] Supabase signUp error:', signupError);
+        return { error: signupError };
+      }
 
-          try {
-            await supabase.from('profiles').upsert({
-              id: signupData.user.id,
-              name: cleanName,
-              email: cleanEmail,
-              rank: cleanRank,
-              service_number: cleanServiceNumber,
-              force: cleanForce,
-              unit: cleanUnit,
-              role: cleanRole,
-              role_title: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
-              anonymized_id: `CAPF-NODE-${signupData.user.id.slice(0, 5).toUpperCase()}`,
-              avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-              location: `${cleanUnit}, ${cleanForce}`,
-            });
-          } catch {
-            // Non-blocking
-          }
+      if (signupData?.user) {
+        assignedUserId = signupData.user.id;
+        setSupabaseUser(signupData.user);
+        if (signupData.session) {
+          setSession(signupData.session);
         }
-      } catch {
-        // Non-blocking
+
+        // Write directly to public.profiles table
+        try {
+          const { error: profileErr } = await supabase.from('profiles').upsert({
+            id: signupData.user.id,
+            name: cleanName,
+            email: cleanEmail,
+            rank: cleanRank,
+            service_number: cleanServiceNumber,
+            force: cleanForce,
+            unit: cleanUnit,
+            role: cleanRole,
+            role_title: ROLE_PRESETS[cleanRole]?.roleLabel || `${cleanRank} (${cleanRole})`,
+            anonymized_id: `CAPF-NODE-${signupData.user.id.slice(0, 5).toUpperCase()}`,
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            location: `${cleanUnit}, ${cleanForce}`,
+          });
+          if (profileErr) {
+            console.warn('[VeerWell Client] Error writing to profiles table:', profileErr.message);
+          }
+        } catch (pe) {
+          console.warn('[VeerWell Client] Profile upsert exception:', pe);
+        }
       }
 
       const newMilitaryUser: User = {
@@ -488,7 +659,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ── 4. Supabase Sign Out ───────────────────────────────────────────────────
-  const supabaseSignOut = async (): Promise<void> => {
+   const supabaseSignOut = async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
       setSession(null);
@@ -560,7 +731,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  const supabaseResetPassword = async (email: string): Promise<{ error: Error | null }> => {
+   const supabaseResetPassword = async (email: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -571,7 +742,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const supabaseSignInWithOtp = async (email: string): Promise<{ error: Error | null }> => {
+   const supabaseSignInWithOtp = async (email: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -585,7 +756,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const supabaseVerifyOtp = async (email: string, token: string): Promise<{ error: Error | null }> => {
+   const supabaseVerifyOtp = async (email: string, token: string): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -602,8 +773,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabaseSignOut();
   };
 
+  const signupWithVerification = async (data: {
+    serviceId?: string;
+    email: string;
+    password: string;
+    full_name: string;
+    rank: string;
+    force: string;
+    unit: string;
+    role: UserRole;
+    department?: string;
+    designation?: string;
+  }): Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }> => {
+    try {
+      const result = await submitSignupForVerification({
+        full_name: data.full_name,
+        email: data.email,
+        password: data.password,
+        rank: data.rank,
+        service_id: data.serviceId,
+        force: data.force,
+        unit: data.unit,
+        role: data.role,
+        department: data.department,
+        designation: data.designation,
+      });
+
+      if (result.error) {
+        return { error: new Error(result.error) };
+      }
+
+      if (result.status === 'awaiting_review') {
+        return {
+          error: null,
+          data: {
+            status: 'awaiting_review',
+            message: result.message || 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.',
+            requestId: result.request_id,
+          },
+        };
+      }
+
+      return { error: new Error(result.error || 'Signup verification failed') };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
   const toggleAnonymization = () => {
     setIsAnonymized((prev) => !prev);
+  };
+
+  const getMhaAdminToken = (): string | null => {
+    if (role !== 'mha_admin') return null;
+    const payload = {
+      sub: user.id,
+      email: user.serviceNumber + '@mha.gov.in',
+      name: user.name,
+      role: 'mha_admin',
+      exp: Date.now() + 8 * 60 * 60 * 1000,
+    };
+    return btoa(JSON.stringify(payload));
   };
 
   const openAuthModal = () => setIsAuthModalOpen(true);
@@ -628,11 +858,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         supabaseSignIn,
         supabaseSignUp,
+        signupWithVerification,
         supabaseSignOut,
         supabaseResetPassword,
         supabaseSignInWithOtp,
         supabaseVerifyOtp,
         logout,
+        getMhaAdminToken,
       }}
     >
       {children}

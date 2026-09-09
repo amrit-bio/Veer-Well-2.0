@@ -4,9 +4,40 @@ import {
 import { predictXGBoost, WelfareFeatures, XGBoostPrediction } from '../lib/xgboostEngine';
 import { generateRakshakIntelligence } from '../lib/rakshakEngine';
 
-// Get API base from environment variable, fallback to relative path for development
+// NOTE: Vercel deploys use VITE_ prefixed vars client-side.
+// Server-only vars (no VITE_) are NOT exposed to the browser.
+// On Vercel dashboard, set: VITE_GEMINI_API_KEY = your AI key
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api';
-const GEMINI_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+
+export function getActiveAiKey(): string {
+  if (typeof window !== 'undefined') {
+    const local =
+      localStorage.getItem('veerwell_ai_api_key') ||
+      localStorage.getItem('veerwell_gemini_api_key') ||
+      localStorage.getItem('gemini_api_key') ||
+      localStorage.getItem('groq_api_key');
+    if (local && local.trim()) return local.trim();
+  }
+  return (
+    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+    (import.meta as any).env?.VITE_GROQ_API_KEY ||
+    (import.meta as any).env?.GEMINI ||
+    ''
+  );
+}
+
+export function setActiveAiKey(key: string): void {
+  if (typeof window !== 'undefined') {
+    if (key && key.trim()) {
+      localStorage.setItem('veerwell_ai_api_key', key.trim());
+    } else {
+      localStorage.removeItem('veerwell_ai_api_key');
+      localStorage.removeItem('veerwell_gemini_api_key');
+      localStorage.removeItem('gemini_api_key');
+      localStorage.removeItem('groq_api_key');
+    }
+  }
+}
 
 // Helper function to construct API URLs
 export const getApiUrl = (endpoint: string): string => {
@@ -22,28 +53,20 @@ export const getApiUrl = (endpoint: string): string => {
   return `${base}/api${cleanEndpoint}`;
 };
 
-// Log API configuration for debugging
-if (typeof window !== 'undefined') {
-  console.log('[API] Base URL:', API_BASE);
-  console.log('[API] Environment:', (import.meta as any).env?.MODE || 'production');
-  console.log('[API] Gemini Key configured:', !!GEMINI_API_KEY);
-  if (!GEMINI_API_KEY) {
-    console.warn('[API] ⚠️ VITE_GEMINI_API_KEY is not set. Rakshak AI will use offline fallback mode.');
-  }
-}
+const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI — a knowledgeable, direct, highly intelligent assistant for VeerWell 2.0 (AI-Based Personnel Stress & Welfare Monitoring System for CAPF, CRPF, BSF, ITBP, CISF, SSB, Assam Rifles, NSG, Indian Army, and Ministry of Home Affairs).
 
+You answer ALL varieties of user queries accurately and comprehensively:
+- Military, Tactical & Geopolitics: Army/CAPF ranks, unit structure, history (1947, 1965, 1971, Kargil), regiments, special forces (Para SF, MARCOS, Garud, CoBRA, NSG), weapons (AK-203, SIG-716, INSAS, Tavor, Carl Gustaf), vehicles, aircraft (Rafale, Su-30MKI, Tejas), and air defense (S-400, Akash).
+- Personnel Health & High Altitude: High-altitude sickness (AMS, HAPE, HACE), hypoxia thresholds, SpO2 monitoring, frostbite, hypothermia, jungle hydration, TCCC tactical combat casualty care.
+- Physical Conditioning & Fitness: Running form, cadence (180 spm), breathing rhythms (2:2, 3:3), BPET preparation, endurance, strength training, injury prevention, nutrition, and sleep recovery.
+- Stress, Psychology & Mental Health: Biological stress pathways (SAM / HPA axes, cortisol, adrenaline), acute vs chronic stress, anxiety, burnout, PTSD, tactical breathing (4-4-4-4 box breathing, physiological sigh), grounding, and sleep hygiene.
+- VeerWell 2.0 Architecture: The 5 Core Views, XGBoost GBDT predictive stress model (36 decision trees), privacy framework under Armed Forces Welfare Doctrine (§ 108.4) with differential privacy (k>=5).
+- General Knowledge, Science, Math & Technology: Answer general questions clearly, concisely, and factually.
 
-const RAKSHAK_SYSTEM_PROMPT = `You are Rakshak AI, an intelligent, calm, and highly capable AI assistant built for VeerWell 2.0 (AI-Based Predictive Personnel Stress & Welfare Monitoring System for Uniformed Forces: CAPF, CRPF, BSF, ITBP, SSB, CISF, and Ministry of Home Affairs).
-
-CRITICAL INSTRUCTIONS:
-1. ALWAYS directly, accurately, and specifically answer the user's exact question or request first. Do not give generic boilerplate or force breathing instructions unless the user specifically asks for stress relief or breathing techniques.
-2. If the user asks about the VeerWell 2.0 platform or its features:
-   - Explain the 5 Core Views and that burnout risk is inferred by an on-device XGBoost GBDT (36 trees) fused with advanced AI for clinical language.
-   - Predictive Analytics Module (14-day burnout forecast curves, XGBoost what-if simulator, altitude & roster levers)
-   - Emphasize the Armed Forces Welfare Doctrine: All data is legally and technically reserved strictly for supportive welfare and health recovery, never for disciplinary actions, appraisals, or penalties.
-3. If the user asks a health, psychological, or tactical query (e.g. CoBRA jungle missions, Leh high-altitude hypoxia, shift insomnia, PTSD, hydration), give deep, practical, medically sound, and military-appropriate guidance.
-4. If the user asks a technical, mathematical, or general question, answer it directly, accurately, and intelligently in clean markdown.
-5. Maintain conversational context across follow-up questions.`;
+RULES:
+1. ANSWER DIRECTLY and constructively in clean markdown.
+2. Be specific with figures, steps, and explanations.
+3. No unnecessary disclaimers or repetitive unsolicited breathing prompts unless asked for stress relief or tactical calming.`;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -54,61 +77,150 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-// VeerWell AI Engine - Rakshak AI backbone powered by generative AI
-async function callRakshakAI(
+// Direct browser-side LLM invoker for Google Gemini and Groq
+async function callRakshakAIDirect(
   contents: Array<{ role: string; parts: Array<{ text: string }> }>,
   systemPrompt: string = RAKSHAK_SYSTEM_PROMPT
-): Promise<string> {
-  // Pre-flight: validate key format before making any network calls
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
-    throw new Error('GEMINI_API_KEY_UNAVAILABLE');
+): Promise<{ text: string; model: string }> {
+  const activeKey = getActiveAiKey();
+  if (!activeKey) throw new Error('No AI key provided');
+
+  // Check if Groq
+  if (activeKey.startsWith('gsk_')) {
+    const groqRes = await withTimeout(
+      fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activeKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...contents.map((c) => ({
+              role: c.role === 'model' ? 'assistant' : c.role,
+              content: c.parts.map((p) => p.text).join('\n'),
+            })),
+          ],
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      }),
+      12000
+    );
+    if (groqRes.ok) {
+      const data = await groqRes.json();
+      const txt = data?.choices?.[0]?.message?.content;
+      if (txt) return { text: txt.trim(), model: 'Rakshak AI (Groq Llama-3.3-70B)' };
+    }
   }
 
-  const models = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-pro',
-  ];
-  let lastErr: any = null;
+  // Check if NVIDIA NIM
+  if (activeKey.startsWith('nvapi-')) {
+    const nimModels = [
+      'meta/llama-3.3-70b-instruct',
+      'meta/llama-3.1-8b-instruct',
+      'deepseek-ai/deepseek-r1',
+    ];
+    for (const model of nimModels) {
+      try {
+        const nimRes = await withTimeout(
+          fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...contents.map((c) => ({
+                  role: c.role === 'model' ? 'assistant' : c.role,
+                  content: c.parts.map((p) => p.text).join('\n'),
+                })),
+              ],
+              temperature: 0.3,
+              max_tokens: 1024,
+            }),
+          }),
+          12000
+        );
+        if (nimRes.ok) {
+          const data = await nimRes.json();
+          const txt = data?.choices?.[0]?.message?.content;
+          if (txt) return { text: txt.trim(), model: `Rakshak AI (NVIDIA ${model.split('/').pop()})` };
+        }
+      } catch {}
+    }
+  }
 
-  for (const model of models) {
+  // Check if OpenAI
+  if (activeKey.startsWith('sk-')) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const openAiRes = await withTimeout(
+        fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...contents.map((c) => ({
+                role: c.role === 'model' ? 'assistant' : c.role,
+                content: c.parts.map((p) => p.text).join('\n'),
+              })),
+            ],
+            temperature: 0.3,
+            max_tokens: 1024,
+          }),
+        }),
+        10000
+      );
+      if (openAiRes.ok) {
+        const data = await openAiRes.json();
+        const txt = data?.choices?.[0]?.message?.content;
+        if (txt) return { text: txt.trim(), model: 'Rakshak AI (OpenAI GPT-4o-mini)' };
+      }
+    } catch {}
+  }
+
+  // Google Gemini
+  const geminiModels = ['gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+
+  for (const model of geminiModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+      const body = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+      };
+
       const res = await withTimeout(
         fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemPrompt }],
-            },
-            contents,
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-          }),
+          body: JSON.stringify(body),
         }),
-        8000
+        10000
       );
 
-      if (!res.ok) {
-        lastErr = new Error(`AI Model ${model} Error: ${res.status}`);
-        continue;
-      }
-
+      if (!res.ok) continue;
       const data = await res.json();
       const parts = data?.candidates?.[0]?.content?.parts;
       if (Array.isArray(parts)) {
         const text = parts.map((p: any) => (typeof p.text === 'string' ? p.text : '')).filter(Boolean).join('\n\n').trim();
-        if (text) return text;
+        if (text) return { text, model: `Rakshak AI (Gemini ${model.replace('gemini-', '')})` };
       }
-    } catch (e) {
-      lastErr = e;
-    }
+    } catch {}
   }
 
-  throw lastErr || new Error('Empty AI response');
+  throw new Error('Direct AI invocation failed');
 }
 
 export const api = {
@@ -168,66 +280,63 @@ export const api = {
     context: any = {},
     conversationHistory: Array<{ sender: 'user' | 'ai'; text: string }> = []
   ): Promise<{ success: boolean; reply: string; model?: string }> {
-    // 1. Try Express Backend first if available
+    const activeKey = getActiveAiKey();
+
+    // 1. Try backend /api/chat (works on localhost:5000 and Vercel)
     try {
       const res = await withTimeout(
-        fetch(`${API_BASE}/chat`, {
+        fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, messages: conversationHistory, context }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeKey ? { 'x-ai-key': activeKey } : {}),
+          },
+          body: JSON.stringify({
+            message,
+            messages: conversationHistory,
+            context,
+            apiKey: activeKey,
+          }),
         }),
         15000
       );
+
       if (res.ok) {
         const json = await res.json();
-        if (json.reply && !json.reply.toLowerCase().includes('telemetry connectivity is limited')) {
-          return json;
+        if (json.reply && !json.reply.toLowerCase().includes('temporarily unavailable') && !json.error) {
+          return { success: true, reply: json.reply, model: json.model || 'Rakshak AI' };
         }
       }
-    } catch (e) {
-      // Backend not running or proxy not active, fall through
+    } catch (err) {
+      console.warn('[Rakshak AI] Backend /api/chat error, trying direct AI:', err);
     }
 
-    // 2. Try Direct Google Gemini if API key is configured
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
+    // 2. Direct browser AI call if user has configured an active key
+    if (activeKey) {
       try {
-        const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-
-        if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-          for (const m of conversationHistory) {
-            if (m.text && m.text.trim()) {
-              contents.push({
-                role: m.sender === 'user' ? 'user' : 'model',
-                parts: [{ text: m.text }],
-              });
-            }
-          }
-        } else {
-          contents.push({
-            role: 'user',
-            parts: [{ text: message }],
-          });
+        const historyContents = conversationHistory
+          .filter((m) => m.text?.trim())
+          .map((m) => ({
+            role: m.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }],
+          }));
+        
+        if (historyContents.length === 0 && message) {
+          historyContents.push({ role: 'user', parts: [{ text: message }] });
         }
 
-        let dynamicSystem = RAKSHAK_SYSTEM_PROMPT;
-        if (context && Object.keys(context).length > 0) {
-          dynamicSystem += `\n\nActive Personnel Context:\n${JSON.stringify(context, null, 2)}`;
+        const directRes = await callRakshakAIDirect(historyContents);
+        if (directRes.text) {
+          return { success: true, reply: directRes.text, model: directRes.model };
         }
-
-        const reply = await callRakshakAI(contents, dynamicSystem);
-        return { success: true, reply, model: 'Rakshak AI (Gemini Core)' };
-      } catch (err) {
-        // Fall through to dedicated local Rakshak intelligence
+      } catch (directErr) {
+        console.warn('[Rakshak AI] Direct LLM error, falling back to local engine:', directErr);
       }
     }
 
-    // 3. Rakshak Specialized Military & Clinical Intelligence Engine
+    // 3. Local curated intelligence engine — offline, ultra-fast, robust coverage
     const intel = generateRakshakIntelligence(message, context, conversationHistory);
-    return {
-      success: true,
-      reply: intel.reply,
-      model: intel.model,
-    };
+    return { success: true, reply: intel.reply, model: intel.model };
   },
 
 
@@ -264,52 +373,19 @@ export const api = {
       // Fallback
     }
 
-    // 2. Direct AI fallback
-    try {
-      const prompt = `You are Rakshak AI, clinical behavioral analytics engine for CAPF and Uniformed Forces.
-Assess the personnel stress profile based on this data:
-${JSON.stringify(intake, null, 2)}
-
-Return ONLY valid JSON:
-{
-  "overallRisk": "Low" | "Moderate" | "High" | "Critical",
-  "stressScore": number (1 to 100),
-  "keyTriggers": ["string", "string"],
-  "copingPlan": ["string", "string", "string"],
-  "recommendedAction": "string",
-  "welfareDirective": "string"
-}`;
-      const text = await callRakshakAI([
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
-        },
-      ]);
-      const cleaned = text
-        .replace(/```json\s*/gi, '')
-        .replace(/```/g, '')
-        .trim();
-      try {
-        return JSON.parse(cleaned);
-      } catch {
-        const match = cleaned.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]);
-        throw new Error('Invalid JSON from AI');
-      }
-    } catch (err) {
-      return {
-        overallRisk: 'Moderate',
-        stressScore: 52,
-        keyTriggers: ['High operational duty tempo', 'Hypoxia sleep disruption'],
-        copingPlan: [
-          '4-4-4-4 Box Breathing reset',
-          'Prioritize thermal recovery sleep',
-          'Request 48h base camp rest rotation',
-        ],
-        recommendedAction: 'Schedule confidential counseling with Unit Medical Officer.',
-        welfareDirective: 'Expedite 2-day Wellness Recharge respite.',
-      };
-    }
+    // 2. AI fallback removed — use local assessment only
+    return {
+      overallRisk: 'Moderate',
+      stressScore: 52,
+      keyTriggers: ['High operational duty tempo', 'Hypoxia sleep disruption'],
+      copingPlan: [
+        '4-4-4-4 Box Breathing reset',
+        'Prioritize thermal recovery sleep',
+        'Request 48h base camp rest rotation',
+      ],
+      recommendedAction: 'Schedule confidential counseling with Unit Medical Officer.',
+      welfareDirective: 'Expedite 2-day Wellness Recharge respite.',
+    };
   },
 };
 

@@ -23,7 +23,6 @@ build/
 .parcel-cache/
 
 # Build artifacts
-server/dist/
 client/dist/
 *.tsbuildinfo
 

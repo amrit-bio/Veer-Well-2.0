@@ -1,8 +1,12 @@
-export type UserRole = 
-  | 'commander'          // Commanding Officer / CO (Unit overview, strategic readiness)
-  | 'welfare_officer'    // Welfare Officer / Medical Specialist (Interventions, counseling alerts)
-  | 'personnel'          // Frontline Personnel / Jawan (Personal biometrics, self-assessments, leave)
-  | 'analyst';           // Data & Behavioral Analyst (Predictive modeling, anonymized research)
+export type UserRole =
+  | 'commander'
+  | 'welfare_officer'
+  | 'personnel'
+  | 'analyst'
+  | 'senior_command'
+  | 'subordinate_officer'
+  | 'nsg_taskforce'
+  | 'mha_admin';         // NSG: Deputation overlay — parent rank tier + NSG operational layer
 
 export interface User {
   id: string;
@@ -16,6 +20,11 @@ export interface User {
   anonymizedId: string;  // e.g. "CAPF-NODE-1042"
   avatar?: string;
   location: string;
+  tier?: 1 | 2 | 3 | 4;           // CAPF rank tier
+  rankTier?: string;                 // Specific rank tier key for hierarchy lookup
+  scope?: 'sector' | 'battalion' | 'company' | 'platoon' | 'personal' | 'national';
+  isNSG?: boolean;                  // True if on NSG deputation
+  parentForce?: string;              // Parent force if on NSG deputation
 }
 
 
@@ -95,4 +104,57 @@ export interface HackathonFeedback {
   category: 'Design & Usability' | 'AI & Analytics' | 'Security & Privacy' | 'Strategic Impact';
   comments: string;
   date: string;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Real-Time Pipeline Types
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface VoiceLog {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceNumber: string;
+  unit: string;
+  location: string;
+  transcript: string;
+  moodDetected: string;
+  riskFlags: string[];
+  timestamp: string;
+}
+
+export interface RiskAlert {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceNumber: string;
+  anonymizedId: string;
+  unit: string;
+  location: string;
+  riskType: 'phq9' | 'voice_nlp' | 'wearable';
+  riskScore: number;
+  thresholdExceed: string;
+  triggeredAt: string;
+  acknowledged: boolean;
+  acknowledgedBy?: string;
+}
+
+export interface UnitHeatmapData {
+  unit: string;
+  location: string;
+  anonymizedCount: number;
+  avgStress: number;
+  fatigueIndex: number;
+  riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
+  lastUpdated: string;
+}
+
+export interface SystemTelemetry {
+  id: string;
+  eventType: 'alert_triggered' | 'alert_acknowledged' | 'risk_override' | 'model_drift';
+  eventDetail: string;
+  triggeredBy?: string;
+  thresholdValue?: number;
+  actualValue?: number;
+  timestamp: string;
 }
