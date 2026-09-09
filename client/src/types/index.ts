@@ -1,12 +1,12 @@
 export type UserRole =
-  | 'commander'              // Tier 2: Commanding Officer / CO (Unit overview, strategic readiness)
-  | 'welfare_officer'        // Tier 2: Welfare Officer / Medical Specialist (Interventions, counseling alerts)
-  | 'personnel'              // Tier 4: Frontline Personnel / Jawan (Personal biometrics, self-assessments, leave)
-  | 'analyst'                // Tier 2: Data & Behavioral Analyst (Predictive modeling, anonymized research)
-  | 'senior_command'         // Tier 1: Director General / ADG / IG / DIG (Sector-wide anonymized aggregate)
-  | 'subordinate_officer'    // Tier 3: Subedar Major / Subedar / SI / ASI (Platoon-scoped first-line triage)
-  | 'nsg_taskforce'          // NSG: Deputation overlay — parent rank tier + NSG operational layer
-  | 'admin';                 // Single MHA administrator (review queue + system config)
+  | 'commander'
+  | 'welfare_officer'
+  | 'personnel'
+  | 'analyst'
+  | 'senior_command'
+  | 'subordinate_officer'
+  | 'nsg_taskforce'
+  | 'mha_admin';         // NSG: Deputation overlay — parent rank tier + NSG operational layer
 
 export interface User {
   id: string;

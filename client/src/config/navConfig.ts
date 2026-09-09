@@ -116,16 +116,6 @@ export const NAV_CONFIG: TabItem[] = [
     operationalScope: 'Medical & Welfare Officers (Doctor-Patient Privilege)',
   },
   {
-    id: 'review-dashboard',
-    label: 'Review Queue',
-    category: 'Operational Command',
-    icon: ClipboardCheck,
-    badge: 'MHA',
-    description: 'MHA admin dashboard — review and approve public signup requests',
-    roles: ['admin'],
-    operationalScope: 'Single MHA Administrator (Human Gate for All Signups)',
-  },
-  {
     id: 'assessment',
     label: 'Self-Assessment',
     category: 'Core Modules',
@@ -273,6 +263,16 @@ export const NAV_CONFIG: TabItem[] = [
     roles: [],
     operationalScope: 'Removed from analyst role per access-control update',
   },
+  {
+    id: 'mha-approval',
+    label: 'MHA Approval Queue',
+    category: 'Platform & Demo',
+    icon: Shield,
+    badge: 'MHA',
+    description: 'Ministry of Home Affairs approval workflow — pending registrations, verification & audit',
+    roles: ['mha_admin'],
+    operationalScope: 'MHA Authorized Administrators Only',
+  },
 ];
 
 export const NAV_CATEGORIES: NavCategory[] = [
@@ -327,8 +327,8 @@ export function getDefaultTabForRole(role: UserRole): string {
       return 'subordinate-dashboard';
     case 'nsg_taskforce':
       return 'nsg-taskforce-dashboard';
-    case 'admin':
-      return 'review-dashboard';
+    case 'mha_admin':
+      return 'mha-approval';
     case 'personnel':
     default:
       return 'dashboard';

@@ -303,6 +303,7 @@ interface AuthContextType {
   }) => Promise<{ error: Error | null; data?: { status: string; message?: string; requestId?: string } }>;
   supabaseSignOut: () => Promise<void>;
   logout: () => void;
+  getMhaAdminToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -875,6 +876,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAnonymized((prev) => !prev);
   };
 
+  const getMhaAdminToken = (): string | null => {
+    if (role !== 'mha_admin') return null;
+    const payload = {
+      sub: user.id,
+      email: user.serviceNumber + '@mha.gov.in',
+      name: user.name,
+      role: 'mha_admin',
+      exp: Date.now() + 8 * 60 * 60 * 1000,
+    };
+    return btoa(JSON.stringify(payload));
+  };
+
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
@@ -903,6 +916,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabaseSignInWithOtp,
         supabaseVerifyOtp,
         logout,
+        getMhaAdminToken,
       }}
     >
       {children}

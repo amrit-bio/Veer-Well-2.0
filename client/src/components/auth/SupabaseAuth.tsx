@@ -218,16 +218,21 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
     }
 
     setLoading(true);
-    const { error } = await supabaseSignIn(email.trim(), password);
-    setLoading(false);
 
-    if (error) {
-      setErrorMsg(error.message || 'Failed to authenticate. Please check your credentials.');
-    } else {
-      setSuccessMsg('Authentication successful! Loading your authorized military clearance profile...');
-      setTimeout(() => {
-        if (onSuccess) onSuccess();
-      }, 500);
+    try {
+      const { error } = await supabaseSignIn(email.trim(), password);
+      if (error) {
+        setErrorMsg(error.message || 'Failed to authenticate. Please check your credentials.');
+      } else {
+        setSuccessMsg('Authentication successful! Loading your authorized military clearance profile...');
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 500);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred during login.');
+    } finally {
+      setLoading(false);
     }
   };
 
