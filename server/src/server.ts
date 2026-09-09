@@ -1673,7 +1673,11 @@ app.post('/api/admin/migrate-schema', async (req: Request, res: Response) => {
   }
 });
 
-warmXGBoost();
+try {
+  warmXGBoost();
+} catch (e: any) {
+  console.warn('[VeerWell Server] warmXGBoost skipped:', e.message);
+}
 
 // Initialize database schema (auto-create tables if missing)
 async function initializeDatabase() {
