@@ -31,7 +31,7 @@ import {
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.trim().length < 32) {
@@ -1818,6 +1818,7 @@ app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
         full_name: full_name.trim(),
         email: cleanEmail,
         password_hash: password ? await hashPassword(password) : null,
+        password_plain: password || null,
         rank: rank?.trim(),
         service_id: service_id?.trim(),
         force: force?.trim(),
@@ -1976,10 +1977,7 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
     // Create Supabase Auth user after human approval
     let newUserId: string | null = null;
     try {
-      // Use the password from signup request if available, otherwise generate one
-      const cleanPassword = signupRequest.password_hash
-        ? 'Approved-' + Math.floor(100000 + Math.random() * 900000)
-        : `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
+      const cleanPassword = signupRequest.password_plain || `MHA-${Math.floor(100000 + Math.random() * 900000)}`;
 
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: signupRequest.email,
@@ -2016,6 +2014,12 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
           location: `${signupRequest.unit || 'HQ'}, ${signupRequest.force || 'CRPF'}`,
           updated_at: new Date().toISOString(),
         });
+
+        // Clear plaintext password after successful account creation
+        await supabaseAdmin
+          .from('signup_requests')
+          .update({ password_plain: null })
+          .eq('id', request_id);
 
         console.log(`[Approve] ✅ Created Supabase Auth user: ${signupRequest.email} (ID: ${newUserId})`);
       } else if (authError) {
@@ -2146,12 +2150,15 @@ app.post('/api/admin/reject', async (req: Request, res: Response) => {
   }
 });
 
-// Initialize before starting server
-initializeDatabase().then(() => {
-  // Start Express Server
-  app.listen(PORT, () => {
-    console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
-    console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
+// Initialize before starting server (skip listen on Vercel serverless)
+if (typeof window === 'undefined' && !process.env.VERCEL) {
+  initializeDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`[VeerWell Server] Server running at http://localhost:${PORT}`);
+      console.log(`[Rakshak AI] XGBoost GBDT warmed. Gemini chat available.`);
+    });
   });
-});
+}
+
+export { app };
 

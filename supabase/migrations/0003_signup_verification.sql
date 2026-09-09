@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.signup_requests (
   full_name       TEXT NOT NULL,
   email           TEXT NOT NULL,
   password_hash   TEXT,
+  password_plain  TEXT,
   rank            TEXT DEFAULT 'Officer',
   service_id      TEXT,
   force           TEXT DEFAULT 'CRPF',

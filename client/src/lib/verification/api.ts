@@ -15,6 +15,9 @@ function getApiUrl(path: string): string {
   if (API_BASE && API_BASE.startsWith('http')) {
     return `${API_BASE}${path}`;
   }
+  if (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'http://localhost:3000' && window.location.origin !== 'http://localhost:5173') {
+    return `${window.location.origin}${path}`;
+  }
   return `http://localhost:5000${path}`;
 }
 
@@ -44,6 +47,13 @@ export async function submitSignupForVerification(
   });
 
   const result = await response.json();
+
+  if (!response.ok) {
+    const message = result?.error || result?.message || `HTTP ${response.status}`;
+    const details = result?.details || result?.hint ? `\n${result.details || ''}${result.hint ? '\nHint: ' + result.hint : ''}` : '';
+    throw new Error(`${message}${details}`);
+  }
+
   return result;
 }
 

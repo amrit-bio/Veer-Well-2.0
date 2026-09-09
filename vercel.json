@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd client && npm install && npm run build",
+  "installCommand": "npm install --prefix client && npm install --prefix server",
+  "buildCommand": "cd server && npx tsc && cd ../client && npx vite build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install --prefix client",
   "framework": "vite",
   "regions": ["iad1"],
   "rewrites": [
