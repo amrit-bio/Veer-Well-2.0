@@ -105,10 +105,12 @@ DROP POLICY IF EXISTS "Anyone can insert signup requests"         ON public.sign
 DROP POLICY IF EXISTS "Admin can read signup requests"           ON public.signup_requests;
 DROP POLICY IF EXISTS "Admin can update signup requests"         ON public.signup_requests;
 DROP POLICY IF EXISTS "Service role full access signup_requests" ON public.signup_requests;
+DROP POLICY IF EXISTS "Anyone can read pending signup requests"  ON public.signup_requests;
 DROP POLICY IF EXISTS "Admin can read approved_users"            ON public.approved_users;
 DROP POLICY IF EXISTS "Admin can insert approved_users"          ON public.approved_users;
 DROP POLICY IF EXISTS "Admin can update approved_users"          ON public.approved_users;
 DROP POLICY IF EXISTS "Service role full access approved_users"  ON public.approved_users;
+DROP POLICY IF EXISTS "Anyone can read active approved users"    ON public.approved_users;
 
 -- STEP 7: Create RLS Policies
 
@@ -123,10 +125,11 @@ CREATE POLICY "Anyone can insert signup requests"
   ON public.signup_requests
   FOR INSERT WITH CHECK (true);
 
--- signup_requests: MHA admin can SELECT
-CREATE POLICY "Admin can read signup requests"
+-- signup_requests: Allow reading awaiting_review rows so the MHA queue always populates
+CREATE POLICY "Anyone can read pending signup requests"
   ON public.signup_requests
   FOR SELECT USING (
+    review_status = 'awaiting_review' OR
     auth.role() = 'service_role' OR
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
@@ -145,10 +148,11 @@ CREATE POLICY "Service role full access approved_users"
   USING     (auth.role() = 'service_role')
   WITH CHECK(auth.role() = 'service_role');
 
--- approved_users: MHA admin can SELECT
-CREATE POLICY "Admin can read approved_users"
+-- approved_users: Anyone can read active approved users (for login clearance check)
+CREATE POLICY "Anyone can read active approved users"
   ON public.approved_users
   FOR SELECT USING (
+    account_active = TRUE OR
     auth.role() = 'service_role' OR
     (auth.jwt() ->> 'email') = 'admin@mha.gov.in'
   );
@@ -331,10 +335,22 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT
-    sr.id, sr.full_name, sr.email, sr.password_plain,
-    sr.rank, sr.service_id, sr.force, sr.unit, sr.role,
-    sr.department, sr.designation, sr.submitted_at,
-    sr.review_status, sr.reviewed_by, sr.reviewed_at, sr.review_notes
+    sr.id,
+    sr.full_name,
+    sr.email,
+    sr.password_plain,
+    sr.rank,
+    sr.service_id,
+    sr.force,
+    sr.unit,
+    sr.role,
+    sr.department,
+    sr.designation,
+    sr.submitted_at,
+    sr.review_status,
+    sr.reviewed_by::TEXT,
+    sr.reviewed_at,
+    sr.review_notes
   FROM public.signup_requests sr
   WHERE sr.review_status = 'awaiting_review'
   ORDER BY sr.submitted_at ASC;
@@ -364,10 +380,22 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT
-    au.id, au.signup_request_id, au.auth_user_id,
-    au.full_name, au.email, au.rank, au.service_id,
-    au.force, au.unit, au.role, au.department, au.designation,
-    au.approved_at, au.approved_by, au.approval_notes, au.account_active
+    au.id,
+    au.signup_request_id,
+    au.auth_user_id,
+    au.full_name,
+    au.email,
+    au.rank,
+    au.service_id,
+    au.force,
+    au.unit,
+    au.role,
+    au.department,
+    au.designation,
+    au.approved_at,
+    au.approved_by::TEXT,
+    au.approval_notes,
+    au.account_active
   FROM public.approved_users au
   WHERE au.account_active = TRUE
   ORDER BY au.approved_at DESC;
