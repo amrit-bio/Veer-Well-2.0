@@ -1766,7 +1766,7 @@ async function initializeDatabase() {
 // ============================================================================
 
 // Public signup: store request for admin review
-app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
+app.post(['/api/auth/signup/verify', '/auth/signup/verify'], async (req: Request, res: Response) => {
   try {
     const {
       full_name,
@@ -1850,7 +1850,7 @@ app.post('/api/auth/signup/verify', async (req: Request, res: Response) => {
 });
 
 // Get review queue for MHA admin
-app.get('/api/admin/review-queue', async (req: Request, res: Response) => {
+app.get(['/api/admin/review-queue', '/admin/review-queue'], async (req: Request, res: Response) => {
   try {
     const { status = 'awaiting_review' } = req.query;
 
@@ -1873,7 +1873,7 @@ app.get('/api/admin/review-queue', async (req: Request, res: Response) => {
 });
 
 // Approve signup request (Human Gate)
-app.post('/api/admin/approve', async (req: Request, res: Response) => {
+app.post(['/api/admin/approve', '/admin/approve'], async (req: Request, res: Response) => {
   try {
     const { request_id, reviewer_id, review_notes } = req.body;
 
@@ -2043,7 +2043,7 @@ app.post('/api/admin/approve', async (req: Request, res: Response) => {
 });
 
 // Reject signup request
-app.post('/api/admin/reject', async (req: Request, res: Response) => {
+app.post(['/api/admin/reject', '/admin/reject'], async (req: Request, res: Response) => {
   try {
     const { request_id, reviewer_id, review_notes } = req.body;
 

@@ -267,7 +267,10 @@ export const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ onSuccess, showLogou
       if (error) {
         setErrorMsg(error.message || 'Signup verification failed. Please try again.');
       } else if (data?.status === 'awaiting_review') {
-        setSuccessMsg(data.message || 'Your signup request has been submitted for review by MHA authorities. You will be notified once your account is approved.');
+        setSuccessMsg(
+          data.message ||
+          '🔒 Security Clearance Registered: Your signup credentials have been securely stored in the Supabase backend awaiting MHA Admin review. The MHA Admin can now audit your credentials and grant operational clearance.'
+        );
         setMode('entry');
       } else {
         setErrorMsg('Unexpected response from verification system. Please try again.');

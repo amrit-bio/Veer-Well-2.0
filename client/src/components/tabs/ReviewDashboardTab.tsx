@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import {
   ClipboardCheck, UserCheck, UserX, AlertTriangle, CheckCircle,
-  Clock, Mail, Shield, FileText, RefreshCw, User,
+  Clock, Mail, Shield, FileText, RefreshCw, User, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import {
   getReviewQueue,
@@ -25,6 +25,7 @@ export const ReviewDashboardTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -213,36 +214,92 @@ export const ReviewDashboardTab: React.FC = () => {
                 </span>
               </div>
 
-              {/* Request Details */}
+              {/* Request Credentials Audit (Double-Layer Security) */}
               <div className="p-4 rounded-xl bg-olive-950 border border-olive-700/40 mb-4">
-                <h4 className="text-xs font-mono text-olive-400 uppercase tracking-wider mb-2">
-                  Signup Details
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between mb-3 border-b border-olive-800/60 pb-2">
+                  <h4 className="text-xs font-mono text-accent-gold uppercase tracking-wider flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-accent-gold" />
+                    <span>Exact Submitted Credentials & Clearance Profile</span>
+                  </h4>
+                  <span className="text-[10px] font-mono text-olive-400">
+                    Node: <strong className="text-white">CAPF-NODE-{request.id.slice(0, 5).toUpperCase()}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
                     <p className="text-[10px] text-olive-500 font-mono">Full Name</p>
                     <p className="text-xs font-bold text-white">{request.full_name || 'Not provided'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-olive-500 font-mono">Rank</p>
-                    <p className="text-xs font-bold text-white">{request.rank || 'Officer'}</p>
+                    <p className="text-[10px] text-olive-500 font-mono">Registered Email</p>
+                    <p className="text-xs font-bold text-emerald-300 font-mono truncate">{request.email}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-olive-500 font-mono">Force</p>
+                    <p className="text-[10px] text-olive-500 font-mono">Military Service ID</p>
+                    <p className="text-xs font-bold text-accent-gold font-mono">{request.service_id || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Force & Branch</p>
                     <p className="text-xs font-bold text-white">{request.force || 'CRPF'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-olive-500 font-mono">Unit</p>
-                    <p className="text-xs font-bold text-white">{request.unit || 'Not provided'}</p>
+                    <p className="text-[10px] text-olive-500 font-mono">Military Rank</p>
+                    <p className="text-xs font-bold text-white">{request.rank || 'Officer'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-olive-500 font-mono">Service ID</p>
-                    <p className="text-xs font-bold text-white">{request.service_id || 'Not provided'}</p>
+                    <p className="text-[10px] text-olive-500 font-mono">Assigned Unit</p>
+                    <p className="text-xs font-bold text-white truncate">{request.unit || 'Not provided'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-olive-500 font-mono">Department</p>
-                    <p className="text-xs font-bold text-white">{request.department || 'Not provided'}</p>
+                    <p className="text-[10px] text-olive-500 font-mono">Command Role</p>
+                    <p className="text-xs font-bold text-cyan-300 capitalize">{(request.role || 'personnel').replace('_', ' ')}</p>
                   </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Department / Designation</p>
+                    <p className="text-xs font-bold text-white truncate">{request.designation || request.department || 'Operations'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-olive-500 font-mono">Submitted At</p>
+                    <p className="text-xs font-mono text-olive-300">
+                      {request.submitted_at ? new Date(request.submitted_at).toLocaleString() : 'Just now'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Submitted Credential / Password Audit */}
+                <div className="mt-3 pt-2.5 border-t border-olive-800/40 flex items-center justify-between bg-olive-900/40 p-2.5 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[11px] font-mono text-olive-300">Submitted Password Credential:</span>
+                    <span className="font-mono text-xs font-bold text-accent-gold tracking-wider">
+                      {showPasswords[request.id]
+                        ? (request.password_plain || 'Protected / Hash Encrypted')
+                        : '••••••••••••'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPasswords((prev) => ({
+                        ...prev,
+                        [request.id]: !prev[request.id],
+                      }))
+                    }
+                    className="flex items-center gap-1 text-[11px] font-mono text-olive-400 hover:text-white px-2 py-0.5 rounded bg-olive-800/60 transition-colors"
+                  >
+                    {showPasswords[request.id] ? (
+                      <>
+                        <EyeOff className="w-3 h-3" />
+                        <span>Hide</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3 h-3" />
+                        <span>Reveal</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

@@ -468,7 +468,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             body: JSON.stringify({ email: cleanId.toLowerCase(), password: cleanPass }),
           });
           if (res.ok) {
-            const data = await res.json();
+            const text = await res.text();
+            const data = text ? JSON.parse(text) : null;
             if (data?.user) {
               const uRole = (data.user.role || 'personnel') as UserRole;
               setRole(uRole);
@@ -480,6 +481,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch {
           // Fall through to error
+        }
+
+        // Check if this email has a pending or rejected signup request in Supabase
+        try {
+          const { data: pendingReq } = await supabase
+            .from('signup_requests')
+            .select('review_status, email, full_name')
+            .eq('email', cleanId.toLowerCase())
+            .order('submitted_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (pendingReq) {
+            if (pendingReq.review_status === 'awaiting_review') {
+              return {
+                error: new Error(
+                  '🔒 Security Clearance Pending: Your signup request is currently awaiting MHA Admin approval. Once approved by the Ministry of Home Affairs, your account will be activated.'
+                ),
+              };
+            }
+            if (pendingReq.review_status === 'rejected') {
+              return {
+                error: new Error(
+                  '⛔ Access Denied: Your signup request was reviewed and rejected by MHA authorities. Please contact your unit welfare officer.'
+                ),
+              };
+            }
+          }
+        } catch {
+          // Non-blocking check
         }
 
         if (error) return { error };
@@ -506,6 +537,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthModalOpen(false);
           return { error: null };
         }
+      }
+
+      // Check if Service ID has a pending or rejected signup request
+      try {
+        const { data: pendingReqById } = await supabase
+          .from('signup_requests')
+          .select('review_status, service_id')
+          .ilike('service_id', cleanId)
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingReqById) {
+          if (pendingReqById.review_status === 'awaiting_review') {
+            return {
+              error: new Error(
+                `🔒 Security Clearance Pending: Signup request for Service ID "${cleanId}" is currently awaiting MHA Admin approval.`
+              ),
+            };
+          }
+          if (pendingReqById.review_status === 'rejected') {
+            return {
+              error: new Error(
+                `⛔ Access Denied: Signup request for Service ID "${cleanId}" was rejected by MHA authorities.`
+              ),
+            };
+          }
+        }
+      } catch {
+        // Non-blocking
       }
 
       return { error: new Error('Invalid credentials. Please verify your Email/Service ID and password.') };
@@ -559,8 +620,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }),
           });
           if (res.ok) {
-            const resJson = await res.json();
-            if (resJson.userId) assignedUserId = resJson.userId;
+            const text = await res.text();
+            const resJson = text ? JSON.parse(text) : null;
+            if (resJson?.userId) assignedUserId = resJson.userId;
           }
         } catch {
           // Non-blocking

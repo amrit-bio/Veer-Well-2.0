@@ -11,6 +11,7 @@ export interface SignupRequest {
   full_name: string;
   email: string;
   password_hash?: string;
+  password_plain?: string;
   rank?: string;
   service_id?: string;
   force?: string;
