@@ -40,101 +40,89 @@ export interface SubmitSignupData {
 
 /**
  * Submit signup for MHA admin review.
- * Tries serverless endpoint first, then automatically falls back to direct Supabase database insert.
+ *
+ * Strategy (most-reliable-first):
+ *  1. Write directly to Supabase `signup_requests` using the anon key.
+ *     ➜ This works as long as the table exists + INSERT policy allows it.
+ *  2. After success, best-effort POST to the server API for additional processing
+ *     (e.g. sending notifications). Failure here does NOT affect the user.
  */
 export async function submitSignupForVerification(
   data: SubmitSignupData
 ): Promise<SignupVerificationResponse> {
   const cleanEmail = data.email.trim().toLowerCase();
 
-  // Primary: Try HTTP API endpoint (Express / Vercel Serverless)
-  try {
-    const primaryUrl = getApiUrl('/api/auth/signup/verify');
-    const response = await fetch(primaryUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+  // ── STEP 1: Direct Supabase INSERT (primary, reliable) ────────────────────
+  const { error: dbError } = await supabase
+    .from('signup_requests')
+    .insert({
+      full_name:    data.full_name.trim(),
+      email:        cleanEmail,
+      password_plain: data.password || null,
+      rank:         data.rank?.trim()        || 'Officer',
+      service_id:   data.service_id?.trim()  || null,
+      force:        data.force?.trim()        || 'CRPF',
+      unit:         data.unit?.trim()         || null,
+      role:         data.role?.trim()         || 'personnel',
+      department:   data.department?.trim()   || 'Operations',
+      designation:  data.designation?.trim()  || `${data.rank || 'Officer'} (${data.role || 'personnel'})`,
+      review_status: 'awaiting_review',
+      submitted_at: new Date().toISOString(),
     });
 
-    const text = await response.text();
-    let result: any = {};
-    if (text && text.trim()) {
-      try {
-        result = JSON.parse(text);
-      } catch {
-        result = { raw: text };
-      }
+  if (dbError) {
+    console.error('[Signup] Supabase insert error:', dbError.code, dbError.message);
+
+    // Table doesn't exist → migration not run
+    if (dbError.code === '42P01' || dbError.message?.toLowerCase().includes('does not exist')) {
+      throw new Error(
+        'Database not initialized. Please contact the system administrator to run the SQL migration in Supabase.'
+      );
     }
 
-    if (response.ok) {
-      return result as SignupVerificationResponse;
+    // Duplicate email → already submitted
+    if (dbError.code === '23505') {
+      return {
+        message: 'A signup request for this email is already pending MHA Admin review. You will be notified once approved.',
+        status: 'awaiting_review',
+        request_id: 'duplicate',
+      };
     }
 
-    // If endpoint returned 404/405 (e.g. backend route unavailable), fall through to Supabase direct fallback
-    if (response.status !== 405 && response.status !== 404) {
-      const message = result?.error || result?.message || `HTTP ${response.status}`;
-      const details = result?.details || result?.hint ? `\n${result.details || ''}${result.hint ? '\nHint: ' + result.hint : ''}` : '';
-      throw new Error(`${message}${details}`);
+    // Permission denied (RLS) → surface clearly
+    if (dbError.code === '42501' || dbError.message?.toLowerCase().includes('permission denied')) {
+      throw new Error(
+        'Permission denied: the database security policy rejected this request. Please contact the system administrator.'
+      );
     }
-  } catch (err: any) {
-    if (err.message && !err.message.includes('405') && !err.message.includes('404') && !err.message.includes('Failed to fetch')) {
-      throw err;
-    }
-    console.warn('[Signup Verification] Primary API fetch failed or returned 405/404. Falling back to direct Supabase storage:', err.message);
+
+    // Any other DB error
+    throw new Error(`Signup failed: ${dbError.message}`);
   }
 
-  // Fallback: Store directly in Supabase signup_requests table
-  // Note: anon key cannot SELECT from signup_requests (RLS blocks it).
-  // We skip the duplicate check here — the primary API handles it, and
-  // a duplicate INSERT will fail with a unique-constraint error which we surface below.
+  console.log('[Signup] ✅ Registration stored in Supabase for:', cleanEmail);
+
+  // ── STEP 2: Best-effort server notification (non-blocking) ─────────────────
+  // If this fails, the signup is still saved — we just skip the extra processing.
   try {
-    // Do NOT set a manual id — let Supabase generate a proper UUID
-    // Do NOT chain .select() — the anon key cannot SELECT from signup_requests (RLS blocks it)
-    const { error: dbError } = await supabase
-      .from('signup_requests')
-      .insert({
-        full_name: data.full_name.trim(),
-        email: cleanEmail,
-        password_plain: data.password || null,
-        rank: data.rank?.trim() || 'Officer',
-        service_id: data.service_id?.trim() || null,
-        force: data.force?.trim() || 'CRPF',
-        unit: data.unit?.trim() || null,
-        role: data.role?.trim() || 'personnel',
-        department: data.department?.trim() || 'Operations',
-        designation: data.designation?.trim() || `${data.rank || 'Officer'} (${data.role || 'personnel'})`,
-        review_status: 'awaiting_review',
-        submitted_at: new Date().toISOString(),
-      });
-
-    if (dbError) {
-      console.error('[Signup Verification] Direct Supabase insert FAILED:', dbError.code, dbError.message, dbError.details);
-      // Table doesn't exist → migration not run
-      if (dbError.message?.includes('relation') || dbError.message?.includes('does not exist') || dbError.code === '42P01') {
-        throw new Error('Database table "signup_requests" does not exist. Please run the SQL migration in Supabase SQL Editor first.');
-      }
-      // Duplicate email → already submitted
-      if (dbError.code === '23505') {
-        return {
-          message: 'A signup request for this email is already pending MHA Admin review.',
-          status: 'awaiting_review',
-          request_id: 'duplicate',
-        };
-      }
-      throw new Error(`Database error: ${dbError.message}`);
-    }
-
-    console.log('[Signup Verification] ✅ Signup request stored in Supabase for:', cleanEmail);
-
-    return {
-      message: 'Signup request submitted for review. You will be notified once your account is approved by MHA admin.',
-      status: 'awaiting_review',
-      request_id: `pending-${Date.now()}`,
-    };
-  } catch (fallbackErr: any) {
-    console.error('[Signup Verification] Direct fallback error:', fallbackErr?.message || fallbackErr);
-    throw new Error(fallbackErr?.message || 'Failed to submit signup request. Please check your internet connection and try again.');
+    const serverUrl = getApiUrl('/api/auth/signup/verify');
+    fetch(serverUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data),
+      signal:  AbortSignal.timeout(5000), // 5s max, then abandon
+    }).catch(() => {
+      // Silently ignore — server notification is optional
+    });
+  } catch {
+    // Non-blocking
   }
+
+  return {
+    message: 'Your registration has been submitted for MHA Admin review. You will be notified once your account is approved.',
+    status: 'awaiting_review',
+    request_id: `pending-${Date.now()}`,
+  };
 }
 
 /**
