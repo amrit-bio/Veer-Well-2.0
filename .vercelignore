@@ -21,8 +21,6 @@ build/
 # Cache
 .cache/
 .parcel-cache/
-.vite/
-.vite-temp/
 server/dist/
 client/dist/
 *.tsbuildinfo
