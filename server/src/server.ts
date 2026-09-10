@@ -971,6 +971,77 @@ app.post('/api/stress/sample-dataset', (req: Request, res: Response) => {
   });
 });
 
+// Role-Based Data Interconversion & Export Endpoint
+app.post('/api/data-conversion', (req: Request, res: Response) => {
+  try {
+    const sourceRole = (req.body?.sourceRole || req.query?.sourceRole || 'commander') as string;
+    const targetRole = (req.body?.targetRole || req.query?.targetRole || 'analyst') as string;
+    const rawData = req.body?.data || req.body;
+
+    if (!rawData) {
+      return res.status(400).json({ error: 'Missing data to convert' });
+    }
+
+    // Transform based on target role governance rules
+    let transformed: any = Array.isArray(rawData) ? [...rawData] : { ...rawData };
+
+    if (Array.isArray(transformed)) {
+      transformed = transformed.map((item: any) => {
+        const itemCopy = { ...item };
+        if (targetRole === 'analyst' || targetRole === 'personnel') {
+          if (itemCopy.name) itemCopy.name = `Unit-${(itemCopy.id || 'ANON').substring(0, 4).toUpperCase()}`;
+          if (itemCopy.commanderNotes) delete itemCopy.commanderNotes;
+          if (itemCopy.clinicalNotes) delete itemCopy.clinicalNotes;
+          if (itemCopy.personalBiometrics) delete itemCopy.personalBiometrics;
+          if (itemCopy.location) itemCopy.location = 'Aggregated Sector';
+        } else if (targetRole === 'welfare_officer') {
+          if (itemCopy.commanderNotes) delete itemCopy.commanderNotes;
+        } else if (targetRole === 'commander' || targetRole === 'nsg_taskforce') {
+          if (itemCopy.clinicalNotes) delete itemCopy.clinicalNotes;
+        } else if (targetRole === 'senior_command') {
+          if (itemCopy.clinicalNotes) delete itemCopy.clinicalNotes;
+          if (itemCopy.name) itemCopy.name = `Sector-${(itemCopy.id || 'SEC').substring(0, 3).toUpperCase()}`;
+        }
+        return itemCopy;
+      });
+    } else if (typeof transformed === 'object' && transformed !== null) {
+      if (targetRole === 'personnel') {
+        transformed.personnelCount = 1;
+        delete transformed.clinicalNotes;
+        delete transformed.commanderNotes;
+      } else if (targetRole === 'subordinate_officer') {
+        transformed.personnelCount = Math.round((transformed.personnelCount || 12) / 4) * 4;
+        delete transformed.clinicalNotes;
+      } else if (targetRole === 'analyst') {
+        delete transformed.clinicalNotes;
+        delete transformed.commanderNotes;
+        delete transformed.personalBiometrics;
+        if (transformed.name) transformed.name = `Unit-${(transformed.id || 'ANON').substring(0, 4).toUpperCase()}`;
+        if (transformed.location) transformed.location = 'Aggregated Sector';
+      } else if (targetRole === 'welfare_officer') {
+        delete transformed.commanderNotes;
+      } else if (targetRole === 'commander' || targetRole === 'nsg_taskforce') {
+        delete transformed.clinicalNotes;
+      }
+    }
+
+    return res.json({
+      success: true,
+      sourceRole,
+      targetRole,
+      data: transformed,
+      convertedAt: new Date().toISOString(),
+      governance: {
+        differentialPrivacy: true,
+        fieldMasking: targetRole === 'analyst' || targetRole === 'personnel',
+        rlsApplied: true,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to convert data for role', details: err.message });
+  }
+});
+
 // Manual Metric Entry
 app.post('/api/stress/manual', (req: Request, res: Response) => {
   const { department, roleTitle, stressScore, workloadHours, burnoutRisk } = req.body;

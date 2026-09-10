@@ -257,11 +257,13 @@ export const api = {
     return { success: true, result: { score: 78, riskBand: 'Low' } };
   },
 
-  async uploadDataset(file: File): Promise<{ success: boolean; message: string }> {
+  async uploadDataset(file: File): Promise<{ success: boolean; message: string; extractedCount?: number }> {
     const formData = new FormData();
     formData.append('file', file);
+    const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type.includes('pdf');
+    const endpoint = isPdf ? `${API_BASE}/stress/upload-pdf` : `${API_BASE}/stress/upload-csv`;
     try {
-      const res = await fetch(`${API_BASE}/stress/upload-csv`, {
+      const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
